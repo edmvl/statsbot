@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Логи чата</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" th:href="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.css}">
+    <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
+    <script th:src="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.js}"></script>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" data-back="/app/chats" defer></script>
+    <style>
+        :root {
+            --tg-theme-bg-color: #ffffff !important;
+            --tg-theme-text-color: #000000 !important;
+            --tg-theme-hint-color: #999999 !important;
+            --tg-theme-link-color: #2481cc !important;
+            --tg-theme-button-color: #2481cc !important;
+            --tg-theme-button-text-color: #ffffff !important;
+            --tg-theme-secondary-bg-color: #f1f1f1 !important;
+        }
+
+        /* Принудительное применение для всех элементов */
+        body {
+            background-color: var(--tg-theme-bg-color) !important;
+            color: var(--tg-theme-text-color) !important;
+        }
+
+        /* Альтернативный подход - прямые значения */
+        body.force-light-theme {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        body {
+            font-family: Arial, sans-serif;
+        }
+        label, input {
+            display: block;
+        }
+
+        fieldset {
+            padding: 0;
+            border: 0;
+            margin-top: 25px;
+        }
+
+        h1 {
+            font-size: 1.2em;
+            margin: .6em 0;
+        }
+
+        div#users-contain {
+            width: 350px;
+            margin: 20px 0;
+        }
+
+        div#users-contain table {
+            margin: 1em 0;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        div#users-contain table td, div#users-contain table th {
+            border: 1px solid #eee;
+            padding: .6em 10px;
+            text-align: left;
+        }
+
+    </style>
+</head>
+<body>
+<div id="users-contain" class="ui-widget">
+    <h1 th:text="${chatName}"></h1>
+    <table id="users" class="ui-widget ui-widget-content">
+        <tr th:each="message : ${messages}">
+            <td th:text="${{message.getDateTime()}}"></td>
+            <td>
+                <div th:text="${{message.getFirstName()}}"></div>
+                <div th:text="${{message.getLastName()}}"></div>
+                <div th:if="${{message.getUserName()}}">
+                    (<span th:text="${{message.getUserName()}}"></span>)
+                </div>
+            </td>
+            <td th:text="${{message.getText()}}"></td>
+        </tr>
+    </table>
+</div>
+<a th:href="@{/app/chat/{chatId}(page=${prevPage}, count=${count}, chatId=${chatId})}" th:text="${prevPage}"></a>
+<a th:text="${currentPage}"></a>
+<a th:href="@{/app/chat/{chatId}(page=${nextPage}, count=${count}, chatId=${chatId})}" th:text="${nextPage}"></a>
+</body>
+</html>

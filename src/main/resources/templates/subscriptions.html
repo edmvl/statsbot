@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Подписки</title>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 16px;
+            margin: 0;
+            background: #f8fafc;
+            color: #0b1e33;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0 0 16px;
+        }
+
+        .group {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.05);
+        }
+
+        .head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #d8e1ec;
+            flex: 0 0 auto;
+        }
+
+        .avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #eef2f6;
+            color: #5b6f82;
+            font-size: 18px;
+            font-weight: 600;
+            border: 1px solid #d8e1ec;
+            flex: 0 0 auto;
+        }
+
+        .who {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .name {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .username {
+            color: #5b6f82;
+            font-size: 12px;
+            word-break: break-word;
+        }
+
+        .count {
+            margin-left: auto;
+            flex: 0 0 auto;
+            color: #5b6f82;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eef2f6;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+            padding: 4px 10px 4px 4px;
+            border-radius: 999px;
+            background: #eef2f6;
+            color: #0b1e33;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .chip-avatar {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: 0 0 auto;
+            background: #ffffff;
+        }
+
+        .chip-avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #ffffff;
+            color: #5b6f82;
+            font-size: 12px;
+            font-weight: 600;
+            flex: 0 0 auto;
+        }
+
+        .chip-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chip-id {
+            color: #7d8b99;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .empty {
+            color: #5b6f82;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<h1>Подписки</h1>
+
+<div th:if="${#lists.isEmpty(groups)}" class="empty">Пока нет подписок</div>
+
+<div class="group" th:each="group : ${groups}">
+    <div class="head">
+        <img class="avatar" th:if="${!#strings.isEmpty(group.avatarPath)}"
+             th:src="@{/avatar/{id}(id=${group.userId})}" alt=""/>
+        <span class="avatar avatar-placeholder" th:unless="${!#strings.isEmpty(group.avatarPath)}"
+              th:text="${!#strings.isEmpty(group.firstName) ? #strings.substring(group.firstName,0,1) : '👤'}">👤</span>
+        <div class="who" th:title="${group.userId}">
+            <div class="name"
+                 th:text="${!#strings.isEmpty(group.firstName)
+                         ? (group.firstName + ' ' + (group.lastName != null ? group.lastName : ''))
+                         : (!#strings.isEmpty(group.userName) ? '@' + group.userName : 'ID ' + group.userId)}">Имя</div>
+            <div class="username" th:if="${!#strings.isEmpty(group.userName)}" th:text="'ID ' + ${group.userId}"></div>
+        </div>
+        <div class="count" th:text="'подписок: ' + ${#lists.size(group.interests)}">подписок: 1</div>
+    </div>
+
+    <div class="chips">
+        <a class="chip" th:each="sub : ${group.interests}"
+           th:href="@{/app/reviews/{id}(id=${sub.interestId})}"
+           th:title="${sub.chatId != null ? 'Чат: ' + sub.chatId : sub.interestId}">
+            <img class="chip-avatar" th:if="${!#strings.isEmpty(sub.interestAvatarPath)}"
+                 th:src="@{/avatar/{id}(id=${sub.interestId})}" alt=""/>
+            <span class="chip-avatar chip-avatar-placeholder" th:unless="${!#strings.isEmpty(sub.interestAvatarPath)}"
+                  th:text="${!#strings.isEmpty(sub.interestFirstName) ? #strings.substring(sub.interestFirstName,0,1) : '👤'}">👤</span>
+            <span class="chip-name"
+                  th:text="${!#strings.isEmpty(sub.interestFirstName)
+                          ? (sub.interestFirstName + ' ' + (sub.interestLastName != null ? sub.interestLastName : ''))
+                          : (!#strings.isEmpty(sub.interestUserName) ? '@' + sub.interestUserName : 'ID ' + sub.interestId)}">Имя</span>
+            <span class="chip-id" th:if="${!#strings.isEmpty(sub.interestUserName)}"
+                  th:text="'@' + ${sub.interestUserName}"></span>
+        </a>
+    </div>
+</div>
+</body>
+</html>

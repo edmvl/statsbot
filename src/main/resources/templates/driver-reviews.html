@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Отзывы о водителе</title>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" data-back="/app/trips" defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 16px;
+            margin: 0;
+            background: #f8fafc;
+            color: #0b1e33;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0 0 16px;
+        }
+
+        .driver {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #d8e1ec;
+            flex: 0 0 auto;
+        }
+
+        .avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #eef2f6;
+            color: #5b6f82;
+            font-size: 22px;
+            font-weight: 600;
+            border: 1px solid #d8e1ec;
+            flex: 0 0 auto;
+        }
+
+        .driver-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .username {
+            color: #5b6f82;
+            font-size: 14px;
+        }
+
+        .review {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.05);
+        }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .review-header .avatar,
+        .review-header .avatar-placeholder {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+        }
+
+        .review-author-name {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .review-stars {
+            margin-left: auto;
+            color: #f5b342;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .review-comment {
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .no-comment,
+        .empty {
+            color: #5b6f82;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<h1>Отзывы о водителе</h1>
+
+<div class="driver">
+    <img class="avatar" th:if="${driver != null and !#strings.isEmpty(driver.avatarPath)}"
+         th:src="@{/avatar/{id}(id=${driverId})}" alt=""/>
+    <span class="avatar-placeholder" th:if="${driver == null or #strings.isEmpty(driver.avatarPath)}"
+          th:text="${(driver != null and !#strings.isEmpty(driver.firstName)) ? #strings.substring(driver.firstName,0,1) : '👤'}">👤</span>
+    <div>
+        <div class="driver-name" th:if="${driver}"
+             th:text="${driver.firstName + ' ' + (driver.lastName != null ? driver.lastName : '')}">Имя</div>
+        <div class="driver-name" th:unless="${driver}" th:text="'ID ' + ${driverId}">ID</div>
+        <div class="username" th:if="${driver != null and !#strings.isEmpty(driver.userName)}" th:text="'@' + ${driver.userName}"></div>
+    </div>
+</div>
+
+<div th:if="${#lists.isEmpty(reviews)}" class="empty">Пока нет отзывов</div>
+
+<div class="review" th:each="review : ${reviews}">
+    <div class="review-header">
+        <img class="avatar" th:if="${review.avatarPath}"
+             th:src="@{/avatar/{id}(id=${review.reviewUserId})}" alt=""/>
+        <span class="avatar-placeholder" th:unless="${review.avatarPath}"
+              th:text="${#strings.isEmpty(review.firstName) ? '👤' : #strings.substring(review.firstName,0,1)}">👤</span>
+        <div>
+            <div class="review-author-name"
+                 th:text="${(review.firstName != null ? review.firstName : '') + ' ' + (review.lastName != null ? review.lastName : '')}">Имя</div>
+            <div class="username" th:if="${review.userName}" th:text="'@' + ${review.userName}"></div>
+        </div>
+        <div class="review-stars" th:text="'★ ' + ${review.stars}">★ 5</div>
+    </div>
+    <div class="review-comment" th:if="${review.comment}" th:text="${review.comment}">Комментарий</div>
+    <div class="review-comment no-comment" th:unless="${review.comment}">Без комментария</div>
+</div>
+</body>
+</html>

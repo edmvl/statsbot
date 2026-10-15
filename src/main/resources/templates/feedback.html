@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обратная связь</title>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid var(--tg-theme-hint-color, #999999);
+            border-radius: 12px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 16px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #2481cc);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--tg-theme-hint-color, #999999);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: var(--tg-theme-button-color, #2481cc);
+        }
+
+        .file-upload-content {
+            display: none;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--tg-theme-hint-color, #999999);
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            color: var(--tg-theme-text-color, #000000);
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            color: var(--tg-theme-hint-color, #999999);
+            font-size: 14px;
+        }
+
+        .file-preview {
+            margin-top: 16px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--tg-theme-button-color, #2481cc);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .file-name {
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 14px;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: var(--tg-theme-destructive-text-color, #ff3b30);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .submit-btn:not(:disabled):hover {
+            opacity: 0.9;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 16px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            display: none;
+            text-align: center;
+            padding: 12px;
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            color: #c00;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Обратная связь</h1>
+        <p style="color: var(--tg-theme-hint-color, #999999);">Опишите проблему и прикрепите скриншоты</p>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <form id="feedbackForm">
+        <div class="form-group">
+            <label for="complaint">Опишите проблему *</label>
+            <textarea
+                    id="complaint"
+                    name="complaint"
+                    placeholder="Подробно опишите возникшую проблему или ваши предложения..."
+                    required
+            ></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Прикрепить файлы</label>
+            <div class="file-upload" id="fileUploadArea">
+                <div class="file-upload-placeholder">
+                    <div class="upload-icon">📎</div>
+                    <div class="upload-text">Нажмите для загрузки файлов</div>
+                    <div class="upload-hint">Можно прикрепить скриншоты (JPG, PNG)</div>
+                </div>
+                <div class="file-upload-content">
+                    <div class="upload-text">Файлы загружены</div>
+                </div>
+            </div>
+            <input type="file" class="file-input" id="fileInput" accept=".jpg,.jpeg,.png,.gif" multiple>
+            <div class="file-preview" id="filePreview"></div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+            Отправить обратную связь
+        </button>
+    </form>
+
+    <div class="loading" id="loading">
+        Отправка...
+    </div>
+
+    <div class="success-message" id="successMessage">
+        <h3>✅ Спасибо!</h3>
+        <p>Ваше обращение успешно отправлено. Мы рассмотрим его в ближайшее время.</p>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+
+        // Элементы DOM
+        const $form = $('#feedbackForm');
+        const $fileInput = $('#fileInput');
+        const $fileUploadArea = $('#fileUploadArea');
+        const $filePreview = $('#filePreview');
+        const $submitBtn = $('#submitBtn');
+        const $loading = $('#loading');
+        const $successMessage = $('#successMessage');
+        const $errorMessage = $('#errorMessage');
+
+        let attachedFiles = [];
+
+        // Обработчик клика по области загрузки файлов
+        $fileUploadArea.on('click', function() {
+            $fileInput.click();
+        });
+
+        // Обработчик выбора файлов
+        $fileInput.on('change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        });
+
+        // Обработчик перетаскивания файлов
+        $fileUploadArea.on('dragover', function(e) {
+            e.preventDefault();
+            $fileUploadArea.css('border-color', 'var(--tg-theme-button-color, #2481cc)');
+            $fileUploadArea.css('background', 'var(--tg-theme-secondary-bg-color, #f4f4f5)');
+        });
+
+        $fileUploadArea.on('dragleave', function(e) {
+            e.preventDefault();
+            $fileUploadArea.css('border-color', 'var(--tg-theme-hint-color, #999999)');
+            $fileUploadArea.css('background', 'transparent');
+        });
+
+        $fileUploadArea.on('drop', function(e) {
+            e.preventDefault();
+            $fileUploadArea.css('border-color', 'var(--tg-theme-hint-color, #999999)');
+            $fileUploadArea.css('background', 'transparent');
+
+            const files = e.originalEvent.dataTransfer.files;
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        });
+
+        // Функция обработки выбранных файлов
+        function handleFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                // Проверка размера файла (максимум 5MB)
+                if (file.size > 25 * 1024 * 1024) {
+                    showError(`Файл "${file.name}" слишком большой. Максимальный размер: 25MB`);
+                    continue;
+                }
+
+                attachedFiles.push(file);
+                addFileToPreview(file);
+            }
+
+            if (attachedFiles.length > 0) {
+                $fileUploadArea.find('.file-upload-placeholder').hide();
+                $fileUploadArea.find('.file-upload-content').show();
+            }
+
+            $fileInput.val('');
+        }
+
+        // Добавление файла в превью
+        function addFileToPreview(file) {
+            const fileItem = $(
+                `<div class="file-item" data-filename="${file.name}">
+                        <div class="file-info">
+                            <div class="file-icon">IMG</div>
+                            <span class="file-name">${file.name}</span>
+                        </div>
+                        <button type="button" class="remove-file" title="Удалить">🗑️</button>
+                    </div>`
+            );
+
+            fileItem.find('.remove-file').on('click', function() {
+                removeFile(file.name);
+                fileItem.remove();
+
+                if (attachedFiles.length === 0) {
+                    $fileUploadArea.find('.file-upload-placeholder').show();
+                    $fileUploadArea.find('.file-upload-content').hide();
+                }
+            });
+
+            $filePreview.append(fileItem);
+        }
+
+        // Удаление файла
+        function removeFile(filename) {
+            attachedFiles = attachedFiles.filter(file => file.name !== filename);
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            $errorMessage.text(message).show();
+            setTimeout(() => {
+                $errorMessage.hide();
+            }, 5000);
+        }
+
+        // Обработчик отправки формы
+        $form.on('submit', function(e) {
+            e.preventDefault();
+
+            const complaintText = $('#complaint').val().trim();
+
+            if (!complaintText) {
+                showError('Пожалуйста, опишите проблему');
+                return;
+            }
+
+            // Показать загрузку
+            $submitBtn.prop('disabled', true);
+            $loading.show();
+
+            // Подготовка данных для отправки (автора сервер определит по initData)
+            const formData = new FormData();
+            formData.append('complaint', complaintText);
+
+            // Добавление файлов
+            attachedFiles.forEach((file, index) => {
+                formData.append(`files`, file); // Используем одно имя для всех файлов
+            });
+
+            // Отправка данных на сервер
+            sendFeedback(formData);
+        });
+
+        // Функция отправки данных
+        function sendFeedback(formData) {
+            const backendUrl = '/api/feedback';
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', backendUrl, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        onSuccess();
+                    } else {
+                        let errorMsg = 'Ошибка при отправке';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            errorMsg = response.message || errorMsg;
+                        } catch (e) {
+                            errorMsg = `HTTP ошибка: ${xhr.status}`;
+                        }
+                        onError(errorMsg);
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                onError('Ошибка сети');
+            };
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    console.log(`Отправлено: ${percentComplete.toFixed(2)}%`);
+                }
+            };
+
+            // Отправляем FormData
+            xhr.send(formData);
+        }
+
+        // Альтернативный вариант с fetch API (более современный)
+        async function sendFeedbackWithFetch(formData) {
+            try {
+                const response = await fetch('https://your-backend-domain.com/api/feedback', {
+                    method: 'POST',
+                    body: formData
+                    // НЕ добавляем headers - браузер сам установит правильный Content-Type
+                });
+
+                if (response.ok) {
+                    onSuccess();
+                } else {
+                    const errorData = await response.json();
+                    onError(errorData.message || 'Ошибка сервера');
+                }
+            } catch (error) {
+                onError('Ошибка сети: ' + error.message);
+            }
+        }
+
+        function onSuccess() {
+            $form.hide();
+            $loading.hide();
+            $successMessage.show();
+
+            // Закрыть приложение через 3 секунды
+            setTimeout(() => {
+                tg.close();
+            }, 3000);
+        }
+
+        function onError(error) {
+            $loading.hide();
+            $submitBtn.prop('disabled', false);
+            showError(error);
+        }
+    });
+</script>
+</body>
+</html>

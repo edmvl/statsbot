@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Предложить рекламу</title>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .card {
+            background: var(--tg-theme-secondary-bg-color, #f4f4f5);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        select, textarea, input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--tg-theme-hint-color, #999999);
+            border-radius: 12px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        select:focus, textarea:focus, input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #2481cc);
+        }
+
+        .file-input-wrap input[type="file"] {
+            display: none;
+        }
+
+        .file-input-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: 2px dashed var(--tg-theme-hint-color, #999999);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .files-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .file-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            font-size: 13px;
+        }
+
+        .file-chip .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-chip .file-remove {
+            border: none;
+            background: transparent;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 4px;
+        }
+
+        .price {
+            font-weight: 600;
+            color: var(--tg-theme-button-color, #2481cc);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .btn-sm {
+            width: auto;
+            padding: 8px 14px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .proposal {
+            border: 1px solid var(--tg-theme-hint-color, #e5e7eb);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .proposal .text {
+            font-size: 14px;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .proposal .meta {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999999);
+            margin-bottom: 6px;
+        }
+
+        .status {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: var(--tg-theme-bg-color, #ffffff);
+        }
+
+        .status-PENDING {
+            color: #b45309;
+        }
+
+        .status-APPROVED {
+            color: #1d4ed8;
+        }
+
+        .status-ACTIVE {
+            color: #15803d;
+        }
+
+        .status-REJECTED {
+            color: #b91c1c;
+        }
+
+        .attachments {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 6px 0;
+        }
+
+        .attachments a {
+            font-size: 12px;
+            color: var(--tg-theme-button-color, #2481cc);
+            text-decoration: none;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            z-index: 9999;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast-success {
+            background: #10b981;
+        }
+
+        .toast-error {
+            background: #ef4444;
+        }
+
+        .empty {
+            text-align: center;
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #999999);
+            padding: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Предложить рекламу</h1>
+        <p>После проверки администратором понадобится оплата: <span th:text="${starsPerDay}">100</span> ⭐ за день показа.</p>
+    </div>
+
+    <form id="proposalForm" class="card">
+        <div class="form-group">
+            <label for="chatId">Чат для показа</label>
+            <select id="chatId" required>
+                <option value="" disabled selected>Выберите чат</option>
+                <option th:if="${#lists.isEmpty(chats)}" value="" disabled>
+                    Реклама пока недоступна — включите её в настройках чата
+                </option>
+                <option th:each="chat : ${chats}"
+                        th:value="${chat.chatId}"
+                        th:text="${chat.chatName + ' (' + chat.chatId + ')'}"></option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="message">Текст рекламы</label>
+            <textarea id="message" placeholder="Текст рекламного поста" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="days">Сколько дней показывать</label>
+            <input type="number" id="days" th:value="1" th:min="1" th:max="${maxDays}" step="1" required>
+            <div class="files-hint">Стоимость: <span class="price" id="priceLine">100 ⭐</span></div>
+        </div>
+        <div class="form-group">
+            <label>Вложения (необязательно)</label>
+            <div class="file-input-wrap">
+                <label class="file-input-label" for="adFiles">📎 Прикрепить файлы</label>
+                <input type="file" id="adFiles" multiple>
+            </div>
+            <div class="files-hint" id="filesHint"></div>
+            <div class="file-list" id="filesList"></div>
+        </div>
+        <button type="submit" class="btn" id="submitBtn">Отправить на модерацию</button>
+    </form>
+
+    <h2 style="font-size:16px;margin:20px 0 12px">Мои предложения</h2>
+    <div id="proposals">
+        <div class="empty">Загрузка…</div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const STARS_PER_DAY = /*[[${starsPerDay}]]*/ 100;
+    const MAX_FILES = /*[[${maxFiles}]]*/ 3;
+    const MAX_DAYS = /*[[${maxDays}]]*/ 30;
+</script>
+<script>
+    $(document).ready(function () {
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.expand();
+        }
+        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : '';
+
+        let selectedFiles = [];
+
+        function escapeHtml(text) {
+            return $('<div>').text(text == null ? '' : text).html();
+        }
+
+        function showToast(message, type) {
+            const toast = $('<div class="toast toast-' + (type || 'success') + '"></div>').text(message);
+            $('body').append(toast);
+            setTimeout(function () {
+                toast.fadeOut(300, function () {
+                    $(this).remove();
+                });
+            }, 3500);
+        }
+
+        // --- форма ---
+
+        function updatePrice() {
+            let days = parseInt($('#days').val(), 10);
+            if (isNaN(days) || days < 1) {
+                days = 1;
+            }
+            $('#priceLine').text(days * STARS_PER_DAY + ' ⭐');
+        }
+
+        $('#days').on('input', updatePrice);
+
+        function renderSelectedFiles() {
+            const list = $('#filesList');
+            list.empty();
+            selectedFiles.forEach(function (file, index) {
+                const chip = $('<div class="file-chip"></div>');
+                chip.append($('<span class="file-name"></span>').text(file.name));
+                const remove = $('<button type="button" class="file-remove" title="Убрать">✕</button>');
+                remove.on('click', function () {
+                    selectedFiles.splice(index, 1);
+                    renderSelectedFiles();
+                });
+                chip.append(remove);
+                list.append(chip);
+            });
+            $('#filesHint').text('Выбрано ' + selectedFiles.length + ' из ' + MAX_FILES + '.');
+        }
+
+        $('#adFiles').on('change', function () {
+            const incoming = Array.from(this.files || []);
+            let rejected = 0;
+            incoming.forEach(function (file) {
+                if (selectedFiles.length < MAX_FILES) {
+                    selectedFiles.push(file);
+                } else {
+                    rejected++;
+                }
+            });
+            if (rejected > 0) {
+                showToast('Можно прикрепить не больше ' + MAX_FILES + ' файлов', 'error');
+            }
+            this.value = '';
+            renderSelectedFiles();
+        });
+
+        function resetForm() {
+            $('#proposalForm')[0].reset();
+            selectedFiles = [];
+            renderSelectedFiles();
+            updatePrice();
+        }
+
+        $('#proposalForm').on('submit', function (e) {
+            e.preventDefault();
+            if (!userId) {
+                showToast('Откройте приложение через Telegram', 'error');
+                return;
+            }
+            const chatId = $('#chatId').val();
+            const message = $('#message').val().trim();
+            const days = parseInt($('#days').val(), 10);
+
+            if (!chatId || !message) {
+                showToast('Заполните чат и текст рекламы', 'error');
+                return;
+            }
+            if (isNaN(days) || days < 1 || days > MAX_DAYS) {
+                showToast('Количество дней: от 1 до ' + MAX_DAYS, 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('chatId', chatId);
+            formData.append('message', message);
+            formData.append('days', days);
+            selectedFiles.forEach(function (file) {
+                formData.append('files', file);
+            });
+
+            $('#submitBtn').prop('disabled', true).text('Отправляем…');
+            $.ajax({
+                url: '/api/ad-proposals',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function () {
+                    showToast('Предложение отправлено на модерацию', 'success');
+                    resetForm();
+                    loadProposals();
+                },
+                error: function (xhr) {
+                    showToast(xhr.responseJSON?.message || 'Не удалось отправить предложение', 'error');
+                },
+                complete: function () {
+                    $('#submitBtn').prop('disabled', false).text('Отправить на модерацию');
+                }
+            });
+        });
+
+        // --- список предложений ---
+
+        const STATUS_LABELS = {
+            PENDING: 'На модерации',
+            APPROVED: 'Одобрено — нужна оплата',
+            ACTIVE: 'Опубликовано',
+            REJECTED: 'Отклонено'
+        };
+
+        function loadProposals() {
+            if (!userId) {
+                $('#proposals').html('<div class="empty">Откройте приложение через Telegram.</div>');
+                return;
+            }
+            $.ajax({
+                url: '/api/ad-proposals',
+                method: 'GET',
+                dataType: 'json',
+                success: renderProposals,
+                error: function () {
+                    $('#proposals').html('<div class="empty">Не удалось загрузить предложения.</div>');
+                }
+            });
+        }
+
+        function renderProposals(list) {
+            const container = $('#proposals');
+            container.empty();
+            if (!list || list.length === 0) {
+                container.html('<div class="empty">У вас пока нет предложений.</div>');
+                return;
+            }
+            list.forEach(function (item) {
+                const card = $('<div class="proposal"></div>');
+                card.append($('<div class="status status-' + item.status + '"></div>')
+                    .text(STATUS_LABELS[item.status] || item.status));
+                card.append($('<div class="text"></div>').text(item.message));
+                card.append($('<div class="meta"></div>').text(
+                    'Чат: ' + item.chatId + ' · ' + item.days + ' дн. · ' + (item.days * STARS_PER_DAY) + ' ⭐'));
+
+                if (item.files && item.files.length) {
+                    const attachments = $('<div class="attachments"></div>');
+                    item.files.forEach(function (file) {
+                        attachments.append($('<a target="_blank" rel="noopener"></a>')
+                            .attr('href', file.url).text('📎 ' + file.name));
+                    });
+                    card.append(attachments);
+                }
+
+                if (item.status === 'APPROVED') {
+                    const pay = $('<button type="button" class="btn btn-sm"></button>')
+                        .text('Оплатить ' + (item.days * STARS_PER_DAY) + ' ⭐');
+                    pay.on('click', function () {
+                        payProposal(item.id, pay);
+                    });
+                    card.append(pay);
+                }
+
+                container.append(card);
+            });
+        }
+
+        function payProposal(id, $button) {
+            if (!tg || typeof tg.openInvoice !== 'function') {
+                showToast('Оплата доступна только в приложении Telegram', 'error');
+                return;
+            }
+            $button.prop('disabled', true).text('Готовим счёт…');
+            $.ajax({
+                url: '/api/ad-proposals/' + id + '/invoice',
+                method: 'POST',
+                dataType: 'json',
+                success: function (response) {
+                    if (!response.link) {
+                        showToast('Не удалось создать счёт', 'error');
+                        $button.prop('disabled', false).text('Оплатить');
+                        return;
+                    }
+                    tg.openInvoice(response.link, function (status) {
+                        $button.prop('disabled', false).text('Оплатить');
+                        if (status === 'paid') {
+                            showToast('Оплата получена, публикуем…', 'success');
+                            waitForActivation(id, 0);
+                        } else if (status === 'failed') {
+                            showToast('Оплата не прошла', 'error');
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    showToast(xhr.responseJSON?.message || 'Ошибка при создании счёта', 'error');
+                    $button.prop('disabled', false).text('Оплатить');
+                }
+            });
+        }
+
+        // Платёж приходит боту асинхронно — ждём, пока пост станет опубликованным.
+        function waitForActivation(id, attempt) {
+            if (attempt > 15) {
+                loadProposals();
+                return;
+            }
+            $.ajax({
+                url: '/api/ad-proposals/' + id,
+                method: 'GET',
+                dataType: 'json',
+                success: function (item) {
+                    if (item.status === 'ACTIVE') {
+                        showToast('Реклама опубликована!', 'success');
+                        loadProposals();
+                    } else {
+                        setTimeout(function () {
+                            waitForActivation(id, attempt + 1);
+                        }, 2000);
+                    }
+                },
+                error: function () {
+                    setTimeout(function () {
+                        waitForActivation(id, attempt + 1);
+                    }, 2000);
+                }
+            });
+        }
+
+        updatePrice();
+        renderSelectedFiles();
+        loadProposals();
+    });
+</script>
+</body>
+</html>

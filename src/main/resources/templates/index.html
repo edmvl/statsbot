@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Урмарский помощник</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" th:href="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.css}">
+    <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
+    <script th:src="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.js}"></script>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" defer></script>
+</head>
+<body>
+<a class="ui-button ui-widget ui-corner-all" href="/app/trips">Отзывы и рейтинги</a>
+<a class="ui-button ui-widget ui-corner-all" href="/app/my-subscriptions">Мои подписки</a>
+<a class="ui-button ui-widget ui-corner-all" href="/app/feedback">Отправить жалобу</a>
+<a class="ui-button ui-widget ui-corner-all" href="/app/ad-proposal">Предложить рекламу</a>
+<!-- История чатов: показывается только супер-админу (по Telegram id) -->
+<a class="ui-button ui-widget ui-corner-all" href="/app/chats"
+   data-super-admin-id="115965184" style="display:none">История чатов</a>
+<!-- Подписки: только супер-админ -->
+<a class="ui-button ui-widget ui-corner-all" href="/app/subscriptions"
+   data-super-admin-id="115965184" style="display:none">Подписки</a>
+<!-- Реклама: только супер-админ -->
+<a class="ui-button ui-widget ui-corner-all" href="/app/ads"
+   data-super-admin-id="115965184" style="display:none">Реклама</a>
+</body>
+</html>

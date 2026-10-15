@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Мои подписки</title>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 16px;
+            margin: 0;
+            background: #f8fafc;
+            color: #0b1e33;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0 0 6px;
+        }
+
+        .subtitle {
+            color: #5b6f82;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.05);
+        }
+
+        .person {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1 1 auto;
+            min-width: 0;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #d8e1ec;
+            flex: 0 0 auto;
+        }
+
+        .avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #eef2f6;
+            color: #5b6f82;
+            font-size: 18px;
+            font-weight: 600;
+            border: 1px solid #d8e1ec;
+            flex: 0 0 auto;
+        }
+
+        .name {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .username {
+            color: #5b6f82;
+            font-size: 12px;
+            word-break: break-word;
+        }
+
+        .unsubscribe {
+            flex: 0 0 auto;
+            padding: 8px 14px;
+            border: 1px solid #f0b4b4;
+            border-radius: 10px;
+            background: #fdecec;
+            color: #b91c1c;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .unsubscribe:hover {
+            background: #fbdede;
+        }
+
+        .empty, .hint {
+            color: #5b6f82;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .hint {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.05);
+        }
+    </style>
+</head>
+<body>
+<h1>Мои подписки</h1>
+<div class="subtitle">Здесь видно, на кого вы подписаны, и можно отписаться.</div>
+
+<div class="hint" th:if="${#strings.isEmpty(currentUserId)}">
+    Откройте страницу через Telegram — тогда мы покажем ваши подписки.
+    Подписаться и отписаться также можно на странице «Отзывы и рейтинги»,
+    переключателем «Следить за автором».
+</div>
+
+<div class="empty" th:if="${!#strings.isEmpty(currentUserId) and #lists.isEmpty(subscriptions)}">
+    Вы пока ни на кого не подписаны. Подписаться можно на странице
+    «Отзывы и рейтинги» — переключателем «Следить за автором».
+</div>
+
+<form method="post" th:action="@{/app/my-subscriptions}" class="row" th:each="sub : ${subscriptions}">
+    <input type="hidden" name="interestId" th:value="${sub.interestId}"/>
+    <input type="hidden" name="chatId" th:value="${sub.chatId}"/>
+
+    <a class="person" th:href="@{/app/reviews/{id}(id=${sub.interestId})}">
+        <img class="avatar" th:if="${!#strings.isEmpty(sub.interestAvatarPath)}"
+             th:src="@{/avatar/{id}(id=${sub.interestId})}" alt=""/>
+        <span class="avatar-placeholder" th:unless="${!#strings.isEmpty(sub.interestAvatarPath)}"
+              th:text="${!#strings.isEmpty(sub.interestFirstName) ? #strings.substring(sub.interestFirstName,0,1) : '👤'}">👤</span>
+        <div>
+            <div class="name"
+                 th:text="${!#strings.isEmpty(sub.interestFirstName)
+                         ? (sub.interestFirstName + ' ' + (sub.interestLastName != null ? sub.interestLastName : ''))
+                         : (!#strings.isEmpty(sub.interestUserName) ? '@' + sub.interestUserName : 'ID ' + sub.interestId)}">Имя</div>
+            <div class="username" th:if="${!#strings.isEmpty(sub.interestUserName)}"
+                 th:text="'@' + ${sub.interestUserName}"></div>
+            <div class="username" th:unless="${!#strings.isEmpty(sub.interestUserName)}"
+                 th:text="'ID ' + ${sub.interestId}"></div>
+        </div>
+    </a>
+
+    <button type="submit" class="unsubscribe">Отписаться</button>
+</form>
+
+<script>
+    (function () {
+        var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.expand();
+        }
+    })();
+</script>
+</body>
+</html>

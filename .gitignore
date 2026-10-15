@@ -1,0 +1,11 @@
+/target/
+/.idea/
+/dump.sql/
+/messageStatBot.iml
+/tgbot_dump
+/.gitignore
+
+# Внешняя конфигурация с секретами — не коммитим
+/config/
+*.env
+secrets.properties

@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рекламные посты</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/webjars/jquery-ui/1.13.3/jquery-ui.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: var(--tg-theme-text-color, #000000);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 i {
+            color: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .stats {
+            background: var(--tg-theme-bg-color, #ffffff);
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 13px;
+        }
+
+        .stats span {
+            font-weight: bold;
+            color: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 150px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 2px solid var(--tg-theme-hint-color, #d1d5db);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .search-box i {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--tg-theme-hint-color, #9ca3af);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            background: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .btn:hover {
+            opacity: 0.85;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-secondary {
+            background: var(--tg-theme-hint-color, #9ca3af);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .ads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .ad-card {
+            background: var(--tg-theme-secondary-bg-color, #f9fafb);
+            border: 1px solid var(--tg-theme-hint-color, #e5e7eb);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .ad-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+
+        .ad-card .chat-id {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #6b7280);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ad-card .message {
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 10px 0;
+            max-height: 80px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .ad-card .last-message {
+            background: var(--tg-theme-bg-color, #ffffff);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--tg-theme-text-color, #000000);
+            margin: 10px 0;
+            max-height: 60px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .ad-card .period {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #6b7280);
+            margin: 8px 0;
+        }
+
+        .ad-card .period i {
+            margin-right: 4px;
+        }
+
+        .ad-card .last-message i {
+            color: var(--tg-theme-hint-color, #9ca3af);
+            margin-right: 4px;
+        }
+
+        .ad-card .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--tg-theme-hint-color, #e5e7eb);
+        }
+
+        .ad-card .actions .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .ad-card .badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--tg-theme-button-color, #0088cc);
+            color: white;
+            font-size: 10px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .ad-card .status-line {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .status-PENDING {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-APPROVED {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-REJECTED {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .ad-card.pending-card {
+            border-color: #f59e0b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--tg-theme-hint-color, #9ca3af);
+            grid-column: 1/-1;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .empty-state h3 {
+            color: var(--tg-theme-text-color, #000000);
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading i {
+            font-size: 32px;
+            color: var(--tg-theme-button-color, #0088cc);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--tg-theme-bg-color, #ffffff);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .modal-content .form-group {
+            margin-bottom: 16px;
+        }
+
+        .modal-content .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--tg-theme-text-color, #000000);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .modal-content .form-group textarea,
+        .modal-content .form-group input,
+        .modal-content .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--tg-theme-hint-color, #d1d5db);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .modal-content .form-group textarea:focus,
+        .modal-content .form-group input:focus,
+        .modal-content .form-group select:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #0088cc);
+        }
+
+        .modal-content .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .file-input-wrap input[type="file"] {
+            display: none;
+        }
+
+        .file-input-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: 2px dashed var(--tg-theme-hint-color, #d1d5db);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color, #000000);
+            background: var(--tg-theme-secondary-bg-color, #f9fafb);
+        }
+
+        .files-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #6b7280);
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .file-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--tg-theme-secondary-bg-color, #f1f1f1);
+            font-size: 13px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .file-chip .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-chip .file-remove {
+            border: none;
+            background: transparent;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 4px;
+        }
+
+        .ad-card .attachments {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 8px 0;
+        }
+
+        .ad-card .attachments a {
+            font-size: 12px;
+            color: var(--tg-theme-button-color, #0088cc);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-success {
+            background: #10b981;
+        }
+
+        .toast-error {
+            background: #ef4444;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .ads-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>
+            <i class="fas fa-ad"></i>
+            Рекламные посты
+        </h1>
+        <div class="stats">
+            <i class="fas fa-list"></i> Всего: <span id="totalAds">0</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Поиск по сообщению или ID..."
+                   class="ui-widget">
+            <i class="fas fa-search"></i>
+        </div>
+        <button class="btn" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> Обновить
+        </button>
+        <button class="btn btn-success" id="addBtn">
+            <i class="fas fa-plus"></i> Добавить
+        </button>
+    </div>
+
+    <div id="adsContainer">
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner"></i>
+            <p>Загрузка...</p>
+        </div>
+        <div class="ads-grid" id="adsGrid"></div>
+    </div>
+</div>
+
+<!-- Modal для добавления/редактирования -->
+<div class="modal" id="adModal" title="Управление постом">
+    <div class="modal-content">
+        <h2 id="modalTitle">Добавить пост</h2>
+        <form id="adForm">
+            <input type="hidden" id="adId">
+            <div class="form-group">
+                <label for="chatId">Чат</label>
+                <select id="chatId" required>
+                    <option value="" disabled selected>Выберите чат</option>
+                    <option th:if="${#lists.isEmpty(chats)}" value="" disabled>
+                        Нет чатов с включённой настройкой «Показывать рекламу»
+                    </option>
+                    <option th:each="chat : ${chats}"
+                            th:value="${chat.chatId}"
+                            th:text="${chat.chatName + ' (' + chat.chatId + ')'}"></option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="message">Сообщение</label>
+                <textarea id="message" placeholder="Введите текст сообщения" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="dateStart">Показывать с</label>
+                <input type="datetime-local" id="dateStart">
+            </div>
+            <div class="form-group">
+                <label for="dateEnd">Показывать по</label>
+                <input type="datetime-local" id="dateEnd">
+            </div>
+            <div class="form-group">
+                <label>Вложения</label>
+                <div class="file-input-wrap">
+                    <label class="file-input-label" for="adFiles">
+                        <i class="fas fa-paperclip"></i> Прикрепить файлы
+                    </label>
+                    <input type="file" id="adFiles" multiple>
+                </div>
+                <div class="files-hint" id="filesHint">Можно прикрепить не больше 3 файлов.</div>
+                <div class="file-list" id="filesList"></div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="closeModalBtn">Отмена</button>
+                <button type="submit" class="btn" id="saveBtn">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- jQuery и jQuery UI -->
+<script src="/webjars/jquery/3.6.1/jquery.min.js"></script>
+<script src="/webjars/jquery-ui/1.13.3/jquery-ui.min.js"></script>
+<script src="/js/telegram-web-app.js" defer></script>
+<script src="/js/app-back.js?v=9" data-back="/app" defer></script>
+
+<script th:inline="javascript">
+    const STARS_PER_DAY = /*[[${starsPerDay}]]*/ 100;
+</script>
+
+<script>
+    $(document).ready(function() {
+        // Инициализация Telegram Web App
+        if (window.Telegram && Telegram.WebApp) {
+            const tg = Telegram.WebApp;
+            tg.expand();
+            tg.enableClosingConfirmation();
+
+            // Смена темы в зависимости от Telegram
+            const themeParams = tg.themeParams;
+            if (themeParams) {
+                document.documentElement.style.setProperty('--tg-theme-bg-color', themeParams.bg_color || '#ffffff');
+                document.documentElement.style.setProperty('--tg-theme-text-color', themeParams.text_color || '#000000');
+                document.documentElement.style.setProperty('--tg-theme-hint-color', themeParams.hint_color || '#9ca3af');
+                document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', themeParams.secondary_bg_color || '#f9fafb');
+                document.documentElement.style.setProperty('--tg-theme-button-color', themeParams.button_color || '#0088cc');
+            }
+        }
+
+        // Инициализация jQuery UI - Autocomplete для поиска
+        $('#searchInput').autocomplete({
+            source: function(request, response) {
+                const term = request.term.toLowerCase();
+                const ads = [];
+                $('.ad-card').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    if (text.includes(term)) {
+                        ads.push({
+                            label: $(this).find('.message').text().substring(0, 30) + '...',
+                            value: $(this).find('.message').text()
+                        });
+                    }
+                });
+                response(ads.slice(0, 10));
+            },
+            minLength: 2,
+            select: function(event, ui) {
+                $('#searchInput').val(ui.item.value);
+                filterAds(ui.item.value);
+                return false;
+            }
+        });
+
+        // Фильтрация
+        function filterAds(query) {
+            const searchText = query.toLowerCase();
+            $('.ad-card').each(function() {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.includes(searchText));
+            });
+        }
+
+        $('#searchInput').on('keyup', function() {
+            filterAds($(this).val());
+        });
+
+        // Загрузка данных
+        function loadAds() {
+            $('#loading').show();
+            $('#adsGrid').empty();
+
+            $.ajax({
+                url: '/api/ads',
+                method: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    renderAds(data);
+                    $('#totalAds').text(data.length);
+
+                    // Уведомление в Telegram
+                    if (window.Telegram && Telegram.WebApp) {
+                        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Ошибка:', error);
+                    showToast('Ошибка при загрузке данных', 'error');
+
+                    if (window.Telegram && Telegram.WebApp) {
+                        Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                    }
+                },
+                complete: function() {
+                    $('#loading').hide();
+                }
+            });
+        }
+
+        // Рендеринг карточек
+        function renderAds(ads) {
+            const grid = $('#adsGrid');
+            grid.empty();
+
+            if (ads.length === 0) {
+                grid.html(`
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h3>Нет рекламных постов</h3>
+                            <p>Нажмите кнопку "Добавить" чтобы создать новый пост</p>
+                        </div>
+                    `);
+                return;
+            }
+
+            ads.forEach(function(ad) {
+                const status = ad.status || 'ACTIVE';
+                const period = (ad.dateStart || ad.dateEnd)
+                    ? `<div class="period"><i class="fas fa-clock"></i> ${displayDateTime(ad.dateStart) || '—'} — ${displayDateTime(ad.dateEnd) || '—'}</div>`
+                    : '';
+                const attachments = (ad.files && ad.files.length)
+                    ? `<div class="attachments">${ad.files.map(function(file) {
+                        return `<a href="${file.url}" target="_blank" rel="noopener"><i class="fas fa-paperclip"></i> ${escapeHtml(file.name)}</a>`;
+                    }).join('')}</div>`
+                    : '';
+                const statusLine = status !== 'ACTIVE'
+                    ? `<div class="status-line status-${status}">${statusLabel(status)}</div>`
+                    : '';
+                const proposalMeta = ad.userId
+                    ? `<div class="period"><i class="fas fa-user"></i> ${escapeHtml(ad.userId)} · ${ad.days || 0} дн. · ${priceOf(ad)} ⭐</div>`
+                    : '';
+                const actions = status === 'PENDING'
+                    ? `<div class="actions">
+                            <button class="btn btn-sm approve-btn" data-id="${ad.id}">
+                                <i class="fas fa-check"></i> Одобрить
+                            </button>
+                            <button class="btn btn-sm btn-danger reject-btn" data-id="${ad.id}">
+                                <i class="fas fa-times"></i> Отклонить
+                            </button>
+                        </div>`
+                    : `<div class="actions">
+                            ${status === 'ACTIVE' ? `
+                            <button class="btn btn-sm edit-btn" data-id="${ad.id}">
+                                <i class="fas fa-edit"></i> Редактировать
+                            </button>` : ''}
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="${ad.id}">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </div>`;
+                const card = `
+                        <div class="ad-card ${status === 'PENDING' ? 'pending-card' : ''}" data-id="${ad.id}" data-chat="${ad.chatId}">
+                            <div class="badge">ID: ${ad.id}</div>
+                            ${statusLine}
+                            <div class="chat-id">
+                                <i class="fas fa-hashtag"></i> ${escapeHtml(ad.chatId)}
+                            </div>
+                            ${proposalMeta}
+                            ${period}
+                            <div class="message">
+                                ${escapeHtml(ad.message)}
+                            </div>
+                            ${attachments}
+                            ${ad.lastMessage ? `
+                                <div class="last-message">
+                                    <i class="fas fa-reply"></i> ${escapeHtml(ad.lastMessage)}
+                                </div>
+                            ` : ''}
+                            ${actions}
+                        </div>
+                    `;
+                grid.append(card);
+            });
+
+            // Анимация появления карточек
+            $('.ad-card').each(function(index) {
+                $(this).css('opacity', '0');
+                setTimeout(() => {
+                    $(this).css('opacity', '1');
+                }, index * 100);
+            });
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            return $('<div>').text(text).html();
+        }
+
+        // Значение для <input type="datetime-local">
+        function toInputValue(value) {
+            return value ? String(value).substring(0, 16) : '';
+        }
+
+        // Человекочитаемая дата-время
+        function displayDateTime(value) {
+            return value ? String(value).replace('T', ' ').substring(0, 16) : '';
+        }
+
+        // Подпись статуса предложения
+        function statusLabel(status) {
+            switch (status) {
+                case 'PENDING': return 'На модерации';
+                case 'APPROVED': return 'Ждёт оплаты';
+                case 'REJECTED': return 'Отклонено';
+                default: return status;
+            }
+        }
+
+        function priceOf(ad) {
+            return (ad.days || 0) * STARS_PER_DAY;
+        }
+
+        // Toast уведомления
+        function showToast(message, type = 'success') {
+            const toast = $(`
+                    <div class="toast toast-${type}">
+                        ${message}
+                    </div>
+                `);
+            $('body').append(toast);
+            setTimeout(() => {
+                toast.fadeOut(300, function() {
+                    $(this).remove();
+                });
+            }, 3000);
+        }
+
+        // Работа с вложениями
+        let existingFileCount = 0;
+
+        function renderFiles(files) {
+            const list = $('#filesList');
+            list.empty();
+            (files || []).forEach(function(file) {
+                const chip = $(`
+                        <div class="file-chip" data-id="${file.id}">
+                            <i class="fas fa-file"></i>
+                            <span class="file-name">${escapeHtml(file.name)}</span>
+                            <button type="button" class="file-remove" title="Удалить">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `);
+                chip.find('.file-remove').on('click', function() {
+                    removeFile(file.id);
+                });
+                list.append(chip);
+            });
+        }
+
+        function updateFilesHint() {
+            const input = $('#adFiles')[0];
+            const selected = input ? input.files.length : 0;
+            const total = existingFileCount + selected;
+            $('#filesHint').text(total >= 3
+                ? 'Достигнут лимит: 3 файла.'
+                : 'Можно прикрепить ещё ' + (3 - total) + ' (всего до 3).');
+        }
+
+        function removeFile(fileId) {
+            const adId = $('#adId').val();
+            if (!adId || !confirm('Удалить файл?')) {
+                return;
+            }
+            $.ajax({
+                url: `/api/ads/${adId}/files/${fileId}`,
+                method: 'DELETE',
+                success: function(ad) {
+                    existingFileCount = (ad.files || []).length;
+                    renderFiles(ad.files);
+                    updateFilesHint();
+                    showToast('Файл удалён', 'success');
+                },
+                error: function(xhr) {
+                    showToast(xhr.responseJSON?.message || 'Ошибка при удалении файла', 'error');
+                }
+            });
+        }
+
+        function uploadFiles(adId, files, done, fail) {
+            const formData = new FormData();
+            files.forEach(function(file) {
+                formData.append('files', file);
+            });
+            $.ajax({
+                url: `/api/ads/${adId}/files`,
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: done,
+                error: function(xhr) {
+                    fail(xhr.responseJSON?.message || 'Ошибка при загрузке файлов');
+                }
+            });
+        }
+
+        $('#adFiles').on('change', function() {
+            if (existingFileCount + this.files.length > 3) {
+                showToast('Можно прикрепить не больше 3 файлов', 'error');
+                this.value = '';
+            }
+            updateFilesHint();
+        });
+
+        // Открытие модалки для добавления
+        $('#addBtn').click(function() {
+            $('#modalTitle').text('Добавить рекламный пост');
+            $('#adForm')[0].reset();
+            $('#adId').val('');
+            existingFileCount = 0;
+            renderFiles([]);
+            updateFilesHint();
+            $('#adModal').addClass('show');
+
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+        });
+
+        // Открытие модалки для редактирования
+        $(document).on('click', '.edit-btn', function() {
+            const id = $(this).data('id');
+
+            $.ajax({
+                url: `/api/ads/${id}`,
+                method: 'GET',
+                dataType: 'json',
+                success: function(ad) {
+                    $('#modalTitle').text('Редактировать пост');
+                    $('#adId').val(ad.id);
+                    if ($('#chatId option[value="' + ad.chatId + '"]').length === 0) {
+                        $('#chatId').append($('<option>').val(ad.chatId).text(ad.chatId));
+                    }
+                    $('#chatId').val(ad.chatId);
+                    $('#message').val(ad.message);
+                    $('#dateStart').val(toInputValue(ad.dateStart));
+                    $('#dateEnd').val(toInputValue(ad.dateEnd));
+                    existingFileCount = (ad.files || []).length;
+                    renderFiles(ad.files);
+                    $('#adFiles').val('');
+                    updateFilesHint();
+                    $('#adModal').addClass('show');
+
+                    if (window.Telegram && Telegram.WebApp) {
+                        Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                    }
+                },
+                error: function() {
+                    showToast('Ошибка при загрузке данных поста', 'error');
+                }
+            });
+        });
+
+        // Закрытие модалки
+        $('#closeModalBtn, #adModal').click(function(e) {
+            if (e.target === this || e.target === $('#closeModalBtn')[0]) {
+                $('#adModal').removeClass('show');
+            }
+        });
+
+        // Сохранение
+        $('#adForm').submit(function(e) {
+            e.preventDefault();
+            const id = $('#adId').val();
+            const data = {
+                chatId: ($('#chatId').val() || '').trim(),
+                message: $('#message').val().trim(),
+                dateStart: $('#dateStart').val() || null,
+                dateEnd: $('#dateEnd').val() || null
+            };
+
+            if (!data.chatId || !data.message) {
+                showToast('Заполните все обязательные поля', 'error');
+                return;
+            }
+
+            const fileInput = $('#adFiles')[0];
+            const files = fileInput ? Array.from(fileInput.files) : [];
+            if (existingFileCount + files.length > 3) {
+                showToast('Можно прикрепить не больше 3 файлов', 'error');
+                return;
+            }
+
+            const url = id ? `/api/ads/${id}` : '/api/ads';
+            const method = id ? 'PUT' : 'POST';
+
+            $('#saveBtn').prop('disabled', true);
+
+            function finish() {
+                $('#saveBtn').prop('disabled', false);
+                $('#adModal').removeClass('show');
+                loadAds();
+                showToast(id ? 'Пост обновлен' : 'Пост создан', 'success');
+
+                if (window.Telegram && Telegram.WebApp) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            }
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(saved) {
+                    if (files.length > 0) {
+                        // Пост сохранён — догружаем вложения, иначе показываем ошибку, но не теряем сам пост
+                        uploadFiles(saved.id, files, finish, function(errorMsg) {
+                            $('#saveBtn').prop('disabled', false);
+                            loadAds();
+                            showToast(errorMsg, 'error');
+                        });
+                    } else {
+                        finish();
+                    }
+                },
+                error: function(xhr) {
+                    $('#saveBtn').prop('disabled', false);
+                    const errorMsg = xhr.responseJSON?.message || 'Ошибка при сохранении';
+                    showToast(errorMsg, 'error');
+
+                    if (window.Telegram && Telegram.WebApp) {
+                        Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                    }
+                }
+            });
+        });
+
+        // Удаление
+        $(document).on('click', '.delete-btn', function() {
+            const id = $(this).data('id');
+            const card = $(this).closest('.ad-card');
+
+            if (confirm('Вы уверены, что хотите удалить этот пост?')) {
+                $.ajax({
+                    url: `/api/ads/${id}`,
+                    method: 'DELETE',
+                    success: function() {
+                        card.fadeOut(300, function() {
+                            $(this).remove();
+                            $('#totalAds').text($('.ad-card').length);
+                        });
+                        showToast('Пост удален', 'success');
+
+                        if (window.Telegram && Telegram.WebApp) {
+                            Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+                        }
+                    },
+                    error: function() {
+                        showToast('Ошибка при удалении', 'error');
+                    }
+                });
+            }
+        });
+
+        // Модерация предложений рекламы
+        function moderate(id, action) {
+            $.ajax({
+                url: `/api/ads/proposals/${id}/${action}`,
+                method: 'POST',
+                success: function() {
+                    loadAds();
+                    showToast(action === 'approve' ? 'Предложение одобрено' : 'Предложение отклонено', 'success');
+                },
+                error: function(xhr) {
+                    showToast(xhr.responseJSON?.message || 'Ошибка при обработке', 'error');
+                }
+            });
+        }
+
+        $(document).on('click', '.approve-btn', function() {
+            if (confirm('Одобрить предложение? После оплаты звёздами оно будет опубликовано.')) {
+                moderate($(this).data('id'), 'approve');
+            }
+        });
+
+        $(document).on('click', '.reject-btn', function() {
+            if (confirm('Отклонить предложение?')) {
+                moderate($(this).data('id'), 'reject');
+            }
+        });
+
+        // Обновление
+        $('#refreshBtn').click(function() {
+            loadAds();
+
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+        });
+
+        // Первичная загрузка
+        loadAds();
+    });
+</script>
+</body>
+</html>

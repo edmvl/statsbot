@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Список чатов</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <style>
+        :root {
+            --tg-theme-bg-color: #ffffff !important;
+            --tg-theme-text-color: #000000 !important;
+            --tg-theme-hint-color: #999999 !important;
+            --tg-theme-button-color: #2481cc !important;
+            --tg-theme-button-text-color: #ffffff !important;
+            --tg-theme-secondary-bg-color: #f1f1f1 !important;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-family: Arial, sans-serif;
+            padding: 16px;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0 0 12px;
+        }
+
+        .chat-row {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .chat-title {
+            line-height: 1.6;
+        }
+
+        .chat-name {
+            word-break: break-word;
+        }
+
+        .chat-actions {
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+
+        .icon-link,
+        .icon-btn {
+            text-decoration: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0 2px;
+            vertical-align: middle;
+        }
+
+        .chat-last {
+            color: #5b6f82;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            border-radius: 14px;
+            padding: 20px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h3 {
+            margin: 0 0 14px;
+        }
+
+        .modal-content label {
+            display: block;
+            margin: 12px 0 4px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d8e1ec;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .btn-cancel {
+            background: var(--tg-theme-secondary-bg-color, #f1f1f1);
+            color: var(--tg-theme-text-color, #000000);
+        }
+    </style>
+</head>
+<body>
+<h1>Чаты</h1>
+
+<div id="chat-list">
+    <div class="chat-row" th:each="chat : ${chats}">
+        <div class="chat-title">
+            <a class="chat-name" th:href="@{/app/chat/{chatId}(chatId=${chat.getChatId()})}"
+               th:text="${chat.getChatName()}"></a><span class="chat-actions">
+                <a class="icon-link" th:href="@{/app/chat-settings/{chatId}(chatId=${chat.getChatId()})}"
+                   title="Настройки чата">⚙️</a>
+                <a class="icon-link" th:href="@{/app/chat-admins/{chatId}(chatId=${chat.getChatId()})}"
+                   title="Администраторы бота">👑</a>
+                <button type="button" class="icon-btn" title="Запустить розыгрыш"
+                        th:data-chat-id="${chat.getChatId()}"
+                        th:data-chat-name="${chat.getChatName()}"
+                        onclick="openChallenge(this)">🎁</button>
+            </span>
+        </div>
+        <div class="chat-last" th:text="${chat.lastMessage}"></div>
+    </div>
+</div>
+
+<!-- Модальное окно запуска розыгрыша -->
+<div id="challengeModal" class="modal">
+    <div class="modal-content">
+        <h3>🎁 Новый розыгрыш</h3>
+        <form method="post" th:action="@{/app/challenges/start}">
+            <input type="hidden" name="chatId" id="chChatId"/>
+            <input type="hidden" name="chatName" id="chChatName"/>
+
+            <label for="chDescription">Название</label>
+            <input type="text" id="chDescription" name="description" required
+                   placeholder="Например: Розыгрыш билетов"/>
+
+            <label for="chEndDate">Дата окончания</label>
+            <input type="date" id="chEndDate" name="endDate" required/>
+
+            <label for="chEndTime">Время окончания</label>
+            <input type="time" id="chEndTime" name="endTime" required/>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeChallenge()">Отмена</button>
+                <button type="submit" class="btn-submit">Запустить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openChallenge(button) {
+        document.getElementById('chChatId').value = button.getAttribute('data-chat-id');
+        document.getElementById('chChatName').value = button.getAttribute('data-chat-name');
+        document.getElementById('chDescription').value = '';
+        document.getElementById('chEndDate').value = '';
+        document.getElementById('chEndTime').value = '';
+        document.getElementById('challengeModal').classList.add('show');
+    }
+
+    function closeChallenge() {
+        document.getElementById('challengeModal').classList.remove('show');
+    }
+
+    window.addEventListener('click', function (event) {
+        var modal = document.getElementById('challengeModal');
+        if (event.target === modal) {
+            closeChallenge();
+        }
+    });
+</script>
+</body>
+</html>
