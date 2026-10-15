@@ -6,16 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
-        :root {
-            --tg-theme-bg-color: #ffffff !important;
-            --tg-theme-text-color: #000000 !important;
-            --tg-theme-hint-color: #999999 !important;
-            --tg-theme-button-color: #2481cc !important;
-            --tg-theme-button-text-color: #ffffff !important;
-            --tg-theme-secondary-bg-color: #f1f1f1 !important;
-        }
-
         * {
             box-sizing: border-box;
         }
@@ -26,8 +18,8 @@
         }
 
         body {
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
+            background: var(--page-bg);
+            color: var(--text);
             font-family: Arial, sans-serif;
             padding: 16px;
             margin: 0;
@@ -40,7 +32,7 @@
 
         .chat-row {
             padding: 12px 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--line-soft);
         }
 
         .chat-title {
@@ -49,6 +41,13 @@
 
         .chat-name {
             word-break: break-word;
+            color: var(--link);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .chat-name:hover {
+            text-decoration: underline;
         }
 
         .chat-actions {
@@ -69,7 +68,7 @@
         }
 
         .chat-last {
-            color: #5b6f82;
+            color: var(--muted);
             font-size: 12px;
             margin-top: 2px;
         }
@@ -82,7 +81,8 @@
             align-items: center;
             justify-content: center;
             padding: 16px;
-            background: rgba(0, 0, 0, 0.35);
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(3px);
         }
 
         .modal.show {
@@ -90,13 +90,13 @@
         }
 
         .modal-content {
-            background: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
+            background: var(--card-bg);
+            color: var(--text);
             border-radius: 14px;
             padding: 20px;
             width: 100%;
             max-width: 380px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
         }
 
         .modal-content h3 {
@@ -108,14 +108,23 @@
             margin: 12px 0 4px;
             font-size: 13px;
             font-weight: 600;
+            color: var(--muted);
         }
 
         .modal-content input {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
             border-radius: 8px;
             font-size: 15px;
+            font-family: inherit;
+            background: var(--inner-bg);
+            color: var(--text);
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: var(--accent);
         }
 
         .modal-actions {
@@ -131,17 +140,18 @@
             padding: 12px;
             font-size: 15px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
         }
 
         .btn-submit {
-            background: var(--tg-theme-button-color, #2481cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
+            background: var(--accent);
+            color: var(--on-accent);
         }
 
         .btn-cancel {
-            background: var(--tg-theme-secondary-bg-color, #f1f1f1);
-            color: var(--tg-theme-text-color, #000000);
+            background: var(--soft);
+            color: var(--text);
         }
     </style>
 </head>

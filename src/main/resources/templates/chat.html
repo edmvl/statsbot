@@ -3,36 +3,19 @@
 <head>
     <title>Логи чата</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <link rel="stylesheet" th:href="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.css}">
-    <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
-    <script th:src="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.js}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" data-back="/app/chats" defer></script>
     <style>
-        :root {
-            --tg-theme-bg-color: #ffffff !important;
-            --tg-theme-text-color: #000000 !important;
-            --tg-theme-hint-color: #999999 !important;
-            --tg-theme-link-color: #2481cc !important;
-            --tg-theme-button-color: #2481cc !important;
-            --tg-theme-button-text-color: #ffffff !important;
-            --tg-theme-secondary-bg-color: #f1f1f1 !important;
-        }
-
-        /* Принудительное применение для всех элементов */
-        body {
-            background-color: var(--tg-theme-bg-color) !important;
-            color: var(--tg-theme-text-color) !important;
-        }
-
-        /* Альтернативный подход - прямые значения */
-        body.force-light-theme {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
         body {
             font-family: Arial, sans-serif;
+            background: var(--page-bg);
+            color: var(--text);
+            padding: 16px;
+            margin: 0;
         }
+
         label, input {
             display: block;
         }
@@ -48,29 +31,55 @@
             margin: .6em 0;
         }
 
-        div#users-contain {
-            width: 350px;
+        #users-contain {
+            max-width: 480px;
             margin: 20px 0;
         }
 
-        div#users-contain table {
+        #users {
+            width: 100%;
             margin: 1em 0;
             border-collapse: collapse;
-            width: 100%;
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            overflow: hidden;
         }
 
-        div#users-contain table td, div#users-contain table th {
-            border: 1px solid #eee;
+        #users td, #users th {
+            border-bottom: 1px solid var(--line-soft);
             padding: .6em 10px;
             text-align: left;
+            color: var(--text);
+            vertical-align: top;
+        }
+
+        #users tr:last-child td {
+            border-bottom: none;
+        }
+
+        .pager {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .pager a {
+            color: var(--link);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .pager .current {
+            color: var(--muted);
         }
 
     </style>
 </head>
 <body>
-<div id="users-contain" class="ui-widget">
+<div id="users-contain">
     <h1 th:text="${chatName}"></h1>
-    <table id="users" class="ui-widget ui-widget-content">
+    <table id="users">
         <tr th:each="message : ${messages}">
             <td th:text="${{message.getDateTime()}}"></td>
             <td>
@@ -84,8 +93,10 @@
         </tr>
     </table>
 </div>
-<a th:href="@{/app/chat/{chatId}(page=${prevPage}, count=${count}, chatId=${chatId})}" th:text="${prevPage}"></a>
-<a th:text="${currentPage}"></a>
-<a th:href="@{/app/chat/{chatId}(page=${nextPage}, count=${count}, chatId=${chatId})}" th:text="${nextPage}"></a>
+<div class="pager">
+    <a th:href="@{/app/chat/{chatId}(page=${prevPage}, count=${count}, chatId=${chatId})}" th:text="${prevPage}"></a>
+    <span class="current" th:text="${currentPage}"></span>
+    <a th:href="@{/app/chat/{chatId}(page=${nextPage}, count=${count}, chatId=${chatId})}" th:text="${nextPage}"></a>
+</div>
 </body>
 </html>

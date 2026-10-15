@@ -6,6 +6,7 @@
     <title>Подписки</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
             box-sizing: border-box;
@@ -20,8 +21,8 @@
             font-family: Arial, sans-serif;
             padding: 16px;
             margin: 0;
-            background: #f8fafc;
-            color: #0b1e33;
+            background: var(--page-bg);
+            color: var(--text);
         }
 
         h1 {
@@ -30,11 +31,11 @@
         }
 
         .group {
-            background: #ffffff;
-            border-radius: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
             padding: 12px 14px;
             margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.05);
         }
 
         .head {
@@ -49,7 +50,8 @@
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
+            background: var(--soft);
             flex: 0 0 auto;
         }
 
@@ -60,11 +62,11 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: #eef2f6;
-            color: #5b6f82;
+            background: var(--soft);
+            color: var(--muted);
             font-size: 18px;
             font-weight: 600;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
             flex: 0 0 auto;
         }
 
@@ -79,7 +81,7 @@
         }
 
         .username {
-            color: #5b6f82;
+            color: var(--muted);
             font-size: 12px;
             word-break: break-word;
         }
@@ -87,7 +89,7 @@
         .count {
             margin-left: auto;
             flex: 0 0 auto;
-            color: #5b6f82;
+            color: var(--muted);
             font-size: 12px;
             white-space: nowrap;
         }
@@ -98,7 +100,7 @@
             gap: 6px;
             margin-top: 10px;
             padding-top: 10px;
-            border-top: 1px solid #eef2f6;
+            border-top: 1px solid var(--line-soft);
         }
 
         .chip {
@@ -107,9 +109,9 @@
             gap: 6px;
             max-width: 100%;
             padding: 4px 10px 4px 4px;
-            border-radius: 999px;
-            background: #eef2f6;
-            color: #0b1e33;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--text);
             text-decoration: none;
             font-size: 13px;
         }
@@ -120,7 +122,7 @@
             border-radius: 50%;
             object-fit: cover;
             flex: 0 0 auto;
-            background: #ffffff;
+            background: var(--page-bg);
         }
 
         .chip-avatar-placeholder {
@@ -130,8 +132,8 @@
             width: 22px;
             height: 22px;
             border-radius: 50%;
-            background: #ffffff;
-            color: #5b6f82;
+            background: var(--page-bg);
+            color: var(--muted);
             font-size: 12px;
             font-weight: 600;
             flex: 0 0 auto;
@@ -144,13 +146,13 @@
         }
 
         .chip-id {
-            color: #7d8b99;
+            color: var(--muted);
             font-size: 12px;
             white-space: nowrap;
         }
 
         .empty {
-            color: #5b6f82;
+            color: var(--muted);
             font-style: italic;
         }
     </style>

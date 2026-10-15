@@ -297,9 +297,24 @@
         }, 300);
     }
 
+    // === Соответствие цветовой схемы Telegram ===
+    // Библиотека кладёт в :root свои переменные, а color-scheme выставляем сами —
+    // иначе нативные поля (дата/время) рисуются в системной схеме и выбиваются.
+    function applyColorScheme() {
+        try {
+            var scheme = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.colorScheme : null;
+            if (scheme === 'dark' || scheme === 'light') {
+                document.documentElement.style.colorScheme = scheme;
+            }
+        } catch (e) {
+            // ignore
+        }
+    }
+
     function setup() {
         installStylesAndNavigation();
         watchAuthCookie();
+        applyColorScheme();
     }
 
     function installStylesAndNavigation() {

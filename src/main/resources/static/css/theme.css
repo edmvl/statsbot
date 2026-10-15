@@ -1,0 +1,48 @@
+/*
+ * Единая адаптивная тема мини-приложения.
+ *
+ * Цвета берутся из переменных, которые Telegram подставляет в :root
+ * (библиотека telegram-web-app.js кладёт туда --tg-theme-bg-color и остальные),
+ * поэтому страницы одинаково выглядят и в светлой, и в тёмной схеме.
+ * Значения после запятой — фолбэки для случая, когда страница открыта вне Telegram.
+ *
+ * Здесь же лежат нейтральные полупрозрачные слои (--line, --soft): серый с альфой
+ * читается и на светлом, и на тёмном фоне, в отличие от «жёстких» #eee/#333.
+ */
+:root {
+    color-scheme: light dark;
+
+    --page-bg: var(--tg-theme-bg-color, #ffffff);
+    --card-bg: var(--tg-theme-secondary-bg-color, #f2f4f7);
+    --inner-bg: var(--tg-theme-bg-color, #ffffff);
+
+    --text: var(--tg-theme-text-color, #000000);
+    --muted: var(--tg-theme-subtitle-text-color, var(--tg-theme-hint-color, #707579));
+
+    --accent: var(--tg-theme-button-color, #2481cc);
+    --on-accent: var(--tg-theme-button-text-color, #ffffff);
+    --link: var(--tg-theme-link-color, #2481cc);
+    --danger: var(--tg-theme-destructive-text-color, #e5484d);
+
+    --line: rgba(127, 127, 127, 0.25);
+    --line-soft: rgba(127, 127, 127, 0.16);
+    --soft: rgba(127, 127, 127, 0.10);
+    --soft-strong: rgba(127, 127, 127, 0.20);
+
+    /* Акценты вне палитры Telegram: средние тона, читаемые в обеих схемах */
+    --star: #f0a11e;
+    --good: #2e9e5b;
+    --mid: #d9a441;
+    --low: #e5484d;
+
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 10px;
+    --radius-pill: 999px;
+    --transition: 0.2s ease;
+
+    /* Тени: в тёмной схеме почти незаметны, поэтому карточки дополнительно
+       отделяются полупрозрачной рамкой (--line-soft). */
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+    --shadow-hover: 0 12px 26px rgba(0, 0, 0, 0.16);
+}

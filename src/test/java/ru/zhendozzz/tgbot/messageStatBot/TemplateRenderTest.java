@@ -16,13 +16,16 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.InterestedViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.SubscriptionGroupDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.TripViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
+import ru.zhendozzz.tgbot.messageStatBot.entity.UserNameHistory;
 import ru.zhendozzz.tgbot.messageStatBot.rest.ChatAdminsController;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -56,10 +59,12 @@ class TemplateRenderTest {
         context.setVariable("members", Collections.emptyList());
         context.setVariable("messages", Collections.emptyList());
         context.setVariable("reviews", Collections.emptyList());
+        context.setVariable("history", Collections.emptyList());
         context.setVariable("tripList", Collections.emptyList());
         context.setVariable("subscriptions", Collections.emptyList());
         context.setVariable("groups", Collections.emptyList());
         context.setVariable("currentUserId", "123");
+        context.setVariable("ruLocale", Locale.forLanguageTag("ru"));
         context.setVariable("driverId", "123");
         context.setVariable("chatId", "123");
         context.setVariable("chatName", "Чат");
@@ -102,7 +107,7 @@ class TemplateRenderTest {
         when(trip.getLastName()).thenReturn("Петров");
         when(trip.getUserName()).thenReturn("ivan");
         when(trip.getText()).thenReturn("Текст поездки");
-        when(trip.getDateTime()).thenReturn(LocalDateTime.now());
+        when(trip.getDateTime()).thenReturn(LocalDateTime.of(2026, 10, 15, 14, 30));
         when(trip.getRating()).thenReturn(new BigDecimal("4.50"));
         when(trip.getCnt()).thenReturn("5");
         when(trip.getComments()).thenReturn("Отличный попутчик");
@@ -140,6 +145,10 @@ class TemplateRenderTest {
         context.setVariable("reviews", List.of(review));
         context.setVariable("messages", List.of(message));
         context.setVariable("driver", driver);
+        context.setVariable("history", List.of(
+                history("Иван", "Петров", "ivan", LocalDateTime.now()),
+                history(null, null, "old_nick", LocalDateTime.now().minusDays(3))
+        ));
 
         ChatViewDto chat = mock(ChatViewDto.class);
         when(chat.getChatId()).thenReturn("-100123");
@@ -147,13 +156,15 @@ class TemplateRenderTest {
         when(chat.getLastMessage()).thenReturn("14.10.2026 12:00");
         context.setVariable("chats", List.of(chat));
 
-        engine.process("trips", context);
+        String tripsHtml = engine.process("trips", context);
+        // дата и время на странице поездок — в русском формате
+        assertThat(tripsHtml).contains("15 октября 2026, 14:30");
+
         engine.process("driver-reviews", context);
         engine.process("chat", context);
         engine.process("subscriptions", context);
         engine.process("ads", context);
     }
-
     @Test
     void rendersChatAdminsWithData() {
         TemplateEngine engine = engine();
@@ -225,5 +236,15 @@ class TemplateRenderTest {
 
         engine.process("subscriptions", context);
         engine.process("my-subscriptions", context);
+    }
+
+    private UserNameHistory history(String firstName, String lastName, String userName, LocalDateTime changedAt) {
+        UserNameHistory entry = new UserNameHistory();
+        entry.setUserId("100");
+        entry.setFirstName(firstName);
+        entry.setLastName(lastName);
+        entry.setUserName(userName);
+        entry.setChangedAt(changedAt);
+        return entry;
     }
 }

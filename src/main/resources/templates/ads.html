@@ -6,6 +6,7 @@
     <title>Рекламные посты</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/webjars/jquery-ui/1.13.3/jquery-ui.min.css">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
             margin: 0;
@@ -243,18 +244,18 @@
         }
 
         .status-PENDING {
-            background: #fef3c7;
-            color: #b45309;
+            background: rgba(245, 158, 11, 0.18);
+            color: #c98a00;
         }
 
         .status-APPROVED {
-            background: #dbeafe;
-            color: #1d4ed8;
+            background: rgba(59, 130, 246, 0.18);
+            color: #4f8ff0;
         }
 
         .status-REJECTED {
-            background: #fee2e2;
-            color: #b91c1c;
+            background: rgba(229, 72, 77, 0.18);
+            color: #e5484d;
         }
 
         .ad-card.pending-card {

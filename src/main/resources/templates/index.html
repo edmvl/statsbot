@@ -1,27 +1,198 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Урмарский помощник</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <link rel="stylesheet" th:href="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.css}">
-    <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
-    <script th:src="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.js}"></script>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" defer></script>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--page-bg);
+            color: var(--text);
+            padding: 22px 16px 48px;
+            max-width: 620px;
+            margin: 0 auto;
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app-header {
+            margin-bottom: 22px;
+        }
+
+        .app-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            margin-bottom: 4px;
+        }
+
+        .app-header p {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            margin: 22px 4px 10px;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .menu-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: 16px;
+            padding: 14px 16px;
+            text-decoration: none;
+            color: var(--text);
+            box-shadow: 0 6px 18px var(--shadow);
+            transition: box-shadow var(--transition), transform var(--transition);
+        }
+
+        .menu-card:hover,
+        .menu-card:active {
+            box-shadow: 0 12px 26px var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .menu-icon {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            background: var(--soft);
+            font-size: 21px;
+        }
+
+        .menu-text {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .menu-title {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+        }
+
+        .menu-desc {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .menu-arrow {
+            flex: 0 0 auto;
+            font-size: 22px;
+            line-height: 1;
+            color: var(--muted);
+        }
+    </style>
 </head>
 <body>
-<a class="ui-button ui-widget ui-corner-all" href="/app/trips">Отзывы и рейтинги</a>
-<a class="ui-button ui-widget ui-corner-all" href="/app/my-subscriptions">Мои подписки</a>
-<a class="ui-button ui-widget ui-corner-all" href="/app/feedback">Отправить жалобу</a>
-<a class="ui-button ui-widget ui-corner-all" href="/app/ad-proposal">Предложить рекламу</a>
-<!-- История чатов: показывается только супер-админу (по Telegram id) -->
-<a class="ui-button ui-widget ui-corner-all" href="/app/chats"
-   data-super-admin-id="115965184" style="display:none">История чатов</a>
-<!-- Подписки: только супер-админ -->
-<a class="ui-button ui-widget ui-corner-all" href="/app/subscriptions"
-   data-super-admin-id="115965184" style="display:none">Подписки</a>
-<!-- Реклама: только супер-админ -->
-<a class="ui-button ui-widget ui-corner-all" href="/app/ads"
-   data-super-admin-id="115965184" style="display:none">Реклама</a>
+
+<header class="app-header">
+    <h1>Урмарский помощник</h1>
+    <p>Отзывы о попутчиках, подписки и реклама</p>
+</header>
+
+<nav class="menu">
+    <a class="menu-card" href="/app/trips">
+        <span class="menu-icon">⭐</span>
+        <span class="menu-text">
+            <span class="menu-title">Отзывы и рейтинги</span>
+            <span class="menu-desc">Кто что пишет о попутчиках и где оставить свой отзыв</span>
+        </span>
+        <span class="menu-arrow">›</span>
+    </a>
+
+    <a class="menu-card" href="/app/my-subscriptions">
+        <span class="menu-icon">🔔</span>
+        <span class="menu-text">
+            <span class="menu-title">Мои подписки</span>
+            <span class="menu-desc">На кого вы подписаны и как отписаться</span>
+        </span>
+        <span class="menu-arrow">›</span>
+    </a>
+
+    <a class="menu-card" href="/app/ad-proposal">
+        <span class="menu-icon">📣</span>
+        <span class="menu-text">
+            <span class="menu-title">Предложить рекламу</span>
+            <span class="menu-desc">Разместить свой пост в чате после проверки</span>
+        </span>
+        <span class="menu-arrow">›</span>
+    </a>
+
+    <a class="menu-card" href="/app/feedback">
+        <span class="menu-icon">✍️</span>
+        <span class="menu-text">
+            <span class="menu-title">Отправить жалобу</span>
+            <span class="menu-desc">Сообщить о проблеме администратору</span>
+        </span>
+        <span class="menu-arrow">›</span>
+    </a>
+</nav>
+
+<!-- Раздел администратора: показывается только супер-админу (по Telegram id) -->
+<div data-super-admin-id="115965184" style="display:none">
+    <div class="section-title">Администрирование</div>
+    <nav class="menu">
+        <a class="menu-card" href="/app/chats">
+            <span class="menu-icon">💬</span>
+            <span class="menu-text">
+                <span class="menu-title">История чатов</span>
+                <span class="menu-desc">Сообщения, настройки и администраторы бота</span>
+            </span>
+            <span class="menu-arrow">›</span>
+        </a>
+
+        <a class="menu-card" href="/app/subscriptions">
+            <span class="menu-icon">📋</span>
+            <span class="menu-text">
+                <span class="menu-title">Подписки</span>
+                <span class="menu-desc">Кто на кого подписан во всех чатах</span>
+            </span>
+            <span class="menu-arrow">›</span>
+        </a>
+
+        <a class="menu-card" href="/app/ads">
+            <span class="menu-icon">📢</span>
+            <span class="menu-text">
+                <span class="menu-title">Реклама</span>
+                <span class="menu-desc">Посты, предложения пользователей и модерация</span>
+            </span>
+            <span class="menu-arrow">›</span>
+        </a>
+    </nav>
+</div>
+
 </body>
 </html>

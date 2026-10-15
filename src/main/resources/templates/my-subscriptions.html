@@ -6,6 +6,7 @@
     <title>Мои подписки</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
             box-sizing: border-box;
@@ -20,8 +21,8 @@
             font-family: Arial, sans-serif;
             padding: 16px;
             margin: 0;
-            background: #f8fafc;
-            color: #0b1e33;
+            background: var(--page-bg);
+            color: var(--text);
         }
 
         h1 {
@@ -30,7 +31,7 @@
         }
 
         .subtitle {
-            color: #5b6f82;
+            color: var(--muted);
             font-size: 13px;
             margin-bottom: 16px;
         }
@@ -39,11 +40,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #ffffff;
-            border-radius: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
             padding: 12px 14px;
             margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.05);
         }
 
         .person {
@@ -61,7 +62,8 @@
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
+            background: var(--soft);
             flex: 0 0 auto;
         }
 
@@ -72,11 +74,11 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: #eef2f6;
-            color: #5b6f82;
+            background: var(--soft);
+            color: var(--muted);
             font-size: 18px;
             font-weight: 600;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
             flex: 0 0 auto;
         }
 
@@ -86,7 +88,7 @@
         }
 
         .username {
-            color: #5b6f82;
+            color: var(--muted);
             font-size: 12px;
             word-break: break-word;
         }
@@ -94,30 +96,31 @@
         .unsubscribe {
             flex: 0 0 auto;
             padding: 8px 14px;
-            border: 1px solid #f0b4b4;
-            border-radius: 10px;
-            background: #fdecec;
-            color: #b91c1c;
+            border: 1px solid var(--danger);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--danger);
             font-size: 13px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
         }
 
         .unsubscribe:hover {
-            background: #fbdede;
+            background: var(--soft);
         }
 
         .empty, .hint {
-            color: #5b6f82;
+            color: var(--muted);
             font-size: 14px;
             line-height: 1.5;
         }
 
         .hint {
-            background: #ffffff;
-            border-radius: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
             padding: 14px;
-            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.05);
         }
     </style>
 </head>
@@ -128,12 +131,12 @@
 <div class="hint" th:if="${#strings.isEmpty(currentUserId)}">
     Откройте страницу через Telegram — тогда мы покажем ваши подписки.
     Подписаться и отписаться также можно на странице «Отзывы и рейтинги»,
-    переключателем «Следить за автором».
+    переключателем «Подписаться».
 </div>
 
 <div class="empty" th:if="${!#strings.isEmpty(currentUserId) and #lists.isEmpty(subscriptions)}">
     Вы пока ни на кого не подписаны. Подписаться можно на странице
-    «Отзывы и рейтинги» — переключателем «Следить за автором».
+    «Отзывы и рейтинги» — переключателем «Подписаться».
 </div>
 
 <form method="post" th:action="@{/app/my-subscriptions}" class="row" th:each="sub : ${subscriptions}">

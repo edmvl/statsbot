@@ -2,161 +2,13 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" th:href="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.css}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" data-back="/app" defer></script>
-    <title>Отзывы по поездке</title>
+    <title>Отзывы о поездках</title>
 
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
-        /* ----- ИМПЕРАТИВНАЯ СВЕТЛАЯ ТЕМА (перебивает Telegram) ----- */
-        * {
-            /* Принудительно светлый фон и тёмный текст для всех элементов */
-            background-color: #f8fafc !important;
-            color: #0b1e33 !important;
-            border-color: #d0dbe8 !important;
-            box-shadow: none !important;
-        }
-
-        /* Исключения: кнопки, инпуты, карточки — оставляем белый фон */
-        .trip-card,
-        .modal-content,
-        .pagination,
-        .search-panel,
-        .page-header .trip-count,
-        .rating-badge,
-        .comments-section,
-        .message-text,
-        .btn-feedback,
-        .btn-submit,
-        input,
-        textarea,
-        select,
-        button,
-        .ui-button,
-        .ui-widget,
-        .ui-corner-all {
-            background-color: #ffffff !important;
-        }
-
-        /* Текст внутри белых блоков — тёмный */
-        .trip-card *,
-        .modal-content *,
-        .pagination *,
-        .comments-section *,
-        .message-text *,
-        .btn-feedback,
-        .btn-submit,
-        input,
-        textarea,
-        select,
-        button {
-            color: #0b1e33 !important;
-        }
-
-        /* Вторичный фон (серые зоны) */
-        .trip-meta,
-        .user-messages-count,
-        .page-header .trip-count,
-        .rating-badge {
-            background-color: #eef2f6 !important;
-        }
-
-        /* Кнопки с синим фоном */
-        .btn-feedback,
-        .btn-submit,
-        .ui-button {
-            background-color: #1f6feb !important;
-            color: #ffffff !important;
-        }
-        .btn-feedback *,
-        .btn-submit *,
-        .ui-button * {
-            background-color: transparent !important;
-            color: #ffffff !important;
-        }
-
-        /* Ссылки пагинации */
-        .pagination a {
-            background-color: #eef2f6 !important;
-            color: #0b1e33 !important;
-        }
-        .pagination a:hover {
-            background-color: #1f6feb !important;
-            color: #ffffff !important;
-        }
-        .pagination a:hover * {
-            color: #ffffff !important;
-        }
-
-        /* Звёзды в модалке */
-        .stars label {
-            background-color: transparent !important;
-            color: #d0dbe8 !important;
-        }
-        .stars input:checked ~ label,
-        .stars label:hover,
-        .stars label:hover ~ label {
-            color: #f5b342 !important;
-        }
-
-        /* Текст в полях ввода */
-        input, textarea, select {
-            background-color: #ffffff !important;
-            border: 1px solid #d8e1ec !important;
-            color: #0b1e33 !important;
-        }
-        input:focus, textarea:focus, select:focus {
-            border-color: #1f6feb !important;
-            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2) !important;
-        }
-
-        /* Модальный фон (полупрозрачный) */
-        .modal {
-            background-color: rgba(0, 0, 0, 0.35) !important;
-            backdrop-filter: blur(4px);
-        }
-        .modal * {
-            background-color: transparent !important;
-        }
-        .modal .modal-content {
-            background-color: #ffffff !important;
-        }
-        .modal .modal-content * {
-            background-color: transparent !important;
-        }
-        .modal .close {
-            color: #5b6f82 !important;
-        }
-        .modal .close:hover {
-            color: #c2412b !important;
-        }
-
-        /* Текст «нет отзывов» и подсказки */
-        .no-rating-label,
-        .no-comments,
-        .text-muted {
-            color: #5b6f82 !important;
-        }
-
-        /* Рейтинг: цвета */
-        .rating-value.good { color: #0f7b3a !important; }
-        .rating-value.mid  { color: #b68b1e !important; }
-        .rating-value.low  { color: #c2412b !important; }
-
-        /* ----- Остальные стили (без !important, чтобы не мешать принудительным) ----- */
-        :root {
-            --tg-theme-bg-color: #f8fafc;
-            --tg-theme-text-color: #0b1e33;
-            --tg-theme-hint-color: #5b6f82;
-            --tg-theme-link-color: #1f6feb;
-            --tg-theme-button-color: #1f6feb;
-            --tg-theme-button-text-color: #ffffff;
-            --tg-theme-secondary-bg-color: #eef2f6;
-            --card-shadow: 0 8px 20px rgba(0, 20, 40, 0.06);
-            --border-radius-lg: 20px;
-            --border-radius-sm: 12px;
-            --transition: 0.25s ease;
-        }
 
         * {
             box-sizing: border-box;
@@ -166,306 +18,62 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 24px 20px 60px;
-            max-width: 820px;
+            background: var(--page-bg);
+            color: var(--text);
+            padding: 20px 16px 56px;
+            max-width: 780px;
             margin: 0 auto;
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
         }
 
+        /* ----- Заголовок ----- */
         .page-header {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             justify-content: space-between;
-            margin-bottom: 28px;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
+            margin-bottom: 18px;
         }
         .page-header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
-            background: linear-gradient(145deg, #0b1e33 0%, #1f3a57 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
         }
         .page-header .trip-count {
-            font-size: 15px;
-            padding: 6px 16px;
-            border-radius: 40px;
-            font-weight: 500;
-        }
-
-        .trip-card {
-            border-radius: var(--border-radius-lg);
-            box-shadow: var(--card-shadow);
-            padding: 20px 22px;
-            margin-bottom: 20px;
-            transition: box-shadow var(--transition), transform var(--transition);
-            border: 1px solid rgba(0, 0, 0, 0.02);
-        }
-        .trip-card:hover {
-            box-shadow: 0 12px 28px rgba(0, 20, 40, 0.10);
-            transform: translateY(-2px);
-        }
-
-        .trip-header {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px 16px;
-            margin-bottom: 14px;
-        }
-
-        .user-name-label {
-            font-size: 20px;
-            font-weight: 600;
-            letter-spacing: -0.2px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .user-name-label .last-name {
-            font-weight: 400;
-        }
-        .user-name-label .username {
-            font-weight: 400;
-            font-size: 16px;
-            padding: 0 10px;
-            border-radius: 40px;
-        }
-        .user-messages-count {
-            font-size: 14px;
-            padding: 2px 14px;
-            border-radius: 40px;
-            font-weight: 500;
-            margin-left: auto;
-        }
-
-        .trip-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            object-fit: cover;
-            flex: 0 0 auto;
-            border: 1px solid #d8e1ec;
-        }
-        .trip-avatar-placeholder {
-            display: inline-flex !important;
-            align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background-color: #eef2f6 !important;
-            color: #5b6f82 !important;
-            font-size: 20px;
-            font-weight: 600;
-            border: 1px solid #d8e1ec;
-            flex: 0 0 auto;
-        }
-
-        .reviews-btn {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 16px;
-            border-radius: 10px;
-            background-color: #1f6feb !important;
-            color: #ffffff !important;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .reviews-btn:hover {
-            background-color: #1a5fd4 !important;
-        }
-
-        .rating-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 14px 4px 12px;
-            border-radius: 40px;
-            font-size: 15px;
-            font-weight: 500;
-        }
-        .rating-badge .rating-value {
-            font-weight: 700;
-            font-size: 18px;
-        }
-        .no-rating-label {
-            font-size: 14px;
-        }
-
-        .trip-body {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 6px;
-        }
-
-        .trip-meta {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: baseline;
-            gap: 8px 18px;
-            font-size: 14px;
-            border-bottom: 1px dashed #e6edf4;
-            padding-bottom: 12px;
-        }
-        .trip-meta .date-text {
-            font-weight: 500;
-        }
-        .trip-meta .trip-id {
-            opacity: 0.6;
-            font-size: 13px;
-        }
-
-        .message-text {
-            padding: 16px 18px;
-            border-radius: var(--border-radius-sm);
-            font-size: 15px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
-            border-left: 4px solid #1f6feb;
-        }
-
-        .comments-section {
-            padding: 14px 18px;
-            border-radius: var(--border-radius-sm);
-            margin-top: 4px;
-        }
-        .comments-section .comments-label {
             font-size: 13px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            margin-bottom: 4px;
-        }
-        .comments-section .comments-text {
-            font-size: 15px;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .comments-section .no-comments {
-            font-style: italic;
-            font-size: 14px;
+            color: var(--accent);
+            background: var(--soft);
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
         }
 
-        .trip-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 16px;
-            padding-top: 14px;
-            border-top: 1px solid #e9eef3;
-        }
-
-        /* Тумблер подписки на автора публикации */
-        .subscribe-toggle {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-            cursor: pointer;
-            user-select: none;
-            background-color: transparent !important;
-        }
-        .subscribe-toggle input {
-            display: none;
-        }
-        .subscribe-toggle .switch {
-            position: relative;
-            flex: 0 0 auto;
-            width: 44px;
-            height: 24px;
-            border-radius: 999px;
-            background-color: #cbd5e1 !important;
-            transition: background-color var(--transition);
-        }
-        .subscribe-toggle .switch::after {
-            content: "";
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background-color: #ffffff !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-            transition: transform var(--transition);
-        }
-        .subscribe-toggle input:checked + .switch {
-            background-color: #1f6feb !important;
-        }
-        .subscribe-toggle input:checked + .switch::after {
-            transform: translateX(20px);
-        }
-        .subscribe-toggle .subscribe-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #5b6f82 !important;
-            background-color: transparent !important;
-            white-space: nowrap;
-        }
-        .subscribe-toggle input:checked ~ .subscribe-label {
-            color: #1f6feb !important;
-        }
-        .subscribe-toggle.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-feedback {
-            border: none;
-            font-weight: 600;
-            font-size: 15px;
-            padding: 10px 28px;
-            border-radius: 60px;
-            cursor: pointer;
-            transition: background var(--transition), transform var(--transition);
-            box-shadow: 0 4px 10px rgba(31, 111, 235, 0.25);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            letter-spacing: 0.2px;
-        }
-        .btn-feedback:hover {
-            background: #1a5fd4 !important;
-            transform: scale(1.02);
-            box-shadow: 0 6px 14px rgba(31, 111, 235, 0.35);
-        }
-        .btn-feedback:active {
-            transform: scale(0.97);
-        }
-
-        /* ----- Панель поиска (компактная) ----- */
+        /* ----- Поиск ----- */
         .search-panel {
-            border-radius: var(--border-radius-sm);
-            box-shadow: var(--card-shadow);
-            padding: 10px 12px;
-            margin-bottom: 16px;
-            border: 1px solid rgba(0, 0, 0, 0.02);
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow);
+            padding: 10px 12px;
+            margin-bottom: 18px;
         }
         .search-field {
             display: flex;
             align-items: center;
             gap: 6px;
-            flex: 1 1 105px;
+            flex: 1 1 110px;
             min-width: 0;
         }
         .search-field label {
             font-size: 12px;
             font-weight: 600;
-            color: #5b6f82 !important;
+            color: var(--muted);
             flex: 0 0 auto;
             white-space: nowrap;
         }
@@ -473,11 +81,20 @@
             flex: 1 1 auto;
             min-width: 0;
             width: 100%;
-            height: 34px;
+            height: 36px;
             padding: 0 10px;
-            border-radius: 8px;
             font-size: 14px;
             font-family: inherit;
+            color: var(--text);
+            background: var(--page-bg);
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .search-field input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--soft);
         }
         .search-actions {
             display: flex;
@@ -488,62 +105,335 @@
         }
         .btn-search,
         .btn-reset {
-            height: 34px;
+            height: 36px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             padding: 0 16px;
-            border-radius: 8px;
+            border-radius: 9px;
             font-size: 14px;
             font-weight: 600;
             white-space: nowrap;
+            text-decoration: none;
+            transition: background var(--transition);
         }
         .btn-search {
             border: none;
+            background: var(--accent);
+            color: var(--on-accent);
             cursor: pointer;
-            background-color: #1f6feb !important;
-            color: #ffffff !important;
-            transition: background var(--transition);
         }
         .btn-search:hover {
-            background: #1a5fd4 !important;
+            filter: brightness(0.92);
         }
         .btn-reset {
-            text-decoration: none;
-            background-color: #eef2f6 !important;
-            color: #0b1e33 !important;
-            transition: background var(--transition);
+            background: var(--soft);
+            color: var(--text);
         }
         .btn-reset:hover {
-            background-color: #dbe4ee !important;
+            background: var(--soft-strong);
         }
 
+        /* ----- Карточка публикации ----- */
+        .trip-card {
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            transition: box-shadow var(--transition), transform var(--transition);
+        }
+        .trip-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .trip-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 14px;
+            margin-bottom: 14px;
+        }
+
+        .trip-avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: 0 0 auto;
+            border: 1px solid var(--line);
+            background: var(--soft);
+        }
+        .trip-avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 19px;
+            font-weight: 600;
+            border: 1px solid var(--line);
+            flex: 0 0 auto;
+        }
+
+        .user-name-label {
+            display: inline-flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            color: var(--text);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .user-name-label .last-name {
+            font-weight: 400;
+        }
+        .user-name-label .username {
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--accent);
+            background: var(--soft);
+            padding: 2px 9px;
+            border-radius: var(--radius-pill);
+        }
+        .user-name-label:hover .username,
+        .user-name-label:hover .last-name {
+            text-decoration: underline;
+        }
+
+        .trip-badges {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            background: var(--soft);
+            padding: 5px 12px;
+            border-radius: var(--radius-pill);
+            white-space: nowrap;
+        }
+        .chip b {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .rating-badge {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 3px;
+            font-size: 14px;
+            font-weight: 500;
+            background: var(--soft);
+            padding: 5px 12px;
+            border-radius: var(--radius-pill);
+            white-space: nowrap;
+        }
+        .rating-badge .rating-value {
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .rating-badge .star {
+            color: var(--star);
+        }
+        .rating-value.good { color: var(--good); }
+        .rating-value.mid  { color: var(--mid); }
+        .rating-value.low  { color: var(--low); }
+        .no-rating-label {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .trip-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .trip-meta {
+            font-size: 13px;
+            color: var(--muted);
+            border-bottom: 1px dashed var(--line);
+            padding-bottom: 12px;
+        }
+        .trip-meta .date-text {
+            font-weight: 500;
+        }
+
+        /* Текст публикации — «сообщение» пользователя: мягкая заливка в тон акцента
+           и скруглённый уголок, чтобы отличалось от блока отзывов ниже. */
+        .message-text {
+            background: var(--soft);
+            background: color-mix(in srgb, var(--accent) 10%, transparent);
+            border-radius: 6px 16px 16px 16px;
+            padding: 14px 16px;
+            font-size: 15.5px;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-word;
+            box-shadow: inset 0 0 0 1px var(--line-soft);
+        }
+
+        /* Отзывы — вторичный блок: подпись и цитата с тонкой линией слева. */
+        .comments-section {
+            margin-top: 4px;
+        }
+        .comments-section .comments-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .comments-section .comments-text {
+            font-size: 14px;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-word;
+            padding-left: 14px;
+            border-left: 2px solid var(--line-soft);
+        }
+        .comments-section .no-comments {
+            font-style: italic;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .trip-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        /* ----- Тумблер подписки ----- */
+        .subscribe-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .subscribe-toggle input {
+            display: none;
+        }
+        .subscribe-toggle .switch {
+            position: relative;
+            flex: 0 0 auto;
+            width: 42px;
+            height: 24px;
+            border-radius: var(--radius-pill);
+            background: var(--line);
+            transition: background var(--transition);
+        }
+        .subscribe-toggle .switch::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(15, 33, 55, 0.25);
+            transition: transform var(--transition);
+        }
+        .subscribe-toggle input:checked + .switch {
+            background: var(--accent);
+        }
+        .subscribe-toggle input:checked + .switch::after {
+            transform: translateX(18px);
+        }
+        .subscribe-toggle .subscribe-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .subscribe-toggle input:checked ~ .subscribe-label {
+            color: var(--accent);
+        }
+        .subscribe-toggle.disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .btn-feedback {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border: none;
+            border-radius: var(--radius-pill);
+            background: var(--accent);
+            color: var(--on-accent);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(31, 111, 235, 0.28);
+            transition: background var(--transition), transform var(--transition);
+        }
+        .btn-feedback:hover {
+            filter: brightness(0.92);
+            transform: translateY(-1px);
+        }
+        .btn-feedback:active {
+            transform: scale(0.98);
+        }
+
+        /* ----- Пагинация ----- */
         .pagination {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 16px;
-            margin-top: 40px;
-            padding: 12px 0;
-            border-radius: 60px;
-            box-shadow: var(--card-shadow);
+            gap: 12px;
+            margin-top: 28px;
             flex-wrap: wrap;
         }
         .pagination a {
             text-decoration: none;
-            font-weight: 500;
-            padding: 6px 18px;
-            border-radius: 40px;
-            transition: background var(--transition), color var(--transition);
             font-size: 15px;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            padding: 9px 18px;
+            border-radius: var(--radius-pill);
+            transition: background var(--transition), color var(--transition);
+        }
+        .pagination a:hover {
+            background: var(--accent);
+            color: var(--on-accent);
         }
         .pagination .current-page {
-            background: transparent !important;
             font-weight: 700;
-            font-size: 17px;
-            padding: 6px 12px;
+            font-size: 16px;
+            color: var(--muted);
+            padding: 0 6px;
         }
 
+        /* ----- Модальное окно ----- */
         .modal {
             display: none;
             position: fixed;
@@ -552,56 +442,58 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            background: rgba(9, 22, 38, 0.45);
+            backdrop-filter: blur(3px);
         }
         .modal.show {
             display: flex;
         }
-
         .modal-content {
-            border-radius: var(--border-radius-lg);
-            max-width: 480px;
+            background: var(--card-bg);
+            color: var(--text);
+            border-radius: var(--radius-lg);
+            max-width: 460px;
             width: 100%;
-            padding: 32px 30px 28px;
-            box-shadow: 0 30px 60px rgba(0, 20, 40, 0.25);
-            position: relative;
-            animation: modalFade 0.2s ease;
+            padding: 26px 24px 24px;
+            box-shadow: 0 26px 60px rgba(9, 22, 38, 0.30);
+            animation: modalFade 0.18s ease;
         }
         @keyframes modalFade {
-            from { opacity: 0; transform: scale(0.96); }
+            from { opacity: 0; transform: scale(0.97); }
             to { opacity: 1; transform: scale(1); }
         }
-
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 22px;
+            margin-bottom: 18px;
         }
         .modal-header h3 {
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: -0.2px;
+            font-size: 20px;
+            font-weight: 700;
         }
         .close {
-            font-size: 32px;
+            font-size: 30px;
             line-height: 1;
+            color: var(--muted);
             cursor: pointer;
-            transition: color var(--transition), transform var(--transition);
             background: none;
             border: none;
-            padding: 0 6px;
+            padding: 0 4px;
+            transition: color var(--transition);
         }
         .close:hover {
-            transform: rotate(90deg);
+            color: var(--low);
         }
 
         .modal label {
-            font-weight: 500;
             display: block;
-            margin: 16px 0 6px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 16px 0 8px;
         }
         .modal label:first-of-type {
-            margin-top: 4px;
+            margin-top: 0;
         }
 
         .stars {
@@ -614,65 +506,82 @@
             display: none;
         }
         .stars label {
-            font-size: 38px;
-            cursor: pointer;
-            transition: color 0.15s, transform 0.1s;
+            font-size: 36px;
             line-height: 1;
+            margin: 0;
+            cursor: pointer;
+            color: var(--line);
+            transition: color 0.15s, transform 0.1s;
+        }
+        .stars input:checked ~ label,
+        .stars label:hover,
+        .stars label:hover ~ label {
+            color: var(--star);
+        }
+        .stars label:hover {
+            transform: scale(1.06);
         }
 
         .modal textarea {
             width: 100%;
-            border-radius: var(--border-radius-sm);
-            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--line);
+            background: var(--page-bg);
+            color: var(--text);
+            padding: 12px 14px;
             font-size: 15px;
             font-family: inherit;
             resize: vertical;
-            transition: border-color var(--transition);
-            margin-top: 4px;
+            transition: border-color var(--transition), box-shadow var(--transition);
         }
         .modal textarea:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--soft);
         }
 
         .btn-submit {
-            border: none;
-            font-weight: 600;
-            font-size: 16px;
-            padding: 14px 28px;
-            border-radius: 60px;
             width: 100%;
-            margin-top: 24px;
+            margin-top: 22px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: var(--radius-pill);
+            background: var(--accent);
+            color: var(--on-accent);
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
+            box-shadow: 0 4px 12px rgba(31, 111, 235, 0.28);
             transition: background var(--transition), transform var(--transition);
-            box-shadow: 0 4px 12px rgba(31, 111, 235, 0.3);
         }
         .btn-submit:hover {
-            background: #1a5fd4 !important;
-            transform: scale(1.01);
+            filter: brightness(0.92);
+        }
+        .btn-submit:active {
+            transform: scale(0.99);
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 32px 12px;
         }
 
         @media (max-width: 600px) {
-            body { padding: 16px 12px 40px; }
+            body { padding: 16px 12px 44px; }
+            .page-header h1 { font-size: 22px; }
             .trip-card { padding: 16px; }
-            .user-name-label { font-size: 18px; flex-wrap: wrap; }
-            .trip-header { gap: 8px; }
-            .user-messages-count { margin-left: 0; }
+            .user-name-label { font-size: 17px; }
+            .trip-badges { margin-left: 0; }
             .trip-actions { justify-content: stretch; }
             .btn-feedback { width: 100%; justify-content: center; }
-            .search-panel { padding: 10px; }
             .search-field { flex: 1 1 44%; }
             .search-actions { margin-left: 0; width: 100%; }
             .btn-search, .btn-reset { flex: 1 1 0; }
-            .modal-content { padding: 24px 18px; }
+            .modal-content { padding: 22px 18px; }
             .stars label { font-size: 32px; }
         }
-
-        .hidden-id { display: none; }
-        .flex { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .gap-2 { gap: 8px; }
-        .mt-1 { margin-top: 6px; }
-        .text-muted { opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -680,7 +589,7 @@
 <!-- Заголовок -->
 <div class="page-header">
     <h1>🚐 Отзывы о поездках</h1>
-    <span class="trip-count" th:text="${#lists.size(tripList)} + ' поездок'">0 поездок</span>
+    <span class="trip-count" th:text="'Найдено: ' + ${#lists.size(tripList)}">Найдено: 0</span>
 </div>
 
 <!-- Поиск -->
@@ -711,41 +620,45 @@
     </div>
 </form>
 
+<div th:if="${#lists.isEmpty(tripList)}" class="empty">Ничего не найдено</div>
+
 <!-- Список карточек -->
 <div th:each="trip : ${tripList}" class="trip-card">
 
-    <!-- Скрытый ID -->
-    <div class="hidden-id" th:text="${trip.userId}"></div>
-
-    <!-- Верхняя часть: пользователь + рейтинг -->
+    <!-- Верхняя часть: пользователь + сообщения + рейтинг -->
     <div class="trip-header">
         <img class="trip-avatar" th:if="${trip.avatarPath}"
              th:src="@{/avatar/{id}(id=${trip.userId})}" alt=""/>
         <span class="trip-avatar-placeholder" th:unless="${trip.avatarPath}"
               th:text="${#strings.isEmpty(trip.firstName) ? '👤' : #strings.substring(trip.firstName,0,1)}">👤</span>
-        <div class="user-name-label">
+
+        <a class="user-name-label" th:href="@{/app/reviews/{id}(id=${trip.userId})}"
+           title="Отзывы и история данных пользователя">
             <span th:text="${trip.firstName}">Имя</span>
             <span class="last-name" th:text="${trip.lastName}">Фамилия</span>
             <span class="username" th:if="${trip.userName}" th:text="'@' + ${trip.userName}"></span>
-        </div>
-        <span class="user-messages-count" th:text="'✉ ' + ${trip.cnt}"></span>
+        </a>
 
-        <div class="rating-badge">
-            <span th:if="${trip.rating}">
-                <span class="rating-value"
-                      th:classappend="${trip.rating >= 4} ? 'good' : (${trip.rating >= 3} ? 'mid' : 'low')"
-                      th:text="${trip.rating}">4.5</span>
-                <span style="font-weight:400; opacity:0.7;">★</span>
+        <div class="trip-badges">
+            <span class="chip" title="Сколько сообщений этот пользователь написал в чате">
+                💬 Сообщений: <b th:text="${trip.cnt}">0</b>
             </span>
-            <span th:unless="${trip.rating}" class="no-rating-label">Нет оценок</span>
+            <span class="rating-badge" title="Средняя оценка по отзывам">
+                <span th:if="${trip.rating}">
+                    <span class="rating-value"
+                          th:classappend="${trip.rating >= 4} ? 'good' : (${trip.rating >= 3} ? 'mid' : 'low')"
+                          th:text="${trip.rating}">4.5</span><span class="star">★</span>
+                </span>
+                <span th:unless="${trip.rating}" class="no-rating-label">Нет оценок</span>
+            </span>
         </div>
     </div>
 
     <!-- Тело поездки -->
     <div class="trip-body">
         <div class="trip-meta">
-            <span class="date-text" th:text="${trip.getDateTime()}">12 мая 2026, 14:30</span>
-            <span class="trip-id" th:text="'#' + ${trip.userId}"></span>
+            <span class="date-text"
+                  th:text="${trip.dateTime != null ? #temporals.format(trip.dateTime, 'd MMMM yyyy, HH:mm', ruLocale) : ''}">15 октября 2026, 14:30</span>
         </div>
 
         <div class="message-text" th:text="${trip.text}">
@@ -761,7 +674,6 @@
             <div th:unless="${trip.comments}" class="no-comments">
                 Пока нет отзывов
             </div>
-            <a class="reviews-btn" th:href="@{/app/reviews/{id}(id=${trip.userId})}">Показать все отзывы</a>
         </div>
     </div>
 
@@ -770,14 +682,14 @@
         <label class="subscribe-toggle"
                th:if="${trip.userId}"
                th:attr="data-interest-id=${trip.userId}"
-               title="Подписывать на новые публикации автора">
+               title="Уведомлять о новых публикациях автора">
             <input type="checkbox"
                    class="interest-checkbox"
                    th:attr="data-interest-id=${trip.userId}"
                    disabled
                    onchange="onSubscribeChange(this)"/>
             <span class="switch"></span>
-            <span class="subscribe-label">Следить за автором</span>
+            <span class="subscribe-label">Подписаться</span>
         </label>
         <button class="btn-feedback"
                 th:data-user-id="${trip.userId}"

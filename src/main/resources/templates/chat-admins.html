@@ -9,20 +9,12 @@
     <script th:src="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.js}"></script>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" data-back="/app/chats" defer></script>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
-        :root {
-            --tg-theme-bg-color: #ffffff !important;
-            --tg-theme-text-color: #000000 !important;
-            --tg-theme-hint-color: #999999 !important;
-            --tg-theme-button-color: #2481cc !important;
-            --tg-theme-button-text-color: #ffffff !important;
-            --tg-theme-secondary-bg-color: #f1f1f1 !important;
-        }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color) !important;
-            color: var(--tg-theme-text-color) !important;
+            background: var(--page-bg);
+            color: var(--text);
             padding: 16px;
             margin: 0;
             min-height: 100vh;
@@ -39,7 +31,7 @@
         }
 
         .chat-id {
-            color: var(--tg-theme-hint-color);
+            color: var(--muted);
             font-size: 13px;
             margin-bottom: 20px;
         }
@@ -48,8 +40,10 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
             padding: 14px 16px;
-            background: var(--tg-theme-secondary-bg-color);
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
             border-radius: 12px;
             margin-bottom: 10px;
         }
@@ -61,7 +55,7 @@
 
         .setting-name {
             font-size: 12px;
-            color: var(--tg-theme-hint-color);
+            color: var(--muted);
             margin-top: 2px;
         }
 
@@ -78,7 +72,8 @@
             border-radius: 50%;
             object-fit: cover;
             flex-shrink: 0;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
+            background: var(--soft);
         }
 
         .member-avatar-placeholder {
@@ -88,12 +83,12 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: #eef2f6;
-            color: #5b6f82;
+            background: var(--soft);
+            color: var(--muted);
             font-size: 18px;
             font-weight: 600;
             flex-shrink: 0;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
         }
 
         .switch {
@@ -117,7 +112,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #ccc;
+            background-color: var(--soft-strong);
             transition: .3s;
             border-radius: 28px;
         }
@@ -129,13 +124,14 @@
             width: 22px;
             left: 3px;
             bottom: 3px;
-            background-color: white;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
             transition: .3s;
             border-radius: 50%;
         }
 
         input:checked + .slider {
-            background-color: var(--tg-theme-button-color);
+            background-color: var(--accent);
         }
 
         input:checked + .slider:before {
@@ -145,12 +141,13 @@
         .submit-btn {
             width: 100%;
             padding: 16px;
-            background: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
+            background: var(--accent);
+            color: var(--on-accent);
             border: none;
             border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
             margin-top: 20px;
             transition: opacity 0.3s;
@@ -167,7 +164,7 @@
         .empty-state {
             text-align: center;
             padding: 40px 20px;
-            color: var(--tg-theme-hint-color);
+            color: var(--muted);
         }
 
         .search-form {
@@ -180,26 +177,33 @@
             flex: 1;
             min-width: 0;
             padding: 10px 14px;
-            border: 1px solid #d8e1ec;
+            border: 1px solid var(--line);
             border-radius: 10px;
             font-size: 15px;
-            background: #ffffff;
-            color: var(--tg-theme-text-color);
+            font-family: inherit;
+            background: var(--inner-bg);
+            color: var(--text);
+        }
+
+        .search-form input:focus {
+            outline: none;
+            border-color: var(--accent);
         }
 
         .search-form button {
             padding: 10px 16px;
             border: none;
             border-radius: 10px;
-            background: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
+            background: var(--accent);
+            color: var(--on-accent);
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
         }
 
         .hint {
             font-size: 13px;
-            color: var(--tg-theme-hint-color);
+            color: var(--muted);
             margin-bottom: 14px;
         }
     </style>

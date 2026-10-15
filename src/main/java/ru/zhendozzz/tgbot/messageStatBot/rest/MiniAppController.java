@@ -10,6 +10,7 @@ import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBackChat;
 import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
 import ru.zhendozzz.tgbot.messageStatBot.repo.RatingRepo;
+import ru.zhendozzz.tgbot.messageStatBot.repo.UserNameHistoryRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserRepo;
 import ru.zhendozzz.tgbot.messageStatBot.service.FeedbackService;
 import ru.zhendozzz.tgbot.messageStatBot.service.AdsService;
@@ -38,12 +39,16 @@ import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
 @Controller
 @RequestMapping("/app")
 public class MiniAppController {
+
+    /** Даты на странице поездок показываем по-русски («15 октября 2026, 14:30»). */
+    private static final Locale RU_LOCALE = Locale.forLanguageTag("ru");
 
     private final TripService tripService;
     private final FeedbackService feedbackService;
@@ -53,6 +58,7 @@ public class MiniAppController {
     private final SettingsService settingsService;
     private final RatingRepo ratingRepo;
     private final UserRepo userRepo;
+    private final UserNameHistoryRepo userNameHistoryRepo;
     private final CurrentUserService currentUserService;
     private final AdminAuthGuard adminAuthGuard;
 
@@ -61,6 +67,7 @@ public class MiniAppController {
             FeedbackService feedbackService, FileLoaderService fileLoaderService,
             LogService logService, InterestedService interestedService,
             SettingsService settingsService, RatingRepo ratingRepo, UserRepo userRepo,
+            UserNameHistoryRepo userNameHistoryRepo,
             CurrentUserService currentUserService, AdminAuthGuard adminAuthGuard
     ) {
         this.tripService = tripService;
@@ -71,6 +78,7 @@ public class MiniAppController {
         this.settingsService = settingsService;
         this.ratingRepo = ratingRepo;
         this.userRepo = userRepo;
+        this.userNameHistoryRepo = userNameHistoryRepo;
         this.currentUserService = currentUserService;
         this.adminAuthGuard = adminAuthGuard;
     }
@@ -101,14 +109,15 @@ public class MiniAppController {
     }
 
     /**
-     * Страница всех отзывов о водителе: видны автор отзыва и его данные.
+     * Страница отзывов о пользователе: его данные, история их изменений и отзывы авторов.
      */
     @GetMapping("/reviews/{userId}")
-    public String driverReviews(@PathVariable("userId") String userId, Model model) {
-        TgUser driver = userRepo.findById(userId).orElse(null);
-        model.addAttribute("driver", driver);
+    public String userReviews(@PathVariable("userId") String userId, Model model) {
+        TgUser user = userRepo.findById(userId).orElse(null);
+        model.addAttribute("driver", user);
         model.addAttribute("driverId", userId);
         model.addAttribute("reviews", ratingRepo.findDriverReviews(userId));
+        model.addAttribute("history", userNameHistoryRepo.findByUserIdOrderByChangedAtDesc(userId));
         return "driver-reviews";
     }
 
@@ -189,6 +198,7 @@ public class MiniAppController {
         model.addAttribute("dateTo", defaultValue(dateTo));
         model.addAttribute("author", defaultValue(author));
         model.addAttribute("text", defaultValue(text));
+        model.addAttribute("ruLocale", RU_LOCALE);
         return "trips";
     }
 

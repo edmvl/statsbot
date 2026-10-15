@@ -1,38 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Логи чата</title>
+    <title>Обращение</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <link rel="stylesheet" th:href="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.css}">
-    <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
-    <script th:src="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.js}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=9)}" data-back="/app/feedback" defer></script>
     <style>
-        :root {
-            --tg-theme-bg-color: #ffffff !important;
-            --tg-theme-text-color: #000000 !important;
-            --tg-theme-hint-color: #999999 !important;
-            --tg-theme-link-color: #2481cc !important;
-            --tg-theme-button-color: #2481cc !important;
-            --tg-theme-button-text-color: #ffffff !important;
-            --tg-theme-secondary-bg-color: #f1f1f1 !important;
-        }
-
-        /* Принудительное применение для всех элементов */
-        body {
-            background-color: var(--tg-theme-bg-color) !important;
-            color: var(--tg-theme-text-color) !important;
-        }
-
-        /* Альтернативный подход - прямые значения */
-        body.force-light-theme {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-
         body {
             font-family: Arial, sans-serif;
+            background: var(--page-bg);
+            color: var(--text);
+            padding: 16px;
+            margin: 0;
         }
 
         label, input {
@@ -50,63 +31,86 @@
             margin: .6em 0;
         }
 
-        div#users-contain {
-            width: 350px;
+        #users-contain {
+            max-width: 640px;
             margin: 20px 0;
         }
 
-        div#users-contain table {
+        #users {
+            width: 100%;
             margin: 1em 0;
             border-collapse: collapse;
-            width: 100%;
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            overflow: hidden;
         }
 
-        div#users-contain table td, div#users-contain table th {
-            border: 1px solid #eee;
+        #users td, #users th {
+            border-bottom: 1px solid var(--line-soft);
             padding: .6em 10px;
             text-align: left;
+            color: var(--text);
+            vertical-align: top;
+        }
+
+        #users tr:last-child td {
+            border-bottom: none;
         }
 
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 10px;
         }
 
         .gallery-item {
-            border: 1px solid #ccc;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
             padding: 5px;
             text-align: center;
+            background: var(--card-bg);
         }
 
         .gallery-item img {
             max-width: 100%;
-            max-height: 2622px;
             object-fit: cover;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: var(--tg-theme-button-color, #2481cc);
         }
 
         textarea {
             width: 100%;
             min-height: 120px;
             padding: 12px;
-            border: 1px solid var(--tg-theme-hint-color, #999999);
+            border: 1px solid var(--line);
             border-radius: 12px;
-            background: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
+            background: var(--inner-bg);
+            color: var(--text);
             font-size: 16px;
-            resize: vertical;
             font-family: inherit;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .submit-btn {
+            margin-top: 12px;
+            padding: 12px 22px;
+            border: none;
+            border-radius: var(--radius-pill);
+            background: var(--accent);
+            color: var(--on-accent);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
         }
 
     </style>
 </head>
 <body>
-<div id="users-contain" class="ui-widget">
+<div id="users-contain">
     <span>Жалоба</span>
     <span th:text="${feedback.getUserName()}"></span>
     <div class="gallery">
@@ -117,7 +121,7 @@
             <p th:text="${feedback.getDescription()}"></p>
         </div>
     </div>
-    <table id="users" class="ui-widget ui-widget-content">
+    <table id="users">
         <tr th:each="feedBackChat : ${feedBackChatList}">
             <td th:text="${{feedBackChat.getDateTime()}}"></td>
             <td th:text="${{feedBackChat.getUserName()}}"></td>
