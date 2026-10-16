@@ -1,0 +1,94 @@
+name: Build and Deploy Spring Boot App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  SERVICE_NAME: tgbot
+  JAR_PATH: /home/messageStatBot-0.0.1-SNAPSHOT.jar
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn -B clean package
+
+      - name: Run tests
+        run: mvn -B test
+
+      - name: Find built JAR
+        id: jar
+        run: |
+          JAR=$(ls target/*.jar | grep -v 'original' | head -n 1)
+          echo "Найден JAR: $JAR"
+          echo "path=$JAR" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: ${{ steps.jar.outputs.path }}
+          retention-days: 7
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: ./dist
+
+      - name: Copy JAR to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "dist/*.jar"
+          target: "/tmp/deploy-tgbot"
+          strip_components: 1
+
+      - name: Install JAR and restart systemd service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+
+            # Копируем новый jar на место
+            mv /tmp/deploy-tgbot/*.jar ${{ env.JAR_PATH }}
+            chmod 644 ${{ env.JAR_PATH }}
+
+            # Перезапускаем сервис
+            systemctl restart ${{ env.SERVICE_NAME }}.service
+
+            # Ждём пару секунд и проверяем статус
+            sleep 30
+            systemctl is-active --quiet ${{ env.SERVICE_NAME }}.service \
+              && echo "✅ ${{ env.SERVICE_NAME }} перезапущен" \
+              || (echo "❌ Сервис не поднялся"; journalctl -u ${{ env.SERVICE_NAME }} -n 50 --no-pager; exit 1)
