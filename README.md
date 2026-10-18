@@ -75,14 +75,6 @@ docker compose up -d
 mvn -o test
 ```
 
-## Безопасность
-
-Токен бота, который раньше лежал в `pom.xml`, попал в **историю git** — простого
-удаления из файлов недостаточно. Обязательно перевыпустите его: `@BotFather` → `/revoke`
-→ новые значения в `config/application-local.properties` и `config/application-prod.properties`.
-По желанию вычистить историю (`git filter-repo` / BFG), но перевыпуск токена обязателен
-в любом случае.
-
 ## Миграции
 
 Схема БД ведётся Flyway (`src/main/resources/db/migration`) и применяется автоматически
