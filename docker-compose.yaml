@@ -8,5 +8,6 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Дамп для первичной инициализации базы (файл в корне проекта).
-      - ./db_dump.bak:/docker-entrypoint-initdb.d/dump.sql
+      # Дамп для первичной инициализации базы. В репозитории его нет (см. README):
+      # положите сюда обычный SQL-дамп, иначе контейнер не поднимется.
+      - ./tgbot_dump:/docker-entrypoint-initdb.d/dump.sql

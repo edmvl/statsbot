@@ -46,3 +46,12 @@
     --shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
     --shadow-hover: 0 12px 26px rgba(0, 0, 0, 0.16);
 }
+
+/*
+ * Атрибут hidden должен побеждать любые display из компонентов: у .menu-card
+ * задан display: flex, и он по специфичности перекрывал встроенное
+ * [hidden] { display: none } — скрытые пункты меню оставались видимыми.
+ */
+[hidden] {
+    display: none !important;
+}

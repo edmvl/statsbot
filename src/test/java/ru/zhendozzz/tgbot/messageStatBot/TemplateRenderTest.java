@@ -137,6 +137,13 @@ class TemplateRenderTest {
         engine.process("chat-settings", context);
         engine.process("feedback", context);
         engine.process("feedback-chat", context);
+
+        context.setVariable("status", 403);
+        engine.process("error", context);
+        context.setVariable("status", 500);
+        engine.process("error", context);
+        context.setVariable("status", null);
+        engine.process("error", context);
     }
 
     @Test
