@@ -98,8 +98,21 @@ public class MiniAppController {
         boolean adminAccess = superAdmin || settingsService.isAdminOfAnyChat(userId);
         model.addAttribute("adminAccess", adminAccess);
         model.addAttribute("superAdmin", superAdmin);
+        model.addAttribute("tripAdmin", isTripAdmin(userId));
         model.addAttribute("superAdminId", AccessConstants.SUPER_ADMIN_ID);
         return "index";
+    }
+
+    /** Супер-админ или администратор канала поездок (там живут жалобы и баны). */
+    private boolean isTripAdmin(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        if (AccessConstants.SUPER_ADMIN_ID.equals(userId)) {
+            return true;
+        }
+        String tripChatId = settingsService.findTripChannelId();
+        return tripChatId != null && settingsService.isUserAdmin(tripChatId, userId);
     }
 
     /**
@@ -116,6 +129,7 @@ public class MiniAppController {
         Map<String, Boolean> result = new HashMap<>();
         result.put("superAdmin", userId != null && AccessConstants.SUPER_ADMIN_ID.equals(userId));
         result.put("chatAdmin", userId != null && settingsService.isAdminOfAnyChat(userId));
+        result.put("tripAdmin", isTripAdmin(userId));
         return result;
     }
 
@@ -519,6 +533,16 @@ public class MiniAppController {
         }
         httpServletResponse.sendRedirect("/app/feedback-chat/" + feedbackId);
         return null;
+    }
+
+    /** Список жалоб (супер-админ и админы канала поездок). */
+    @GetMapping("/feedback-list")
+    public String feedbackList(HttpServletRequest request, HttpServletResponse httpServletResponse, Model model) throws IOException {
+        if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
+            return null;
+        }
+        model.addAttribute("feedbacks", feedbackService.findAllFeedbacks());
+        return "feedback-list";
     }
 
     /** Список заблокированных с ссылками на жалобы. */

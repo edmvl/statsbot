@@ -175,6 +175,11 @@ public class FeedbackService implements CommandExecutable {
         return bannedUserRepo.findAllByOrderByBannedAtDesc();
     }
 
+    /** Все жалобы, свежие сверху. */
+    public List<FeedBack> findAllFeedbacks() {
+        return feedBackRepo.findAllByOrderByIdDesc();
+    }
+
     public boolean isBannedByFeedback(Long feedbackId) {
         return bannedUserRepo.existsByFeedbackId(feedbackId);
     }

@@ -11,4 +11,6 @@ import java.util.List;
 public interface FeedBackRepo extends JpaRepository<FeedBack, Long> {
     @Query(value = "select user_id from settings where chat_id=(select chat_id from chat_settings where setting_name='trip_channel' and setting_value='true' order by id limit 1) and is_admin=true;", nativeQuery = true)
     List<String> getTripGroupAdmins();
+
+    List<FeedBack> findAllByOrderByIdDesc();
 }

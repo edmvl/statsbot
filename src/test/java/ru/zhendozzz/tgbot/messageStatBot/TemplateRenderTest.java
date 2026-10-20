@@ -157,6 +157,9 @@ class TemplateRenderTest {
         context.setVariable("bans", List.of(ban));
         engine.process("bans", context);
 
+        context.setVariable("feedbacks", List.of(feedback));
+        engine.process("feedback-list", context);
+
         context.setVariable("status", 403);
         engine.process("error", context);
         context.setVariable("status", 500);

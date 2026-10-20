@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Урмарский помощник</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=11)}" defer></script>
+    <script th:src="@{/js/app-back.js(v=12)}" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
@@ -196,6 +196,26 @@
             <span class="menu-text">
                 <span class="menu-title">Реклама</span>
                 <span class="menu-desc">Посты, предложения пользователей и модерация</span>
+            </span>
+            <span class="menu-arrow">›</span>
+        </a>
+
+        <a class="menu-card" href="/app/feedback-list" data-trip-admin-only
+           th:attr="hidden=${tripAdmin == null || !tripAdmin}">
+            <span class="menu-icon">📨</span>
+            <span class="menu-text">
+                <span class="menu-title">Жалобы</span>
+                <span class="menu-desc">Обращения, переписка и блокировка нарушителей</span>
+            </span>
+            <span class="menu-arrow">›</span>
+        </a>
+
+        <a class="menu-card" href="/app/bans" data-trip-admin-only
+           th:attr="hidden=${tripAdmin == null || !tripAdmin}">
+            <span class="menu-icon">🚫</span>
+            <span class="menu-text">
+                <span class="menu-title">Заблокированные</span>
+                <span class="menu-desc">Кто забанен и по какой жалобе</span>
             </span>
             <span class="menu-arrow">›</span>
         </a>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Обратная связь</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=11)}" data-back="/app" defer></script>
+    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
     <style>
@@ -309,11 +309,11 @@
             <label for="targetSearch">На кого жалоба</label>
             <div class="user-picker">
                 <input type="text" id="targetSearch" placeholder="Имя, @ник или ID" autocomplete="off"/>
-                <button type="button" class="user-clear" id="targetClear" hidden>✕</button>
+                <button type="button" class="user-clear" id="targetClear">✕</button>
             </div>
             <div class="field-hint">Необязательно: укажите пользователя, на которого жалуетесь</div>
-            <div class="user-results" id="userResults" hidden></div>
-            <div class="selected-user" id="selectedUser" hidden></div>
+            <div class="user-results" id="userResults"></div>
+            <div class="selected-user" id="selectedUser"></div>
             <input type="hidden" id="targetUserId"/>
         </div>
 
@@ -376,6 +376,12 @@
 
         let targetSearchTimer = null;
 
+        // Скрываем через display (jQuery), а не атрибутом hidden: в теме есть
+        // [hidden] { display: none !important }, который перебивает .show().
+        $userResults.hide();
+        $selectedUser.hide();
+        $targetClear.hide();
+
         function selectedTargetLabel(user) {
             return 'Жалоба на: ' + (user.userName ? user.name + ' (@' + user.userName + ')' : user.name);
         }
@@ -428,11 +434,17 @@
                 return;
             }
             targetSearchTimer = setTimeout(function() {
+                const headers = {};
+                if (tg && tg.initData) {
+                    // Подпись можно передать заголовком — работает даже если cookie не сохранились.
+                    headers['X-Telegram-Init-Data'] = tg.initData;
+                }
                 $.ajax({
                     url: '/api/feedback/users',
                     method: 'GET',
                     data: { q: query },
                     dataType: 'json',
+                    headers: headers,
                     success: renderUsers,
                     error: function() {
                         $userResults.empty().hide();

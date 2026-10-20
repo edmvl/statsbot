@@ -229,6 +229,17 @@
         }
     }
 
+    // Пункты для админов канала поездок (жалобы и баны).
+    function showTripAdminOnlyElements() {
+        var elements = document.querySelectorAll('[data-trip-admin-only]');
+        for (var i = 0; i < elements.length; i++) {
+            elements[i].removeAttribute('hidden');
+            if (elements[i].style) {
+                elements[i].style.display = '';
+            }
+        }
+    }
+
     function showSuperAdminElements() {
         showAdminSection();
         var elements = document.querySelectorAll('[data-super-admin-id]');
@@ -239,6 +250,7 @@
             }
         }
         showSuperAdminOnlyElements();
+        showTripAdminOnlyElements();
     }
 
     // Страница могла быть отрендерена без cookie — спрашиваем сервер ещё раз,
@@ -266,6 +278,9 @@
                     var access = JSON.parse(xhr.responseText);
                     if (access && access.chatAdmin) {
                         showAdminSection();
+                    }
+                    if (access && access.tripAdmin) {
+                        showTripAdminOnlyElements();
                     }
                     if (access && access.superAdmin) {
                         showSuperAdminElements();
