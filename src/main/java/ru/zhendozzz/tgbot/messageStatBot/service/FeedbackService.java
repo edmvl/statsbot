@@ -93,7 +93,7 @@ public class FeedbackService implements CommandExecutable {
         return feedBackChatRepo.findByFeedbackId(feedbackId);
     }
 
-    public void addChatByFeedbackId(Long feedbackId, String userId, String text) {
+    public void addChatByFeedbackId(Long feedbackId, String userId, String text, List<MultipartFile> files) {
         FeedBack feedback = feedBackRepo.findById(feedbackId).orElse(null);
         if (Objects.isNull(feedback)) {
             return;
@@ -104,13 +104,72 @@ public class FeedbackService implements CommandExecutable {
         feedBackChat.setUserId(userId);
         feedBackChat.setUserName(Objects.nonNull(userId) ? userName(userId) : "");
         feedBackChat.setDateTime(LocalDateTime.now());
-        feedBackChatRepo.save(feedBackChat);
+        FeedBackChat saved = feedBackChatRepo.save(feedBackChat);
+
+        if (Objects.nonNull(files) && files.stream().anyMatch(f -> Objects.nonNull(f) && !f.isEmpty())) {
+            fileLoaderService.processFiles(files, commentFilesKey(saved.getId()));
+        }
+
+        boolean fromAuthor = Objects.nonNull(feedback.getUserId()) && feedback.getUserId().equals(userId);
+        if (fromAuthor) {
+            notifyAdmins(feedback, "Пользователь добавил комментарий к жалобе");
+        } else {
+            messageExecutor.sendMessage(KeyboardUtils.getKeyboardMessage(
+                    "Посмотреть",
+                    "Администратор ответил вам по заявке",
+                    FEEDBACK_URL + feedbackId,
+                    feedback.getUserId()));
+        }
+    }
+
+    /** Вложения конкретного комментария (лежат в отдельном каталоге). */
+    public List<String> findCommentFiles(Long commentId) {
+        return fileLoaderService.getFiles(commentFilesKey(commentId));
+    }
+
+    public static String commentFilesKey(Long commentId) {
+        return "fc-" + commentId;
+    }
+
+    /** Закрыть жалобу с причиной отказа — автору уходит сообщение. */
+    public void closeFeedback(Long feedbackId, String reason, String adminId) {
+        FeedBack feedback = feedBackRepo.findById(feedbackId)
+                .orElseThrow(() -> new IllegalArgumentException("Обращение не найдено"));
+        if (isBlank(reason)) {
+            throw new IllegalArgumentException("Укажите причину отказа");
+        }
+        feedback.setFinished(true);
+        feedback.setCloseReason(reason.trim());
+        feedback.setClosedAt(LocalDateTime.now());
+        feedBackRepo.save(feedback);
+
         messageExecutor.sendMessage(KeyboardUtils.getKeyboardMessage(
-                "Посмотреть",
-                "Администратор ответил вам по заявке",
+                "Открыть",
+                "Ваша жалоба #" + feedbackId + " отклонена.\nПричина: " + reason.trim(),
                 FEEDBACK_URL + feedbackId,
-                feedback.getUserId()
-        ));
+                feedback.getUserId()));
+    }
+
+    /** Переоткрыть жалобу может её автор (например, если есть что добавить). */
+    public void reopenFeedback(Long feedbackId, String userId) {
+        FeedBack feedback = feedBackRepo.findById(feedbackId)
+                .orElseThrow(() -> new IllegalArgumentException("Обращение не найдено"));
+        if (!Objects.equals(feedback.getUserId(), userId)) {
+            throw new IllegalStateException("Это не ваша жалоба");
+        }
+        feedback.setFinished(false);
+        feedback.setCloseReason(null);
+        feedback.setClosedAt(null);
+        feedBackRepo.save(feedback);
+        notifyAdmins(feedback, "Пользователь переоткрыл жалобу");
+    }
+
+    private void notifyAdmins(FeedBack feedback, String headline) {
+        String label = userName(feedback.getUserId());
+        String text = headline + " #" + feedback.getId()
+                + (label.isEmpty() ? "" : " (" + label + ")");
+        feedBackRepo.getTripGroupAdmins().forEach(admin -> messageExecutor.sendMessage(
+                KeyboardUtils.getKeyboardMessage("Посмотреть", text, FEEDBACK_URL + feedback.getId(), admin)));
     }
 
     public FeedBack findFeedbackById(Long id) {
@@ -165,6 +224,8 @@ public class FeedbackService implements CommandExecutable {
         }
 
         feedback.setFinished(true);
+        feedback.setCloseReason("Жалоба рассмотрена: пользователь заблокирован.");
+        feedback.setClosedAt(LocalDateTime.now());
         feedBackRepo.save(feedback);
 
         messageExecutor.sendMessage(chatId,

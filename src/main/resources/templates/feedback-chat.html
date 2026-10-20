@@ -29,14 +29,35 @@
 
         .head h1 {
             font-size: 22px;
-            margin: 0 0 4px;
+            margin: 0 0 6px;
             letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .head .num {
             color: var(--muted);
             font-size: 15px;
             font-weight: 600;
+        }
+
+        .status {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: var(--radius-pill);
+        }
+
+        .status-open {
+            background: rgba(245, 158, 11, 0.18);
+            color: #c98a00;
+        }
+
+        .status-closed {
+            background: rgba(46, 158, 91, 0.18);
+            color: var(--good);
         }
 
         .sub {
@@ -90,6 +111,44 @@
             max-width: 100%;
             border-radius: 6px;
             object-fit: cover;
+        }
+
+        .closed-box {
+            background: rgba(46, 158, 91, 0.10);
+            border: 1px solid rgba(46, 158, 91, 0.30);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+
+        .closed-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--good);
+            margin-bottom: 4px;
+        }
+
+        .closed-reason {
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .reopen-btn {
+            margin-top: 10px;
+            padding: 9px 18px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-pill);
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .reopen-btn:hover {
+            background: var(--soft);
         }
 
         .ban-row {
@@ -154,6 +213,7 @@
         .reply-author {
             font-weight: 600;
             font-size: 14px;
+            word-break: break-word;
         }
 
         .reply-head time {
@@ -169,16 +229,21 @@
             word-break: break-word;
         }
 
+        .reply .gallery {
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            margin-top: 10px;
+        }
+
         .muted {
             color: var(--muted);
             font-size: 14px;
         }
 
-        .reply-form {
+        .reply-form, .close-form {
             margin: 20px 0;
         }
 
-        .reply-form label {
+        .reply-form label, .close-form label {
             display: block;
             font-weight: 600;
             font-size: 14px;
@@ -187,7 +252,7 @@
 
         textarea {
             width: 100%;
-            min-height: 110px;
+            min-height: 100px;
             padding: 12px;
             border: 1px solid var(--line);
             border-radius: 12px;
@@ -203,6 +268,37 @@
             border-color: var(--accent);
         }
 
+        .file-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border: 1px dashed var(--line);
+            border-radius: var(--radius-pill);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text);
+            background: var(--inner-bg);
+        }
+
+        .file-names {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
         .submit-btn {
             margin-top: 12px;
             padding: 12px 22px;
@@ -216,9 +312,27 @@
             cursor: pointer;
         }
 
+        .close-btn {
+            margin-top: 10px;
+            padding: 11px 20px;
+            border: none;
+            border-radius: var(--radius-pill);
+            background: var(--soft-strong);
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .links {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
         .link {
-            display: inline-block;
-            margin-top: 4px;
             color: var(--link);
             font-size: 14px;
             font-weight: 600;
@@ -232,7 +346,12 @@
 </head>
 <body>
 <header class="head">
-    <h1>Обращение <span class="num" th:text="'#' + ${feedback.id}">#1</span></h1>
+    <h1>
+        Обращение <span class="num" th:text="'#' + ${feedback.id}">#1</span>
+        <span class="status"
+              th:classappend="${feedback.finished != null and feedback.finished} ? 'status-closed' : 'status-open'"
+              th:text="${feedback.finished != null and feedback.finished ? 'Закрыта' : 'Открыта'}">Открыта</span>
+    </h1>
     <p class="sub" th:text="'От: ' + ${feedback.userName}">От: Пользователь</p>
     <p class="target" th:if="${feedback.targetUserId != null}">
         На пользователя:
@@ -252,7 +371,22 @@
     </div>
 </section>
 
-<div class="ban-row" th:if="${feedback.targetUserId != null}">
+<!-- Жалоба закрыта: причина и возможность переоткрыть (автору) -->
+<div class="closed-box" th:if="${feedback.finished != null and feedback.finished}">
+    <div class="closed-title">Жалоба закрыта</div>
+    <div class="closed-reason"
+         th:text="${feedback.closeReason != null and !#strings.isEmpty(feedback.closeReason)
+                  ? feedback.closeReason
+                  : 'Причина не указана'}">Причина</div>
+    <form method="post" th:if="${isOwner != null and isOwner}"
+          th:action="@{/app/feedback-chat/{id}/reopen(id=${feedback.id})}"
+          onsubmit="return confirm('Переоткрыть жалобу?');">
+        <button type="submit" class="reopen-btn">Переоткрыть жалобу</button>
+    </form>
+</div>
+
+<!-- Блокировка (только админам и только если указан пользователь) -->
+<div class="ban-row" th:if="${isAdmin != null and isAdmin and feedback.targetUserId != null}">
     <span class="banned" th:if="${banned}">🚫 Заблокирован по этому обращению</span>
     <form method="post" th:unless="${banned}"
           th:action="@{/app/feedback-chat/{id}/ban(id=${feedback.id})}"
@@ -269,18 +403,51 @@
         <time th:text="${reply.dateTime != null ? #temporals.format(reply.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></time>
     </div>
     <div class="reply-text" th:text="${reply.description}">Ответ</div>
+    <div class="gallery" th:if="${commentFiles != null and !#lists.isEmpty(commentFiles[reply.id])}">
+        <div class="gallery-item" th:each="file : ${commentFiles[reply.id]}">
+            <img th:src="@{/images(name=${file}, id=${'fc-' + reply.id})}" alt=""/>
+        </div>
+    </div>
 </div>
-<p class="muted" th:if="${#lists.isEmpty(feedBackChatList)}">Ответов пока нет</p>
+<p class="muted" th:if="${#lists.isEmpty(feedBackChatList)}">Комментариев пока нет</p>
 
-<form class="reply-form" method="post" th:action="@{/app/feedback-chat}">
-    <label for="reply">Ответ</label>
+<!-- Комментарий (админ отвечает, автор дополняет жалобу) -->
+<form class="reply-form" method="post" enctype="multipart/form-data" th:action="@{/app/feedback-chat}">
     <input type="hidden" name="id" th:value="${feedback.id}">
-    <textarea id="reply" name="text" required></textarea>
-    <button type="submit" class="submit-btn">Ответить</button>
+    <label for="replyText">Комментарий</label>
+    <textarea id="replyText" name="text" required></textarea>
+    <div class="file-row">
+        <label class="file-label" for="replyFiles">📎 Прикрепить файлы</label>
+        <input class="file-input" type="file" id="replyFiles" name="files" multiple
+               accept=".jpg,.jpeg,.png,.gif" onchange="showFileNames(this)"/>
+        <span class="file-names" id="fileNames"></span>
+    </div>
+    <button type="submit" class="submit-btn">Отправить</button>
 </form>
 
-<a class="link" th:href="@{/app/feedback-list}">Все жалобы →</a>
-&nbsp;
-<a class="link" th:href="@{/app/bans}">Все заблокированные →</a>
+<!-- Закрыть с причиной отказа (только админ и только открытую) -->
+<form class="close-form" th:if="${isAdmin != null and isAdmin and (feedback.finished == null or !feedback.finished)}"
+      method="post" th:action="@{/app/feedback-chat/{id}/close(id=${feedback.id})}"
+      onsubmit="return confirm('Закрыть жалобу с отказом? Автору уйдёт сообщение с причиной.');">
+    <label for="closeReason">Отклонить жалобу — причина</label>
+    <textarea id="closeReason" name="reason" required
+              placeholder="Например: недостаточно доказательств"></textarea>
+    <button type="submit" class="close-btn">Закрыть жалобу</button>
+</form>
+
+<div class="links" th:if="${isAdmin != null and isAdmin}">
+    <a class="link" th:href="@{/app/feedback-list}">Все жалобы →</a>
+    <a class="link" th:href="@{/app/bans}">Все заблокированные →</a>
+</div>
+
+<script>
+    function showFileNames(input) {
+        var names = [];
+        for (var i = 0; i < input.files.length; i++) {
+            names.push(input.files[i].name);
+        }
+        document.getElementById('fileNames').textContent = names.join(', ');
+    }
+</script>
 </body>
 </html>

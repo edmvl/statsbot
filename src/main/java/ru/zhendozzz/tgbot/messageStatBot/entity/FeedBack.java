@@ -37,4 +37,11 @@ public class FeedBack {
     @Column(name = "target_user_name")
     String targetUserName;
 
+    /** Причина закрытия (отказа) — показывается автору жалобы. */
+    @Column(name = "close_reason")
+    String closeReason;
+
+    @Column(name = "closed_at")
+    LocalDateTime closedAt;
+
 }

@@ -95,7 +95,12 @@ public class FileLoaderService implements NeedProcessMessage {
     }
 
     public List<String> getFiles(Long feedbackId) {
-        Path uploadPath = Paths.get(uploadDir, String.valueOf(feedbackId));
+        return getFiles(String.valueOf(feedbackId));
+    }
+
+    /** Файлы из каталога с произвольным ключом (для вложений к комментариям). */
+    public List<String> getFiles(String key) {
+        Path uploadPath = Paths.get(uploadDir, key);
         List<String> files;
         try (var walk = Files.walk(uploadPath)) {
             files = walk

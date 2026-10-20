@@ -65,9 +65,20 @@ public class AdminAuthGuard {
         return false;
     }
 
-    /** Админ чата, в котором ведётся канал поездок (там же живут обращения). */
-    private boolean isTripChannelAdmin(Long userId) {
+    /**
+     * true — супер-админ или администратор канала поездок.
+     * В отличие от {@link #allow}, ничего не пишет в ответ (для проверок внутри страниц).
+     */
+    public boolean isTripAdmin(HttpServletRequest request) {
+        Long userId = authService.getVerifiedUserId(TelegramRequest.initData(request));
         if (userId == null) {
+            return false;
+        }
+        return AccessConstants.SUPER_ADMIN_ID.equals(userId) || isTripChannelAdmin(userId);
+    }
+
+    /** Админ чата, в котором ведётся канал поездок (там же живут обращения). */
+    private boolean isTripChannelAdmin(Long userId) {        if (userId == null) {
             return false;
         }
         String chatId = settingsService.findTripChannelId();

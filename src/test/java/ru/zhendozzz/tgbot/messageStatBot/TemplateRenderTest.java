@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -134,6 +135,9 @@ class TemplateRenderTest {
         context.setVariable("feedback", feedback);
         context.setVariable("feedBackChatList", List.of());
         context.setVariable("files", List.of("screenshot.jpg"));
+        context.setVariable("commentFiles", Map.of());
+        context.setVariable("isAdmin", true);
+        context.setVariable("isOwner", false);
 
         engine.process("chat-settings", context);
         engine.process("feedback", context);
@@ -145,6 +149,14 @@ class TemplateRenderTest {
         context.setVariable("banned", false);
         engine.process("feedback-chat", context);
         context.setVariable("banned", true);
+        engine.process("feedback-chat", context);
+
+        // Закрытая жалоба глазами автора: причина отказа и кнопка «Переоткрыть».
+        feedback.setFinished(true);
+        feedback.setCloseReason("Недостаточно доказательств");
+        context.setVariable("isAdmin", false);
+        context.setVariable("isOwner", true);
+        context.setVariable("banned", false);
         engine.process("feedback-chat", context);
 
         BannedUser ban = new BannedUser();

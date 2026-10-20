@@ -29,7 +29,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
@@ -491,22 +493,92 @@ public class MiniAppController {
             HttpServletRequest request,
             HttpServletResponse httpServletResponse
     ) throws IOException {
-        // Переписка по обращениям: супер-админ и админы канала поездок.
-        if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
+        String userId = currentUserService.idAsString(request);
+        if (userId == null) {
+            // Первый заход без cookie — отдаём страницу получения доступа.
+            adminAuthGuard.allow(request, httpServletResponse, true);
             return null;
         }
-        List<FeedBackChat> feedBackChatList = feedbackService.findChatByFeedbackId(feedbackId);
         FeedBack feedback = feedbackService.findFeedbackOrNull(feedbackId);
         if (feedback == null) {
-            // Обращения с таким id нет — отдаём 404 вместо 500 при рендере шаблона.
             httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND, "Обращение не найдено");
             return null;
         }
+        boolean admin = adminAuthGuard.isTripAdmin(request);
+        boolean owner = userId.equals(feedback.getUserId());
+        if (!admin && !owner) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Нет доступа к обращению");
+            return null;
+        }
+
+        List<FeedBackChat> feedBackChatList = feedbackService.findChatByFeedbackId(feedbackId);
         model.addAttribute("feedBackChatList", feedBackChatList);
         model.addAttribute("feedback", feedback);
         model.addAttribute("files", fileLoaderService.getFiles(feedbackId));
+        model.addAttribute("commentFiles", commentFiles(feedBackChatList));
         model.addAttribute("banned", feedbackService.isBannedByFeedback(feedbackId));
+        model.addAttribute("isAdmin", admin);
+        model.addAttribute("isOwner", owner);
         return "feedback-chat";
+    }
+
+    private Map<Long, List<String>> commentFiles(List<FeedBackChat> comments) {
+        Map<Long, List<String>> files = new HashMap<>();
+        comments.forEach(comment -> files.put(comment.getId(), feedbackService.findCommentFiles(comment.getId())));
+        return files;
+    }
+
+    /** Закрыть жалобу с причиной (отказ) — автору уходит сообщение. */
+    @PostMapping("/feedback-chat/{id}/close")
+    public String closeFeedback(
+            @PathVariable("id") Long feedbackId,
+            @RequestParam("reason") String reason,
+            HttpServletRequest request,
+            HttpServletResponse httpServletResponse
+    ) throws IOException {
+        if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
+            return null;
+        }
+        String adminId = currentUserService.idAsString(request);
+        if (adminId == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Откройте приложение через Telegram");
+            return null;
+        }
+        try {
+            feedbackService.closeFeedback(feedbackId, reason, adminId);
+        } catch (IllegalArgumentException e) {
+            httpServletResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            return null;
+        }
+        httpServletResponse.sendRedirect("/app/feedback-chat/" + feedbackId);
+        return null;
+    }
+
+    /** Переоткрыть жалобу может её автор. */
+    @PostMapping("/feedback-chat/{id}/reopen")
+    public String reopenFeedback(
+            @PathVariable("id") Long feedbackId,
+            HttpServletRequest request,
+            HttpServletResponse httpServletResponse
+    ) throws IOException {
+        String userId = currentUserService.idAsString(request);
+        if (userId == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Откройте приложение через Telegram");
+            return null;
+        }
+        try {
+            feedbackService.reopenFeedback(feedbackId, userId);
+        } catch (IllegalArgumentException e) {
+            httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND, e.getMessage());
+            return null;
+        } catch (IllegalStateException e) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+            return null;
+        }
+        httpServletResponse.sendRedirect("/app/feedback-chat/" + feedbackId);
+        return null;
     }
 
     /** Блокировка пользователя, на которого пожаловались (супер-админ или админ канала поездок). */
@@ -557,9 +629,9 @@ public class MiniAppController {
 
     @PostMapping("/feedback-chat")
     public String feedbackChatReply(
-            Model model,
             @RequestParam("id") Long feedbackId,
             @RequestParam("text") String text,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
             HttpServletRequest request,
             HttpServletResponse httpServletResponse
     ) throws IOException {
@@ -569,11 +641,19 @@ public class MiniAppController {
                     "Откройте приложение через Telegram");
             return null;
         }
-        if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
+        FeedBack feedback = feedbackService.findFeedbackOrNull(feedbackId);
+        if (feedback == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND, "Обращение не найдено");
             return null;
         }
-        feedbackService.addChatByFeedbackId(feedbackId, userId, text);
+        boolean admin = adminAuthGuard.isTripAdmin(request);
+        boolean owner = userId.equals(feedback.getUserId());
+        if (!admin && !owner) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Нет доступа к обращению");
+            return null;
+        }
+        feedbackService.addChatByFeedbackId(feedbackId, userId, text, files);
         httpServletResponse.sendRedirect("/app/feedback-chat/" + feedbackId);
-        return "feedback-chat";
+        return null;
     }
 }

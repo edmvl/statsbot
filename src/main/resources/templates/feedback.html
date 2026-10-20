@@ -265,6 +265,36 @@
             font-size: 13px;
         }
 
+        .user-result-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: 0 0 auto;
+            background: var(--soft);
+        }
+
+        .user-result-avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .user-result-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .user-result-id {
+            color: var(--tg-theme-hint-color, #999999);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+
         .selected-user {
             margin-top: 8px;
             padding: 10px 12px;
@@ -410,10 +440,24 @@
             }
             users.forEach(function(user) {
                 const item = $('<button type="button" class="user-result"></button>');
-                item.append($('<span></span>').text(user.name));
-                if (user.userName) {
-                    item.append($('<span class="nick"></span>').text('@' + user.userName));
+
+                if (user.avatarPath) {
+                    item.append($('<img class="user-result-avatar" alt=""/>')
+                        .attr('src', '/avatar/' + user.id));
+                } else {
+                    item.append($('<span class="user-result-avatar user-result-avatar-placeholder"></span>')
+                        .text((user.name || '?').charAt(0)));
                 }
+
+                const info = $('<span class="user-result-info"></span>');
+                const title = $('<span></span>').text(user.name);
+                if (user.userName) {
+                    title.append($('<span class="nick"></span>').text(' @' + user.userName));
+                }
+                info.append(title);
+                info.append($('<span class="user-result-id"></span>').text('ID ' + user.id));
+                item.append(info);
+
                 item.on('click', function() {
                     selectTarget(user);
                 });

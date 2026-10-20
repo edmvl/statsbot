@@ -40,7 +40,8 @@ public class FeedbackController {
                 .map(user -> Map.of(
                         "id", user.getUserId(),
                         "name", displayName(user),
-                        "userName", user.getUserName() == null ? "" : user.getUserName()))
+                        "userName", user.getUserName() == null ? "" : user.getUserName(),
+                        "avatarPath", user.getAvatarPath() == null ? "" : user.getAvatarPath()))
                 .toList());
     }
 
