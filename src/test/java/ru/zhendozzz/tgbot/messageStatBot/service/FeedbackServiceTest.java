@@ -151,6 +151,84 @@ class FeedbackServiceTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    void authorSetsTargetUser() {
+        FeedBack feedback = feedback(7L, null);
+        when(feedBackRepo.findById(7L)).thenReturn(Optional.of(feedback));
+        when(bannedUserRepo.existsByFeedbackId(7L)).thenReturn(false);
+        when(feedBackRepo.getTripGroupAdmins()).thenReturn(List.of("42"));
+
+        service.updateTargetUser(7L, "777", "42", false);
+
+        assertThat(feedback.getTargetUserId()).isEqualTo("777");
+        assertThat(feedback.getTargetUserName()).isEqualTo("Иван Петров (@ivan)");
+        verify(feedBackRepo).save(feedback);
+        // Админам сообщаем, что автор указал, на кого жалуется.
+        verify(messageExecutor).sendMessage(any(SendMessage.class));
+    }
+
+    @Test
+    void targetUserCanBeCleared() {
+        FeedBack feedback = feedback(7L, "777");
+        when(feedBackRepo.findById(7L)).thenReturn(Optional.of(feedback));
+        when(bannedUserRepo.existsByFeedbackId(7L)).thenReturn(false);
+        when(feedBackRepo.getTripGroupAdmins()).thenReturn(List.of());
+
+        service.updateTargetUser(7L, "  ", "42", false);
+
+        assertThat(feedback.getTargetUserId()).isNull();
+        assertThat(feedback.getTargetUserName()).isNull();
+        verify(feedBackRepo).save(feedback);
+    }
+
+    @Test
+    void strangerCannotChangeTargetUser() {
+        FeedBack feedback = feedback(7L, null);
+        when(feedBackRepo.findById(7L)).thenReturn(Optional.of(feedback));
+
+        assertThatThrownBy(() -> service.updateTargetUser(7L, "777", "999", false))
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThat(feedback.getTargetUserId()).isNull();
+        verify(feedBackRepo, never()).save(any(FeedBack.class));
+    }
+
+    @Test
+    void adminCanChangeTargetUser() {
+        FeedBack feedback = feedback(7L, "555");
+        when(feedBackRepo.findById(7L)).thenReturn(Optional.of(feedback));
+        when(bannedUserRepo.existsByFeedbackId(7L)).thenReturn(false);
+
+        service.updateTargetUser(7L, "777", "1000", true);
+
+        assertThat(feedback.getTargetUserId()).isEqualTo("777");
+        verify(feedBackRepo).save(feedback);
+        // Админ поменял сам — уведомление админам не нужно.
+        verify(messageExecutor, never()).sendMessage(any(SendMessage.class));
+    }
+
+    @Test
+    void targetUserCannotBeChangedAfterBan() {
+        when(feedBackRepo.findById(7L)).thenReturn(Optional.of(feedback(7L, "777")));
+        when(bannedUserRepo.existsByFeedbackId(7L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.updateTargetUser(7L, "555", "42", true))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(feedBackRepo, never()).save(any(FeedBack.class));
+    }
+
+    @Test
+    void updateTargetUserRejectsNonNumericId() {
+        when(feedBackRepo.findById(7L)).thenReturn(Optional.of(feedback(7L, null)));
+        when(bannedUserRepo.existsByFeedbackId(7L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.updateTargetUser(7L, "ivan", "42", false))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(feedBackRepo, never()).save(any(FeedBack.class));
+    }
+
     private FeedBack feedback(Long id, String targetUserId) {
         FeedBack feedback = new FeedBack();
         feedback.setId(id);

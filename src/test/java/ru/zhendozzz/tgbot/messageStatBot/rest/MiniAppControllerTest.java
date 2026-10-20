@@ -3,7 +3,9 @@ package ru.zhendozzz.tgbot.messageStatBot.rest;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.ui.ExtendedModelMap;
 import ru.zhendozzz.tgbot.messageStatBot.config.AdminAuthGuard;
+import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.repo.RatingRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserNameHistoryRepo;
@@ -17,6 +19,7 @@ import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 import ru.zhendozzz.tgbot.messageStatBot.service.TripService;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,11 +36,13 @@ class MiniAppControllerTest {
     private final SettingsService settingsService = mock(SettingsService.class);
     private final UserRepo userRepo = mock(UserRepo.class);
     private final MessageExecutor messageExecutor = mock(MessageExecutor.class);
+    private final FeedbackService feedbackService = mock(FeedbackService.class);
+    private final AdminAuthGuard adminAuthGuard = mock(AdminAuthGuard.class);
     private final MiniAppController controller = new MiniAppController(
-            mock(TripService.class), mock(FeedbackService.class), mock(FileLoaderService.class),
+            mock(TripService.class), feedbackService, mock(FileLoaderService.class),
             mock(LogService.class), mock(InterestedService.class), settingsService,
             mock(RatingRepo.class), userRepo, mock(UserNameHistoryRepo.class),
-            currentUserService, mock(AdminAuthGuard.class), messageExecutor);
+            currentUserService, adminAuthGuard, messageExecutor);
 
     @Test
     void accessReportsChatAdmin() {
@@ -109,5 +114,40 @@ class MiniAppControllerTest {
 
         verify(messageExecutor, never()).banUser(any(Long.class), any(Long.class));
         assertThat(response.getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    void feedbackChatIsNotFoundForUnknownId() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        when(currentUserService.idAsString(request)).thenReturn("42");
+        when(feedbackService.findFeedbackOrNull(99L)).thenReturn(null);
+
+        String view = controller.feedbackChat(new ExtendedModelMap(), 99L, request, response);
+
+        assertThat(view).isNull();
+        assertThat(response.getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    void feedbackChatIsReadOnlyForStrangers() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ExtendedModelMap model = new ExtendedModelMap();
+
+        FeedBack feedback = new FeedBack();
+        feedback.setId(7L);
+        feedback.setUserId("100");
+        when(currentUserService.idAsString(request)).thenReturn("999");
+        when(feedbackService.findFeedbackOrNull(7L)).thenReturn(feedback);
+        when(feedbackService.findChatByFeedbackId(7L)).thenReturn(List.of());
+        when(adminAuthGuard.isTripAdmin(request)).thenReturn(false);
+
+        String view = controller.feedbackChat(model, 7L, request, response);
+
+        assertThat(view).isEqualTo("feedback-chat");
+        assertThat(model.get("isOwner")).isEqualTo(false);
+        assertThat(model.get("canReply")).isEqualTo(false);
+        assertThat(model.get("canEditTarget")).isEqualTo(false);
     }
 }

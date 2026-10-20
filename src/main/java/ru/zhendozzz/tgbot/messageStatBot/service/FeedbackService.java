@@ -89,6 +89,11 @@ public class FeedbackService implements CommandExecutable {
         return String.valueOf(savedFeedback.getId());
     }
 
+    /** Обращение по id или {@code null}, если такого нет (без ленивого прокси, который падает в шаблоне). */
+    public FeedBack findFeedbackOrNull(Long id) {
+        return feedBackRepo.findById(id).orElse(null);
+    }
+
     public List<FeedBackChat> findChatByFeedbackId(Long feedbackId) {
         return feedBackChatRepo.findByFeedbackId(feedbackId);
     }
@@ -131,6 +136,37 @@ public class FeedbackService implements CommandExecutable {
         return "fc-" + commentId;
     }
 
+    /**
+     * Указать (или изменить) пользователя, на которого жалоба.
+     *
+     * <p>Менять может автор обращения или администратор, и только пока по жалобе
+     * никого не заблокировали — иначе список заблокированных разойдётся с жалобой.</p>
+     */
+    public void updateTargetUser(Long feedbackId, String targetUserId, String actorId, boolean admin) {
+        FeedBack feedback = feedBackRepo.findById(feedbackId)
+                .orElseThrow(() -> new IllegalArgumentException("Обращение не найдено"));
+        boolean owner = Objects.nonNull(actorId) && actorId.equals(feedback.getUserId());
+        if (!admin && !owner) {
+            throw new IllegalStateException("Менять пользователя может только автор жалобы или администратор");
+        }
+        if (bannedUserRepo.existsByFeedbackId(feedbackId)) {
+            throw new IllegalStateException("По жалобе уже заблокирован пользователь");
+        }
+
+        String target = isBlank(targetUserId) ? null : targetUserId.trim();
+        if (Objects.nonNull(target) && !target.matches("\\d{1,20}")) {
+            throw new IllegalArgumentException("Некорректный пользователь");
+        }
+        feedback.setTargetUserId(target);
+        feedback.setTargetUserName(isBlank(target) ? null : userName(target));
+        feedBackRepo.save(feedback);
+
+        // Автор пометил, на кого жалуется — админам это важно знать, чтобы проверить и забанить.
+        if (owner && !admin) {
+            notifyAdmins(feedback, "Пользователь указал, на кого жалоба");
+        }
+    }
+
     /** Закрыть жалобу с причиной отказа — автору уходит сообщение. */
     public void closeFeedback(Long feedbackId, String reason, String adminId) {
         FeedBack feedback = feedBackRepo.findById(feedbackId)
@@ -170,15 +206,6 @@ public class FeedbackService implements CommandExecutable {
                 + (label.isEmpty() ? "" : " (" + label + ")");
         feedBackRepo.getTripGroupAdmins().forEach(admin -> messageExecutor.sendMessage(
                 KeyboardUtils.getKeyboardMessage("Посмотреть", text, FEEDBACK_URL + feedback.getId(), admin)));
-    }
-
-    public FeedBack findFeedbackById(Long id) {
-        return feedBackRepo.getById(id);
-    }
-
-    /** Обращение по id или {@code null}, если такого нет (без ленивого прокси, который падает в шаблоне). */
-    public FeedBack findFeedbackOrNull(Long id) {
-        return feedBackRepo.findById(id).orElse(null);
     }
 
     /** Пользователи канала поездок, на которых можно пожаловаться. */

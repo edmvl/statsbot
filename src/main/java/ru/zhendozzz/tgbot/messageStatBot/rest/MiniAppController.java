@@ -506,19 +506,24 @@ public class MiniAppController {
         }
         boolean admin = adminAuthGuard.isTripAdmin(request);
         boolean owner = userId.equals(feedback.getUserId());
-        if (!admin && !owner) {
-            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Нет доступа к обращению");
-            return null;
-        }
+        boolean banned = feedbackService.isBannedByFeedback(feedbackId);
+        boolean target = Objects.nonNull(feedback.getTargetUserId())
+                && feedback.getTargetUserId().equals(userId);
 
+        // Смотреть обращение может любой авторизованный пользователь, но действия
+        // (комментарий, закрытие, блокировка, правка пользователя) — только автор и админ.
         List<FeedBackChat> feedBackChatList = feedbackService.findChatByFeedbackId(feedbackId);
         model.addAttribute("feedBackChatList", feedBackChatList);
         model.addAttribute("feedback", feedback);
         model.addAttribute("files", fileLoaderService.getFiles(feedbackId));
         model.addAttribute("commentFiles", commentFiles(feedBackChatList));
-        model.addAttribute("banned", feedbackService.isBannedByFeedback(feedbackId));
+        model.addAttribute("banned", banned);
         model.addAttribute("isAdmin", admin);
         model.addAttribute("isOwner", owner);
+        model.addAttribute("isTarget", target);
+        model.addAttribute("canReply", admin || owner);
+        // Указать, на кого жалоба, могут автор и админ; после блокировки — уже нет.
+        model.addAttribute("canEditTarget", (admin || owner) && !banned);
         return "feedback-chat";
     }
 
@@ -526,6 +531,34 @@ public class MiniAppController {
         Map<Long, List<String>> files = new HashMap<>();
         comments.forEach(comment -> files.put(comment.getId(), feedbackService.findCommentFiles(comment.getId())));
         return files;
+    }
+
+    /** Указать, на кого жалоба: автор обращения или администратор. */
+    @PostMapping("/feedback-chat/{id}/target")
+    public String updateFeedbackTarget(
+            @PathVariable("id") Long feedbackId,
+            @RequestParam(value = "targetUserId", required = false) String targetUserId,
+            HttpServletRequest request,
+            HttpServletResponse httpServletResponse
+    ) throws IOException {
+        String userId = currentUserService.idAsString(request);
+        if (userId == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Откройте приложение через Telegram");
+            return null;
+        }
+        boolean admin = adminAuthGuard.isTripAdmin(request);
+        try {
+            feedbackService.updateTargetUser(feedbackId, targetUserId, userId, admin);
+        } catch (IllegalArgumentException e) {
+            httpServletResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            return null;
+        } catch (IllegalStateException e) {
+            httpServletResponse.sendError(HttpServletResponse.SC_CONFLICT, e.getMessage());
+            return null;
+        }
+        httpServletResponse.sendRedirect("/app/feedback-chat/" + feedbackId);
+        return null;
     }
 
     /** Закрыть жалобу с причиной (отказ) — автору уходит сообщение. */

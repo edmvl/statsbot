@@ -105,6 +105,55 @@ class TemplateRenderTest {
     }
 
     @Test
+    void rendersTargetUserEditorOnlyForAuthorAndAdmin() {
+        TemplateEngine engine = engine();
+        WebContext context = webContext();
+        baseVars(context);
+
+        FeedBack feedback = new FeedBack();
+        feedback.setId(1L);
+        feedback.setUserId("100");
+        feedback.setUserName("Иван Петров");
+        feedback.setDescription("Не пришёл на встречу");
+        context.setVariable("feedback", feedback);
+        context.setVariable("feedBackChatList", List.of());
+        context.setVariable("files", List.of());
+        context.setVariable("commentFiles", Map.of());
+        context.setVariable("banned", false);
+        context.setVariable("isAdmin", false);
+        context.setVariable("isOwner", true);
+
+        // Автор: поле выбора доступно, комментарий можно оставить.
+        context.setVariable("canEditTarget", true);
+        context.setVariable("canReply", true);
+        String editor = engine.process("feedback-chat", context);
+        assertThat(editor)
+                .contains("id=\"targetSearch\"")
+                .contains("/app/feedback-chat/1/target")
+                .contains("class=\"reply-form\"")
+                .contains("Пользователь, на которого жалоба, не указан");
+
+        // Остальные (в том числе тот, на кого жалуются) — смотрят, но сделать ничего не могут.
+        feedback.setTargetUserId("777");
+        feedback.setTargetUserName("Иван Петров (@ivan)");
+        context.setVariable("canEditTarget", false);
+        context.setVariable("canReply", false);
+        context.setVariable("isAdmin", false);
+        context.setVariable("isOwner", false);
+        context.setVariable("isTarget", true);
+        String readOnly = engine.process("feedback-chat", context);
+        assertThat(readOnly)
+                .doesNotContain("id=\"targetSearch\"")
+                .doesNotContain("/app/feedback-chat/1/target")
+                .doesNotContain("class=\"reply-form\"")
+                .doesNotContain("class=\"close-form\"")
+                .doesNotContain("/app/feedback-chat/1/ban")
+                .contains("<h2>Переписка</h2>")
+                .contains("Иван Петров (@ivan)")
+                .contains("Вы указаны в этой жалобе");
+    }
+
+    @Test
     void rendersIndexWithoutAdminAttributes() {
         // Так index.html рендерится как welcome-page для "/" — с пустой моделью.
         TemplateEngine engine = engine();

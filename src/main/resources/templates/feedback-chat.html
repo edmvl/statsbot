@@ -342,6 +342,133 @@
         .link:hover {
             text-decoration: underline;
         }
+
+        .target-editor .field-label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .user-picker {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .user-picker input {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 11px 12px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .user-picker input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .user-clear {
+            flex: 0 0 auto;
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: 50%;
+            background: var(--soft);
+            color: var(--text);
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .field-hint {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .user-results {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .user-result {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--line-soft);
+            border-radius: 10px;
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 15px;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .user-result:hover,
+        .user-result:active {
+            background: var(--soft);
+        }
+
+        .user-result .nick {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .user-result-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: 0 0 auto;
+            background: var(--soft);
+        }
+
+        .user-result-avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .user-result-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .user-result-id {
+            color: var(--muted);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .selected-user {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: var(--soft);
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
     </style>
 </head>
 <body>
@@ -353,13 +480,19 @@
               th:text="${feedback.finished != null and feedback.finished ? 'Закрыта' : 'Открыта'}">Открыта</span>
     </h1>
     <p class="sub" th:text="'От: ' + ${feedback.userName}">От: Пользователь</p>
-    <p class="target" th:if="${feedback.targetUserId != null}">
+    <p class="target"
+       th:if="${feedback.targetUserId != null and (canEditTarget == null or canEditTarget == false)}">
         На пользователя:
         <b th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
                      ? feedback.targetUserName
                      : feedback.targetUserId}">Иван</b>
         <span class="muted" th:text="'ID ' + ${feedback.targetUserId}"></span>
     </p>
+    <p class="target muted"
+       th:if="${feedback.targetUserId == null and canEditTarget != null and canEditTarget}">
+        Пользователь, на которого жалоба, не указан
+    </p>
+    <p class="target muted" th:if="${isTarget != null and isTarget}">Вы указаны в этой жалобе</p>
 </header>
 
 <section class="card">
@@ -369,6 +502,29 @@
             <img th:src="@{/images(name=${file}, id=${feedback.id})}" alt=""/>
         </div>
     </div>
+</section>
+
+<!-- На кого жалоба: менять могут автор жалобы и админ, остальным — только просмотр -->
+<section class="card target-editor" th:if="${canEditTarget != null and canEditTarget}">
+    <label class="field-label" for="targetSearch">На кого жалоба</label>
+    <div class="user-picker">
+        <input type="text" id="targetSearch" placeholder="Имя, @ник или ID" autocomplete="off"
+               th:value="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
+                          ? feedback.targetUserName
+                          : (feedback.targetUserId != null ? feedback.targetUserId : '')}"/>
+        <button type="button" class="user-clear" id="targetClear" title="Убрать пользователя" hidden>✕</button>
+    </div>
+    <div class="field-hint">Необязательно. Чтобы убрать пользователя — нажмите ✕ и сохраните.</div>
+    <div class="user-results" id="userResults" hidden></div>
+    <div class="selected-user" id="selectedUser" th:if="${feedback.targetUserId != null}"
+         th:text="'Жалоба на: ' + ${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
+                                      ? feedback.targetUserName
+                                      : feedback.targetUserId}">Жалоба на: Иван</div>
+    <form method="post" th:action="@{/app/feedback-chat/{id}/target(id=${feedback.id})}">
+        <input type="hidden" name="targetUserId" id="targetUserId"
+               th:value="${feedback.targetUserId != null ? feedback.targetUserId : ''}"/>
+        <button type="submit" class="submit-btn">Сохранить</button>
+    </form>
 </section>
 
 <!-- Жалоба закрыта: причина и возможность переоткрыть (автору) -->
@@ -395,6 +551,7 @@
     </form>
 </div>
 
+<!-- Переписка видна всем, кто открыл обращение; писать могут только автор и админы -->
 <h2>Переписка</h2>
 
 <div class="reply" th:each="reply : ${feedBackChatList}">
@@ -412,7 +569,8 @@
 <p class="muted" th:if="${#lists.isEmpty(feedBackChatList)}">Комментариев пока нет</p>
 
 <!-- Комментарий (админ отвечает, автор дополняет жалобу) -->
-<form class="reply-form" method="post" enctype="multipart/form-data" th:action="@{/app/feedback-chat}">
+<form class="reply-form" method="post" enctype="multipart/form-data" th:action="@{/app/feedback-chat}"
+      th:if="${canReply != null and canReply}">
     <input type="hidden" name="id" th:value="${feedback.id}">
     <label for="replyText">Комментарий</label>
     <textarea id="replyText" name="text" required></textarea>
@@ -448,6 +606,163 @@
         }
         document.getElementById('fileNames').textContent = names.join(', ');
     }
+</script>
+
+<!-- Выбор пользователя, на которого жалоба (только автор и админ) -->
+<script>
+    (function () {
+        var search = document.getElementById('targetSearch');
+        if (!search) {
+            return;
+        }
+        var results = document.getElementById('userResults');
+        var selected = document.getElementById('selectedUser');
+        var hidden = document.getElementById('targetUserId');
+        var clearBtn = document.getElementById('targetClear');
+        var saveBtn = document.querySelector('.target-editor button[type="submit"]');
+        var timer = null;
+
+        // Скрываем атрибутом hidden, а не display: в теме есть
+        // [hidden] { display: none !important }, который перебивает display.
+        function setShown(el, shown) {
+            if (el) {
+                el.hidden = !shown;
+            }
+        }
+
+        function targetLabel(user) {
+            var name = user.name || ('ID ' + user.id);
+            if (user.userName) {
+                name += ' (@' + user.userName + ')';
+            }
+            return 'Жалоба на: ' + name;
+        }
+
+        function clearTarget() {
+            hidden.value = '';
+            search.value = '';
+            results.innerHTML = '';
+            setShown(results, false);
+            setShown(selected, false);
+            setShown(clearBtn, false);
+            if (saveBtn) {
+                saveBtn.disabled = false;
+            }
+        }
+
+        function selectTarget(user) {
+            hidden.value = user.id;
+            search.value = user.name || ('ID ' + user.id);
+            selected.textContent = targetLabel(user);
+            setShown(selected, true);
+            results.innerHTML = '';
+            setShown(results, false);
+            setShown(clearBtn, true);
+            if (saveBtn) {
+                saveBtn.disabled = false;
+            }
+        }
+
+        function avatar(user) {
+            if (user.avatarPath) {
+                var img = document.createElement('img');
+                img.className = 'user-result-avatar';
+                img.alt = '';
+                img.src = '/avatar/' + user.id;
+                return img;
+            }
+            var placeholder = document.createElement('span');
+            placeholder.className = 'user-result-avatar user-result-avatar-placeholder';
+            placeholder.textContent = (user.name || '?').charAt(0);
+            return placeholder;
+        }
+
+        function renderUsers(users) {
+            results.innerHTML = '';
+            if (!users || !users.length) {
+                setShown(results, false);
+                return;
+            }
+            users.forEach(function (user) {
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'user-result';
+                item.appendChild(avatar(user));
+
+                var info = document.createElement('span');
+                info.className = 'user-result-info';
+                var title = document.createElement('span');
+                title.textContent = user.name || ('ID ' + user.id);
+                if (user.userName) {
+                    var nick = document.createElement('span');
+                    nick.className = 'nick';
+                    nick.textContent = ' @' + user.userName;
+                    title.appendChild(nick);
+                }
+                info.appendChild(title);
+                var idLine = document.createElement('span');
+                idLine.className = 'user-result-id';
+                idLine.textContent = 'ID ' + user.id;
+                info.appendChild(idLine);
+                item.appendChild(info);
+
+                item.addEventListener('click', function () {
+                    selectTarget(user);
+                });
+                results.appendChild(item);
+            });
+            setShown(results, true);
+        }
+
+        function findUsers(query) {
+            var headers = {};
+            var tg = window.Telegram && window.Telegram.WebApp;
+            if (tg && tg.initData) {
+                // Подпись можно передать заголовком — работает даже если cookie не сохранились.
+                headers['X-Telegram-Init-Data'] = tg.initData;
+            }
+            fetch('/api/feedback/users?q=' + encodeURIComponent(query), {
+                headers: headers,
+                credentials: 'same-origin'
+            })
+                .then(function (response) {
+                    return response.ok ? response.json() : [];
+                })
+                .then(renderUsers)
+                .catch(function () {
+                    results.innerHTML = '';
+                    setShown(results, false);
+                });
+        }
+
+        search.addEventListener('input', function () {
+            var query = search.value.trim();
+            // Изменили текст — прежний выбор больше не действует.
+            hidden.value = '';
+            setShown(selected, false);
+            setShown(clearBtn, query.length > 0);
+            // Пока пользователь не выбран, сохранять нечего (иначе случайно сотрём выбор).
+            if (saveBtn) {
+                saveBtn.disabled = true;
+            }
+
+            clearTimeout(timer);
+            if (query.length < 2) {
+                results.innerHTML = '';
+                setShown(results, false);
+                return;
+            }
+            timer = setTimeout(function () {
+                findUsers(query);
+            }, 300);
+        });
+
+        clearBtn.addEventListener('click', clearTarget);
+
+        if (hidden.value) {
+            setShown(clearBtn, true);
+        }
+    })();
 </script>
 </body>
 </html>
