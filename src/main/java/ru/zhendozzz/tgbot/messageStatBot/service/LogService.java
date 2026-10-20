@@ -45,7 +45,7 @@ public class LogService implements NeedProcessMessage {
         log.setUserId(String.valueOf(messageDTO.getUserId()));
         log.setDateTime(messageDTO.getDateTime());
         log.setText(messageDTO.getUserText());
-        log.setLoggerType("chatbot");
+        log.setLoggerType(messageDTO.isServiceMessage() ? "service" : "chatbot");
         FileDto file = messageDTO.getFile();
         if (Objects.nonNull(file)) {
             log.setFileType(file.getFileType().getFileType());

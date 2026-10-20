@@ -39,7 +39,7 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
     }
 
     public void deleteByFilter(MessageDTO messageDTO, Update update) {
-        if (Objects.isNull(messageDTO.getUserText())) {
+        if (messageDTO.isServiceMessage() || Objects.isNull(messageDTO.getUserText())) {
             return;
         }
         // Сообщения супер-админа и админов чата не трогаем — в том числе отправленные анонимно.

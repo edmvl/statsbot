@@ -1,5 +1,5 @@
-// Общие UI-хелперы мини-приложения: кнопка "Назад", спиннер загрузки страниц
-// и показ элементов "только для супер-админа" (по Telegram id).
+// Общие UI-хелперы мини-приложения: кнопка "Назад", спиннер загрузки страниц,
+// показ админских пунктов меню (супер-админ по Telegram id, админ чата — по ответу сервера).
 (function () {
     'use strict';
 
@@ -162,6 +162,27 @@
     }
 
     // === Элементы "только для супер-админа" ===
+    function telegramInitData() {
+        var data = '';
+        try {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                data = window.Telegram.WebApp.initData;
+            }
+        } catch (e) {
+            // ignore
+        }
+        if (!data) {
+            try {
+                if (location.hash) {
+                    data = new URLSearchParams(location.hash.replace(/^#/, '')).get('tgWebAppData') || '';
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        return data;
+    }
+
     function telegramUserId() {
         try {
             var unsafe = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe;
@@ -172,21 +193,7 @@
         } catch (e) {
             // ignore
         }
-        var raw = '';
-        try {
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-                raw = window.Telegram.WebApp.initData;
-            }
-        } catch (e) {
-            // ignore
-        }
-        try {
-            if (!raw && location.hash) {
-                raw = new URLSearchParams(location.hash.replace(/^#/, '')).get('tgWebAppData') || '';
-            }
-        } catch (e) {
-            // ignore
-        }
+        var raw = telegramInitData();
         if (!raw) {
             return null;
         }
@@ -202,13 +209,74 @@
         }
     }
 
+    function showAdminSection() {
+        var sections = document.querySelectorAll('[data-admin-section]');
+        for (var i = 0; i < sections.length; i++) {
+            sections[i].removeAttribute('hidden');
+            if (sections[i].style) {
+                sections[i].style.display = '';
+            }
+        }
+    }
+
+    function showSuperAdminOnlyElements() {
+        var elements = document.querySelectorAll('[data-super-admin-only]');
+        for (var i = 0; i < elements.length; i++) {
+            elements[i].removeAttribute('hidden');
+            if (elements[i].style) {
+                elements[i].style.display = '';
+            }
+        }
+    }
+
     function showSuperAdminElements() {
+        showAdminSection();
         var elements = document.querySelectorAll('[data-super-admin-id]');
         for (var i = 0; i < elements.length; i++) {
             elements[i].removeAttribute('hidden');
             if (elements[i].style) {
                 elements[i].style.display = '';
             }
+        }
+        showSuperAdminOnlyElements();
+    }
+
+    // Страница могла быть отрендерена без cookie — спрашиваем сервер ещё раз,
+    // передавая подписанный initData заголовком.
+    var chatAdminRequested = false;
+
+    function revealChatAdminElements() {
+        if (chatAdminRequested || !document.querySelector('[data-admin-section]')) {
+            return;
+        }
+        var initData = telegramInitData();
+        if (!initData) {
+            return;
+        }
+        chatAdminRequested = true;
+        try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/app/access', true);
+            xhr.setRequestHeader('X-Telegram-Init-Data', initData);
+            xhr.onload = function () {
+                if (xhr.status < 200 || xhr.status >= 300) {
+                    return;
+                }
+                try {
+                    var access = JSON.parse(xhr.responseText);
+                    if (access && access.chatAdmin) {
+                        showAdminSection();
+                    }
+                    if (access && access.superAdmin) {
+                        showSuperAdminElements();
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            };
+            xhr.send();
+        } catch (e) {
+            // ignore
         }
     }
 
@@ -222,9 +290,10 @@
         for (var i = 0; i < elements.length; i++) {
             if (elements[i].getAttribute('data-super-admin-id') === userId) {
                 showSuperAdminElements();
-                break;
+                return true;
             }
         }
+        revealChatAdminElements();
         return true;
     }
 
@@ -253,14 +322,7 @@
         if (document.cookie && document.cookie.indexOf('tg_webapp_auth=') !== -1) {
             return true;
         }
-        var data = '';
-        try {
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-                data = window.Telegram.WebApp.initData;
-            }
-        } catch (e) {
-            return false;
-        }
+        var data = telegramInitData();
         if (!data) {
             return false;
         }
@@ -270,7 +332,11 @@
         } catch (e) {
             return true;
         }
-        // Защита от цикла, если cookie не сохраняются (например, они отключены).
+        // Cookie могла не сохраниться (например, ограничения WebView) — тогда
+        // не перезагружаем страницу бесконечно.
+        if (!document.cookie || document.cookie.indexOf('tg_webapp_auth=') === -1) {
+            return true;
+        }
         try {
             var url = new URL(window.location.href);
             if (!url.searchParams.has('_reloaded')) {

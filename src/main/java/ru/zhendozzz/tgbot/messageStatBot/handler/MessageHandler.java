@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.api.objects.Audio;
 import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
+import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.Video;
 import org.telegram.telegrambots.meta.api.objects.VideoNote;
 import org.telegram.telegrambots.meta.api.objects.Voice;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
@@ -54,24 +56,147 @@ public class MessageHandler implements Handler<Update> {
     @Override
     public void choose(Update update) {
         Message message = update.getMessage();
-        FileDto file = getFile(message);
+        if (Objects.isNull(message)) {
+            return;
+        }
+        User from = message.getFrom();
+        // Свои сообщения бот не должен учитывать: в частности, после бана Telegram
+        // присылает служебное сообщение left_chat_member от имени самого бота.
+        if (isOwnBot(from)) {
+            log.debug("Пропускаем сообщение самого бота в чате {}", message.getChatId());
+            return;
+        }
+
+        boolean serviceMessage = isServiceMessage(message);
+        FileDto file = serviceMessage ? null : getFile(message);
         MessageDTO messageDTO = MessageDTO.builder()
                 .chatId(message.getChatId())
-                .chatName(message.getChat().getTitle())
+                .chatName(Objects.nonNull(message.getChat()) ? message.getChat().getTitle() : null)
                 .dateTime(LocalDateTime.ofInstant(Instant.ofEpochSecond(message.getDate()), ZoneId.systemDefault()))
                 .messageId(message.getMessageId())
                 .replyMessageId(Objects.nonNull(message.getReplyToMessage()) ? message.getReplyToMessage().getMessageId() : null)
-                .userId(message.getFrom().getId())
-                .userName(message.getFrom().getUserName())
-                .userFirstName(message.getFrom().getFirstName())
-                .userLastName(message.getFrom().getLastName())
-                .userText(message.hasText() ? String.join("", message.getText().split("@" + botUsername)) : "")
+                .userId(Objects.nonNull(from) ? from.getId() : null)
+                .userName(Objects.nonNull(from) ? from.getUserName() : null)
+                .userFirstName(Objects.nonNull(from) ? from.getFirstName() : null)
+                .userLastName(Objects.nonNull(from) ? from.getLastName() : null)
+                .userText(resolveText(message, serviceMessage))
                 .file(file)
+                .serviceMessage(serviceMessage)
                 .build();
-        if (getAllBotCommands().stream().anyMatch(s -> messageDTO.getUserText().toLowerCase(Locale.ROOT).startsWith(s.toLowerCase()))) {
+        // Служебные события не являются командами и не должны запускать обработчики команд.
+        if (!serviceMessage
+                && getAllBotCommands().stream().anyMatch(s -> messageDTO.getUserText().toLowerCase(Locale.ROOT).startsWith(s.toLowerCase()))) {
             commandExecutables.forEach(service -> service.executeCommand(messageDTO, update));
         }
         needProcessMessages.forEach(service -> service.processMessage(messageDTO, update));
+    }
+
+    /** Сообщение отправлено самим ботом (а не другим ботом или анонимным админом). */
+    private boolean isOwnBot(User from) {
+        if (Objects.isNull(from) || !Boolean.TRUE.equals(from.getIsBot()) || Objects.isNull(botUsername)) {
+            return false;
+        }
+        String userName = from.getUserName();
+        return Objects.nonNull(userName)
+                && botUsername.replace("@", "").equalsIgnoreCase(userName.replace("@", ""));
+    }
+
+    private boolean isServiceMessage(Message message) {
+        List<User> newMembers = message.getNewChatMembers();
+        return (Objects.nonNull(newMembers) && !newMembers.isEmpty())
+                || Objects.nonNull(message.getLeftChatMember())
+                || Objects.nonNull(message.getNewChatTitle())
+                || (Objects.nonNull(message.getNewChatPhoto()) && !message.getNewChatPhoto().isEmpty())
+                || Boolean.TRUE.equals(message.getDeleteChatPhoto())
+                || Boolean.TRUE.equals(message.getGroupchatCreated())
+                || Boolean.TRUE.equals(message.getSuperGroupCreated())
+                || Boolean.TRUE.equals(message.getChannelChatCreated())
+                || Objects.nonNull(message.getPinnedMessage())
+                || Objects.nonNull(message.getMigrateToChatId())
+                || Objects.nonNull(message.getMigrateFromChatId())
+                || Objects.nonNull(message.getProximityAlertTriggered())
+                || Objects.nonNull(message.getVideoChatStarted())
+                || Objects.nonNull(message.getVideoChatEnded())
+                || Objects.nonNull(message.getVideoChatParticipantsInvited())
+                || Objects.nonNull(message.getVideoChatScheduled());
+    }
+
+    /**
+     * Текст для истории чата. Обычные сообщения сохраняются как есть (без упоминания бота),
+     * а служебные события — человекочитаемым описанием произошедшего.
+     */
+    private String resolveText(Message message, boolean serviceMessage) {
+        if (message.hasText()) {
+            return String.join("", message.getText().split("@" + botUsername));
+        }
+        if (!serviceMessage) {
+            return "";
+        }
+
+        List<User> newMembers = message.getNewChatMembers();
+        if (Objects.nonNull(newMembers) && !newMembers.isEmpty()) {
+            String names = newMembers.stream().map(this::userLabel).collect(Collectors.joining(", "));
+            if (newMembers.size() == 1 && isSameUser(message.getFrom(), newMembers.get(0))) {
+                return "Вступил(а) в чат";
+            }
+            return Objects.nonNull(message.getFrom())
+                    ? "Добавил(а) в чат: " + names
+                    : "В чат добавлен(ы): " + names;
+        }
+
+        User left = message.getLeftChatMember();
+        if (Objects.nonNull(left)) {
+            if (isSameUser(message.getFrom(), left)) {
+                return "Покинул(а) чат";
+            }
+            return Objects.nonNull(message.getFrom())
+                    ? "Удалил(а) из чата: " + userLabel(left)
+                    : "Из чата удалён(ы): " + userLabel(left);
+        }
+
+        if (Objects.nonNull(message.getNewChatTitle())) {
+            return "Изменил(а) название чата: «" + message.getNewChatTitle() + "»";
+        }
+        if (Objects.nonNull(message.getNewChatPhoto()) && !message.getNewChatPhoto().isEmpty()) {
+            return "Изменил(а) фото чата";
+        }
+        if (Boolean.TRUE.equals(message.getDeleteChatPhoto())) {
+            return "Удалил(а) фото чата";
+        }
+        if (Objects.nonNull(message.getPinnedMessage())) {
+            return "Закрепил(а) сообщение";
+        }
+        if (Boolean.TRUE.equals(message.getGroupchatCreated())
+                || Boolean.TRUE.equals(message.getSuperGroupCreated())
+                || Boolean.TRUE.equals(message.getChannelChatCreated())) {
+            return "Создал(а) чат";
+        }
+        return "Служебное сообщение";
+    }
+
+    private boolean isSameUser(User first, User second) {
+        return Objects.nonNull(first) && Objects.nonNull(second)
+                && Objects.equals(first.getId(), second.getId());
+    }
+
+    private String userLabel(User user) {
+        if (Objects.isNull(user)) {
+            return "пользователь";
+        }
+        String firstName = Objects.toString(user.getFirstName(), "").trim();
+        String lastName = Objects.toString(user.getLastName(), "").trim();
+        String name = (firstName + " " + lastName).trim();
+        String userName = user.getUserName();
+        if (!name.isEmpty() && Objects.nonNull(userName) && !userName.isEmpty()) {
+            return name + " (@" + userName + ")";
+        }
+        if (!name.isEmpty()) {
+            return name;
+        }
+        if (Objects.nonNull(userName) && !userName.isEmpty()) {
+            return "@" + userName;
+        }
+        return String.valueOf(user.getId());
     }
 
     private List<String> getAllBotCommands() {

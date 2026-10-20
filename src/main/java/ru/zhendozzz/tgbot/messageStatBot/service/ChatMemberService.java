@@ -118,6 +118,9 @@ public class ChatMemberService implements NeedProcessMessage {
 
     @Override
     public void processMessage(MessageDTO messageDTO, Update update) {
+        if (messageDTO.isServiceMessage()) {
+            return;
+        }
         if (settingsService.isEnabled(messageDTO.getChatId(), ChatSettingConstants.ENABLE_MEMBER_CONTROL)) {
             updateUserGroups(messageDTO);
         }

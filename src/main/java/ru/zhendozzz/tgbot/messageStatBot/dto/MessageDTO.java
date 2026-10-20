@@ -23,4 +23,6 @@ public class MessageDTO {
     private String userLastName;
     private String userText;
     private FileDto file;
+    /** Служебное событие чата (добавление/выход участника, смена названия и т.п.). */
+    private boolean serviceMessage;
 }

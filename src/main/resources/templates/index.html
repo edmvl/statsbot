@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Урмарский помощник</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=9)}" defer></script>
+    <script th:src="@{/js/app-back.js(v=10)}" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
@@ -161,8 +161,11 @@
     </a>
 </nav>
 
-<!-- Раздел администратора: супер-админ или администратор хотя бы одного чата -->
-<div th:if="${adminAccess}">
+<!-- Раздел администратора: супер-админ или администратор хотя бы одного чата.
+     Изначально скрыт, если сервер не увидел авторизацию; клиентский скрипт раскроет
+     его по Telegram id / ответу /app/access (первый заход может быть без cookie). -->
+<div id="adminSection" data-admin-section
+     th:attr="hidden=${!adminAccess},data-super-admin-id=${superAdminId}">
     <div class="section-title">Администрирование</div>
     <nav class="menu">
         <a class="menu-card" href="/app/chats">
@@ -177,7 +180,8 @@
             <span class="menu-arrow">›</span>
         </a>
 
-        <a class="menu-card" href="/app/subscriptions" th:if="${superAdmin}">
+        <a class="menu-card" href="/app/subscriptions" data-super-admin-only
+           th:attr="hidden=${!superAdmin}">
             <span class="menu-icon">📋</span>
             <span class="menu-text">
                 <span class="menu-title">Подписки</span>
@@ -186,7 +190,8 @@
             <span class="menu-arrow">›</span>
         </a>
 
-        <a class="menu-card" href="/app/ads" th:if="${superAdmin}">
+        <a class="menu-card" href="/app/ads" data-super-admin-only
+           th:attr="hidden=${!superAdmin}">
             <span class="menu-icon">📢</span>
             <span class="menu-text">
                 <span class="menu-title">Реклама</span>

@@ -20,6 +20,7 @@ import ru.zhendozzz.tgbot.messageStatBot.service.InterestedService;
 import ru.zhendozzz.tgbot.messageStatBot.service.LogService;
 import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 import ru.zhendozzz.tgbot.messageStatBot.service.TripService;
+import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.AdStatus;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
 import org.springframework.stereotype.Controller;
@@ -93,7 +94,25 @@ public class MiniAppController {
         boolean adminAccess = superAdmin || settingsService.isAdminOfAnyChat(userId);
         model.addAttribute("adminAccess", adminAccess);
         model.addAttribute("superAdmin", superAdmin);
+        model.addAttribute("superAdminId", AccessConstants.SUPER_ADMIN_ID);
         return "index";
+    }
+
+    /**
+     * Права текущего пользователя для клиентской части главной страницы.
+     *
+     * <p>Первый запрос страницы может прийти без cookie с Telegram {@code initData},
+     * поэтому меню дополнительно раскрывается на клиенте: {@code initData} можно
+     * передать в заголовке {@code X-Telegram-Init-Data} и проверить подпись здесь.</p>
+     */
+    @GetMapping("/access")
+    @ResponseBody
+    public Map<String, Boolean> access(HttpServletRequest request) {
+        Long userId = currentUserService.id(request);
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("superAdmin", userId != null && AccessConstants.SUPER_ADMIN_ID.equals(userId));
+        result.put("chatAdmin", userId != null && settingsService.isAdminOfAnyChat(userId));
+        return result;
     }
 
     @GetMapping("/chat/{chatId}")

@@ -83,6 +83,9 @@ public class QuizService implements CommandExecutable, NeedProcessMessage {
 
     @Override
     public void processMessage(MessageDTO dto, Update update) {
+        if (dto.isServiceMessage()) {
+            return;
+        }
         checkAsk(dto.getChatId(), dto.getMessageId(), dto.getReplyMessageId(), dto.getUserId(), dto.getUserText());
     }
 }

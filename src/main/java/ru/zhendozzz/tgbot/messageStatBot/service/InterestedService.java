@@ -143,6 +143,9 @@ public class InterestedService implements CommandExecutable, NeedProcessMessage 
 
     @Override
     public void processMessage(MessageDTO messageDTO, Update update) {
+        if (messageDTO.isServiceMessage()) {
+            return;
+        }
         sendInterested(messageDTO);
     }
 }
