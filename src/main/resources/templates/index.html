@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Урмарский помощник</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=10)}" defer></script>
+    <script th:src="@{/js/app-back.js(v=11)}" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
@@ -67,13 +67,13 @@
             padding: 14px 16px;
             text-decoration: none;
             color: var(--text);
-            box-shadow: 0 6px 18px var(--shadow);
+            box-shadow: var(--shadow);
             transition: box-shadow var(--transition), transform var(--transition);
         }
 
         .menu-card:hover,
         .menu-card:active {
-            box-shadow: 0 12px 26px var(--shadow-hover);
+            box-shadow: var(--shadow-hover);
             transform: translateY(-2px);
         }
 

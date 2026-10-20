@@ -319,17 +319,21 @@
     // (path=/) — тогда её несут и переходы, и формы, и ajax. Первый заход в сессии
     // перезагружаем один раз, чтобы серверные страницы сразу увидели пользователя.
     function installAuthCookie() {
-        if (document.cookie && document.cookie.indexOf('tg_webapp_auth=') !== -1) {
-            return true;
-        }
+        var hasCookie = !!(document.cookie && document.cookie.indexOf('tg_webapp_auth=') !== -1);
         var data = telegramInitData();
         if (!data) {
-            return false;
+            // Данные Telegram ещё не пришли: если cookie уже есть — дальше ждать нечего.
+            return hasCookie;
         }
         try {
             var secure = window.location.protocol === 'https:' ? '; secure' : '';
+            // Всегда обновляем подпись: она могла устареть (например, перевыпустили токен бота).
             document.cookie = 'tg_webapp_auth=' + data + '; path=/; samesite=lax' + secure;
         } catch (e) {
+            return true;
+        }
+        if (hasCookie) {
+            // Cookie была и обновлена — перезагружать страницу не нужно.
             return true;
         }
         // Cookie могла не сохраниться (например, ограничения WebView) — тогда

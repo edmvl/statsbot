@@ -405,7 +405,12 @@ public class MiniAppController {
             return null;
         }
         List<FeedBackChat> feedBackChatList = feedbackService.findChatByFeedbackId(feedbackId);
-        FeedBack feedback = feedbackService.findFeedbackById(feedbackId);
+        FeedBack feedback = feedbackService.findFeedbackOrNull(feedbackId);
+        if (feedback == null) {
+            // Обращения с таким id нет — отдаём 404 вместо 500 при рендере шаблона.
+            httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND, "Обращение не найдено");
+            return null;
+        }
         model.addAttribute("feedBackChatList", feedBackChatList);
         model.addAttribute("feedback", feedback);
         model.addAttribute("files", fileLoaderService.getFiles(feedbackId));
@@ -430,11 +435,6 @@ public class MiniAppController {
             return null;
         }
         feedbackService.addChatByFeedbackId(feedbackId, userId, text);
-        List<FeedBackChat> feedBackChatList = feedbackService.findChatByFeedbackId(feedbackId);
-        FeedBack feedback = feedbackService.findFeedbackById(feedbackId);
-        model.addAttribute("feedBackChatList", feedBackChatList);
-        model.addAttribute("feedback", feedback);
-        model.addAttribute("files", fileLoaderService.getFiles(feedbackId));
         httpServletResponse.sendRedirect("/app/feedback-chat/" + feedbackId);
         return "feedback-chat";
     }

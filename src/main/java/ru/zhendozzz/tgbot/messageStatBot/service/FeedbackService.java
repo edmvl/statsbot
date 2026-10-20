@@ -69,6 +69,10 @@ public class FeedbackService implements CommandExecutable {
     }
 
     public void addChatByFeedbackId(Long feedbackId, String userId, String text) {
+        FeedBack feedback = feedBackRepo.findById(feedbackId).orElse(null);
+        if (Objects.isNull(feedback)) {
+            return;
+        }
         FeedBackChat feedBackChat = new FeedBackChat();
         feedBackChat.setFeedbackId(feedbackId);
         feedBackChat.setDescription(text);
@@ -81,12 +85,17 @@ public class FeedbackService implements CommandExecutable {
                 "Посмотреть",
                 "Администратор ответил вам по заявке",
                 "https://api.zhendozzz.ru/app/feedback-chat/" + feedbackId,
-                feedBackRepo.getById(feedbackId).getUserId()
+                feedback.getUserId()
         ));
     }
 
     public FeedBack findFeedbackById(Long id) {
         return feedBackRepo.getById(id);
+    }
+
+    /** Обращение по id или {@code null}, если такого нет (без ленивого прокси, который падает в шаблоне). */
+    public FeedBack findFeedbackOrNull(Long id) {
+        return feedBackRepo.findById(id).orElse(null);
     }
 
     @Override

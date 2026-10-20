@@ -53,6 +53,12 @@ public class AdminAuthGuard {
         if (allowTripChannelAdmins && isTripChannelAdmin(userId)) {
             return true;
         }
+        if (userId == null) {
+            // Cookie есть, но подпись не сходится (например, бот-токен перевыпустили).
+            // Показываем страницу обновления доступа вместо «глухого» 403.
+            writeBootstrap(response);
+            return false;
+        }
         log.warn("Access denied to {} for user {}", request.getRequestURI(), userId);
         response.setHeader("Cache-Control", "no-store");
         response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
@@ -97,6 +103,11 @@ public class AdminAuthGuard {
         }
         if (userId != null && canAccessChatArea(request, userId)) {
             return true;
+        }
+        if (userId == null) {
+            // Подпись не сходится — перевыпускаем cookie через страницу обновления доступа.
+            writeBootstrap(response);
+            return false;
         }
         log.warn("Chat access denied to {} for user {}", request.getRequestURI(), userId);
         response.setHeader("Cache-Control", "no-store");
@@ -182,9 +193,16 @@ public class AdminAuthGuard {
             + "        document.body.textContent = 'Доступ только через Telegram.';\n"
             + "        return;\n"
             + "    }\n"
+            + "    var url = new URL(location.href);\n"
+            + "    if (url.searchParams.has('_auth_try')) {\n"
+            + "        // Повторная попытка не помогла — не зацикливаем перезагрузку.\n"
+            + "        document.body.textContent = 'Не удалось подтвердить доступ. Откройте страницу заново.';\n"
+            + "        return;\n"
+            + "    }\n"
             + "    var secure = location.protocol === 'https:' ? '; secure' : '';\n"
             + "    document.cookie = '" + TelegramRequest.AUTH_COOKIE + "=' + data + '; path=/; samesite=lax' + secure;\n"
-            + "    location.replace(location.href);\n"
+            + "    url.searchParams.set('_auth_try', '1');\n"
+            + "    location.replace(url.toString());\n"
             + "})();\n"
             + "</script>\n"
             + "</body>\n"

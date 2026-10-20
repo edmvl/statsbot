@@ -16,8 +16,10 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.InterestedViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.SubscriptionGroupDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.TripViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
+import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
 import ru.zhendozzz.tgbot.messageStatBot.entity.UserNameHistory;
 import ru.zhendozzz.tgbot.messageStatBot.rest.ChatAdminsController;
+import ru.zhendozzz.tgbot.messageStatBot.rest.ChatSettingsController;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -95,6 +97,31 @@ class TemplateRenderTest {
         engine.process("ads", context);
         engine.process("ad-proposal", context);
         engine.process("chat-admins", context);
+    }
+
+    @Test
+    void rendersAdminAndFeedbackPages() {
+        TemplateEngine engine = engine();
+        WebContext context = webContext();
+        baseVars(context);
+
+        context.setVariable("settings", List.of(
+                new ChatSettingsController.ChatSettingView("enable_ads", true),
+                new ChatSettingsController.ChatSettingView("enable_stats", false),
+                new ChatSettingsController.ChatSettingView("trip_channel", true)));
+
+        FeedBack feedback = new FeedBack();
+        feedback.setId(1L);
+        feedback.setUserId("100");
+        feedback.setUserName("Иван Петров");
+        feedback.setDescription("Не пришёл на встречу");
+        context.setVariable("feedback", feedback);
+        context.setVariable("feedBackChatList", List.of());
+        context.setVariable("files", List.of("screenshot.jpg"));
+
+        engine.process("chat-settings", context);
+        engine.process("feedback", context);
+        engine.process("feedback-chat", context);
     }
 
     @Test

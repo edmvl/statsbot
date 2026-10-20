@@ -55,13 +55,18 @@ class SuperAdminAuthInterceptorTest {
     }
 
     @Test
-    void deniesInvalidInitData() throws Exception {
+    void refreshesAccessWhenCookieIsInvalid() throws Exception {
+        // Битая/устаревшая cookie (например, после перевыпуска токена) — не «глухой» 403,
+        // а страница обновления доступа, которая заново ставит cookie и перезагружает запрос.
         when(authService.getVerifiedUserId("forged")).thenReturn(null);
         MockHttpServletRequest request = requestWithCookie("forged");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        assertFalse(interceptor.preHandle(request, response, new Object()));
-        assertEquals(403, response.getStatus());
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertFalse(allowed);
+        assertEquals(200, response.getStatus());
+        assertTrue(response.getContentAsString().contains(TelegramRequest.AUTH_COOKIE));
     }
 
     private MockHttpServletRequest requestWithCookie(String value) {
