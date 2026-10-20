@@ -30,4 +30,11 @@ public class FeedBack {
     @Column(name = "finished")
     Boolean finished;
 
+    /** Пользователь, на которого жалуются (может быть не указан). */
+    @Column(name = "target_user_id")
+    String targetUserId;
+
+    @Column(name = "target_user_name")
+    String targetUserName;
+
 }

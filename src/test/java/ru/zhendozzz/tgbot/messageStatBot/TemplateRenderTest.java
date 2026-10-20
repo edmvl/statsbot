@@ -17,6 +17,7 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.InterestedViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.SubscriptionGroupDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.TripViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
+import ru.zhendozzz.tgbot.messageStatBot.entity.BannedUser;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
 import ru.zhendozzz.tgbot.messageStatBot.entity.UserNameHistory;
 import ru.zhendozzz.tgbot.messageStatBot.rest.ChatAdminsController;
@@ -137,6 +138,24 @@ class TemplateRenderTest {
         engine.process("chat-settings", context);
         engine.process("feedback", context);
         engine.process("feedback-chat", context);
+
+        // Жалоба с указанным пользователем: кнопка «Заблокировать», затем состояние «заблокирован».
+        feedback.setTargetUserId("777");
+        feedback.setTargetUserName("Иван Петров (@ivan)");
+        context.setVariable("banned", false);
+        engine.process("feedback-chat", context);
+        context.setVariable("banned", true);
+        engine.process("feedback-chat", context);
+
+        BannedUser ban = new BannedUser();
+        ban.setId(1L);
+        ban.setUserId("777");
+        ban.setUserName("Иван Петров");
+        ban.setFeedbackId(1L);
+        ban.setBannedBy("42");
+        ban.setBannedAt(LocalDateTime.now());
+        context.setVariable("bans", List.of(ban));
+        engine.process("bans", context);
 
         context.setVariable("status", 403);
         engine.process("error", context);

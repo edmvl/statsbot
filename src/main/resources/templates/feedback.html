@@ -189,6 +189,90 @@
             margin-top: 20px;
         }
 
+        .user-picker {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .user-picker input {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid var(--tg-theme-hint-color, #999999);
+            border-radius: 12px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .user-picker input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #2481cc);
+        }
+
+        .user-clear {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: var(--soft);
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .field-hint {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .user-results {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .user-result {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--line-soft);
+            border-radius: 10px;
+            background: var(--card-bg);
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 15px;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .user-result:hover,
+        .user-result:active {
+            background: var(--soft);
+        }
+
+        .user-result .nick {
+            color: var(--tg-theme-hint-color, #999999);
+            font-size: 13px;
+        }
+
+        .selected-user {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: var(--soft);
+            font-size: 14px;
+        }
+
         .error-message {
             display: none;
             text-align: center;
@@ -219,6 +303,18 @@
                     placeholder="Подробно опишите возникшую проблему или ваши предложения..."
                     required
             ></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="targetSearch">На кого жалоба</label>
+            <div class="user-picker">
+                <input type="text" id="targetSearch" placeholder="Имя, @ник или ID" autocomplete="off"/>
+                <button type="button" class="user-clear" id="targetClear" hidden>✕</button>
+            </div>
+            <div class="field-hint">Необязательно: укажите пользователя, на которого жалуетесь</div>
+            <div class="user-results" id="userResults" hidden></div>
+            <div class="selected-user" id="selectedUser" hidden></div>
+            <input type="hidden" id="targetUserId"/>
         </div>
 
         <div class="form-group">
@@ -270,6 +366,82 @@
         const $errorMessage = $('#errorMessage');
 
         let attachedFiles = [];
+
+        // ===== Выбор пользователя, на которого жалоба =====
+        const $targetSearch = $('#targetSearch');
+        const $userResults = $('#userResults');
+        const $selectedUser = $('#selectedUser');
+        const $targetUserId = $('#targetUserId');
+        const $targetClear = $('#targetClear');
+
+        let targetSearchTimer = null;
+
+        function selectedTargetLabel(user) {
+            return 'Жалоба на: ' + (user.userName ? user.name + ' (@' + user.userName + ')' : user.name);
+        }
+
+        function clearTarget() {
+            $targetUserId.val('');
+            $targetSearch.val('');
+            $userResults.empty().hide();
+            $selectedUser.empty().hide();
+            $targetClear.hide();
+        }
+
+        function selectTarget(user) {
+            $targetUserId.val(user.id);
+            $targetSearch.val(user.name);
+            $selectedUser.text(selectedTargetLabel(user)).show();
+            $userResults.empty().hide();
+            $targetClear.show();
+        }
+
+        function renderUsers(users) {
+            $userResults.empty();
+            if (!users || !users.length) {
+                $userResults.hide();
+                return;
+            }
+            users.forEach(function(user) {
+                const item = $('<button type="button" class="user-result"></button>');
+                item.append($('<span></span>').text(user.name));
+                if (user.userName) {
+                    item.append($('<span class="nick"></span>').text('@' + user.userName));
+                }
+                item.on('click', function() {
+                    selectTarget(user);
+                });
+                $userResults.append(item);
+            });
+            $userResults.show();
+        }
+
+        $targetSearch.on('input', function() {
+            const query = $(this).val().trim();
+            $targetUserId.val('');
+            $selectedUser.hide();
+            $targetClear.toggle(query.length > 0);
+
+            clearTimeout(targetSearchTimer);
+            if (query.length < 2) {
+                $userResults.empty().hide();
+                return;
+            }
+            targetSearchTimer = setTimeout(function() {
+                $.ajax({
+                    url: '/api/feedback/users',
+                    method: 'GET',
+                    data: { q: query },
+                    dataType: 'json',
+                    success: renderUsers,
+                    error: function() {
+                        $userResults.empty().hide();
+                    }
+                });
+            }, 300);
+        });
+
+        $targetClear.on('click', clearTarget);
 
         // Обработчик клика по области загрузки файлов
         $fileUploadArea.on('click', function() {
@@ -387,6 +559,10 @@
             // Подготовка данных для отправки (автора сервер определит по initData)
             const formData = new FormData();
             formData.append('complaint', complaintText);
+            const targetUserId = $targetUserId.val();
+            if (targetUserId) {
+                formData.append('targetUserId', targetUserId);
+            }
 
             // Добавление файлов
             attachedFiles.forEach((file, index) => {

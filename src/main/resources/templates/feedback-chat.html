@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Обращение</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -8,77 +8,186 @@
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=11)}" data-back="/app/feedback" defer></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: var(--page-bg);
             color: var(--text);
-            padding: 16px;
-            margin: 0;
-        }
-
-        label, input {
-            display: block;
-        }
-
-        fieldset {
-            padding: 0;
-            border: 0;
-            margin-top: 25px;
-        }
-
-        h1 {
-            font-size: 1.2em;
-            margin: .6em 0;
-        }
-
-        #users-contain {
+            padding: 20px 16px 48px;
+            margin: 0 auto;
             max-width: 640px;
-            margin: 20px 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        #users {
-            width: 100%;
-            margin: 1em 0;
-            border-collapse: collapse;
+        .head {
+            margin-bottom: 16px;
+        }
+
+        .head h1 {
+            font-size: 22px;
+            margin: 0 0 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .head .num {
+            color: var(--muted);
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .sub {
+            margin: 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .target {
+            margin: 8px 0 0;
+            font-size: 14px;
+        }
+
+        .target .muted {
+            color: var(--muted);
+            font-size: 13px;
+            margin-left: 6px;
+        }
+
+        .card {
             background: var(--card-bg);
+            border: 1px solid var(--line-soft);
             border-radius: var(--radius-md);
-            overflow: hidden;
+            padding: 14px 16px;
+            margin-bottom: 14px;
         }
 
-        #users td, #users th {
-            border-bottom: 1px solid var(--line-soft);
-            padding: .6em 10px;
-            text-align: left;
-            color: var(--text);
-            vertical-align: top;
-        }
-
-        #users tr:last-child td {
-            border-bottom: none;
+        .description {
+            margin: 0;
+            font-size: 15px;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 10px;
+            margin-top: 12px;
         }
 
         .gallery-item {
             border: 1px solid var(--line);
             border-radius: var(--radius-sm);
-            padding: 5px;
+            padding: 4px;
             text-align: center;
-            background: var(--card-bg);
+            background: var(--inner-bg);
         }
 
         .gallery-item img {
             max-width: 100%;
+            border-radius: 6px;
             object-fit: cover;
+        }
+
+        .ban-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .banned {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: var(--radius-pill);
+            background: rgba(229, 72, 77, 0.14);
+            color: var(--danger);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .ban-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-pill);
+            background: var(--danger);
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .ban-btn:hover {
+            filter: brightness(0.92);
+        }
+
+        h2 {
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            margin: 0 0 10px;
+        }
+
+        .reply {
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+
+        .reply-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .reply-author {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .reply-head time {
+            margin-left: auto;
+            color: var(--muted);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .reply-text {
+            font-size: 15px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .reply-form {
+            margin: 20px 0;
+        }
+
+        .reply-form label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
         }
 
         textarea {
             width: 100%;
-            min-height: 120px;
+            min-height: 110px;
             padding: 12px;
             border: 1px solid var(--line);
             border-radius: 12px;
@@ -107,41 +216,69 @@
             cursor: pointer;
         }
 
+        .link {
+            display: inline-block;
+            margin-top: 4px;
+            color: var(--link);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-<div id="users-contain">
-    <span>Жалоба</span>
-    <span th:text="${feedback.getUserName()}"></span>
-    <div class="gallery">
+<header class="head">
+    <h1>Обращение <span class="num" th:text="'#' + ${feedback.id}">#1</span></h1>
+    <p class="sub" th:text="'От: ' + ${feedback.userName}">От: Пользователь</p>
+    <p class="target" th:if="${feedback.targetUserId != null}">
+        На пользователя:
+        <b th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
+                     ? feedback.targetUserName
+                     : feedback.targetUserId}">Иван</b>
+        <span class="muted" th:text="'ID ' + ${feedback.targetUserId}"></span>
+    </p>
+</header>
+
+<section class="card">
+    <p class="description" th:text="${feedback.description}">Текст жалобы</p>
+    <div class="gallery" th:if="${!#lists.isEmpty(files)}">
         <div class="gallery-item" th:each="file : ${files}">
-            <img th:src="@{/images(name=${file}, id=${feedback.getId()})}"/>
-        </div>
-        <div>
-            <p th:text="${feedback.getDescription()}"></p>
+            <img th:src="@{/images(name=${file}, id=${feedback.id})}" alt=""/>
         </div>
     </div>
-    <table id="users">
-        <tr th:each="feedBackChat : ${feedBackChatList}">
-            <td th:text="${feedBackChat.dateTime != null ? #temporals.format(feedBackChat.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></td>
-            <td th:text="${feedBackChat.userName}"></td>
-            <td th:text="${feedBackChat.description}"></td>
-        </tr>
-    </table>
-</div>
-<div class="form-group">
-    <form method="post" th:action="@{/app/feedback-chat}">
-        <label for="reply">Ответ</label>
-        <input type="hidden" name="id" th:value="${feedback.getId()}">
-        <textarea
-                id="reply"
-                name="text"
-                required
-        ></textarea>
-        <button type="submit" class="submit-btn" id="submitBtn">
-            Ответить
-        </button>
+</section>
+
+<div class="ban-row" th:if="${feedback.targetUserId != null}">
+    <span class="banned" th:if="${banned}">🚫 Заблокирован по этому обращению</span>
+    <form method="post" th:unless="${banned}"
+          th:action="@{/app/feedback-chat/{id}/ban(id=${feedback.id})}"
+          onsubmit="return confirm('Заблокировать пользователя в чате поездок?');">
+        <button type="submit" class="ban-btn">🚫 Заблокировать</button>
     </form>
 </div>
+
+<h2>Переписка</h2>
+
+<div class="reply" th:each="reply : ${feedBackChatList}">
+    <div class="reply-head">
+        <span class="reply-author" th:text="${reply.userName}">Админ</span>
+        <time th:text="${reply.dateTime != null ? #temporals.format(reply.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></time>
+    </div>
+    <div class="reply-text" th:text="${reply.description}">Ответ</div>
+</div>
+<p class="muted" th:if="${#lists.isEmpty(feedBackChatList)}">Ответов пока нет</p>
+
+<form class="reply-form" method="post" th:action="@{/app/feedback-chat}">
+    <label for="reply">Ответ</label>
+    <input type="hidden" name="id" th:value="${feedback.id}">
+    <textarea id="reply" name="text" required></textarea>
+    <button type="submit" class="submit-btn">Ответить</button>
+</form>
+
+<a class="link" th:href="@{/app/bans}">Все заблокированные →</a>
 </body>
 </html>

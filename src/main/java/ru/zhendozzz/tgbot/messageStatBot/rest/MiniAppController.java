@@ -491,7 +491,44 @@ public class MiniAppController {
         model.addAttribute("feedBackChatList", feedBackChatList);
         model.addAttribute("feedback", feedback);
         model.addAttribute("files", fileLoaderService.getFiles(feedbackId));
+        model.addAttribute("banned", feedbackService.isBannedByFeedback(feedbackId));
         return "feedback-chat";
+    }
+
+    /** Блокировка пользователя, на которого пожаловались (супер-админ или админ канала поездок). */
+    @PostMapping("/feedback-chat/{id}/ban")
+    public String banForFeedback(
+            @PathVariable("id") Long feedbackId,
+            HttpServletRequest request,
+            HttpServletResponse httpServletResponse
+    ) throws IOException {
+        if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
+            return null;
+        }
+        String adminId = currentUserService.idAsString(request);
+        if (adminId == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Откройте приложение через Telegram");
+            return null;
+        }
+        try {
+            feedbackService.banForFeedback(feedbackId, adminId);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            httpServletResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            return null;
+        }
+        httpServletResponse.sendRedirect("/app/feedback-chat/" + feedbackId);
+        return null;
+    }
+
+    /** Список заблокированных с ссылками на жалобы. */
+    @GetMapping("/bans")
+    public String bans(HttpServletRequest request, HttpServletResponse httpServletResponse, Model model) throws IOException {
+        if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
+            return null;
+        }
+        model.addAttribute("bans", feedbackService.findAllBans());
+        return "bans";
     }
 
     @PostMapping("/feedback-chat")

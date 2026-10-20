@@ -6,11 +6,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ApiResponse;
+import ru.zhendozzz.tgbot.messageStatBot.dto.ChatMemberViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.service.CurrentUserService;
 import ru.zhendozzz.tgbot.messageStatBot.service.FeedbackService;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/feedback")
@@ -24,9 +26,38 @@ public class FeedbackController {
         this.currentUserService = currentUserService;
     }
 
+    /** Поиск пользователя, на которого отправляется жалоба. */
+    @GetMapping("/users")
+    public ResponseEntity<?> findUsers(@RequestParam(value = "q", required = false) String query,
+                                       HttpServletRequest request) {
+        String userId = currentUserService.idAsString(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(List.of(Map.of("message", "Откройте приложение через Telegram")));
+        }
+        List<ChatMemberViewDto> users = feedbackService.findComplainableUsers(query);
+        return ResponseEntity.ok(users.stream()
+                .map(user -> Map.of(
+                        "id", user.getUserId(),
+                        "name", displayName(user),
+                        "userName", user.getUserName() == null ? "" : user.getUserName()))
+                .toList());
+    }
+
+    private String displayName(ChatMemberViewDto user) {
+        String name = user.getName() == null ? "" : user.getName().trim();
+        if (!name.isEmpty()) {
+            return name;
+        }
+        return user.getUserName() != null && !user.getUserName().isEmpty()
+                ? "@" + user.getUserName()
+                : user.getUserId();
+    }
+
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse> submitFeedback(
             @RequestPart("complaint") String complaint,
+            @RequestPart(value = "targetUserId", required = false) String targetUserId,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             HttpServletRequest request) {
 
@@ -38,7 +69,7 @@ public class FeedbackController {
         }
 
         try {
-            String feedbackId = feedbackService.processFeedback(complaint, userId, files);
+            String feedbackId = feedbackService.processFeedback(complaint, userId, targetUserId, files);
             return ResponseEntity.ok(
                     new ApiResponse(true, "Обращение успешно отправлено", feedbackId)
             );

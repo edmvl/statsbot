@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Заблокированные</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=11)}" data-back="/app/feedback" defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--page-bg);
+            color: var(--text);
+            padding: 20px 16px 48px;
+            margin: 0 auto;
+            max-width: 760px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .page-header h1 {
+            font-size: 23px;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+            border-bottom: 1px solid var(--line-soft);
+            white-space: nowrap;
+        }
+
+        th {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .user-name {
+            font-weight: 600;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .user-id {
+            color: var(--muted);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        td a {
+            color: var(--link);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        td a:hover {
+            text-decoration: underline;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 36px 12px;
+        }
+    </style>
+</head>
+<body>
+<header class="page-header">
+    <h1>🚫 Заблокированные</h1>
+    <span class="count-badge" th:text="${#lists.size(bans)}">0</span>
+</header>
+
+<div th:if="${#lists.isEmpty(bans)}" class="empty">Пока никого не блокировали</div>
+
+<div class="table-wrap" th:if="${!#lists.isEmpty(bans)}">
+    <table>
+        <thead>
+        <tr>
+            <th>Пользователь</th>
+            <th>Заблокирован</th>
+            <th>Кем</th>
+            <th>Жалоба</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="ban : ${bans}">
+            <td>
+                <div class="user-name"
+                     th:text="${ban.userName != null and !#strings.isEmpty(ban.userName) ? ban.userName : ban.userId}">Имя</div>
+                <div class="user-id" th:text="'ID ' + ${ban.userId}"></div>
+            </td>
+            <td th:text="${ban.bannedAt != null ? #temporals.format(ban.bannedAt, 'dd.MM.yyyy HH:mm') : ''}"></td>
+            <td th:text="${ban.bannedBy != null and !#strings.isEmpty(ban.bannedBy) ? ban.bannedBy : '—'}"></td>
+            <td>
+                <a th:if="${ban.feedbackId != null}"
+                   th:href="@{/app/feedback-chat/{id}(id=${ban.feedbackId})}"
+                   th:text="'#' + ${ban.feedbackId}">#1</a>
+                <span class="muted" th:unless="${ban.feedbackId != null}">—</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
