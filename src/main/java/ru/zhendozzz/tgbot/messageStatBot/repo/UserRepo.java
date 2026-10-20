@@ -8,9 +8,12 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.ChatMemberViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepo extends JpaRepository<TgUser, String> {
+
+    Optional<TgUser> findFirstByUserNameIgnoreCase(String userName);
 
     @Query(value = "select id as userId, "
             + "trim(coalesce(first_name, '') || ' ' || coalesce(last_name, '')) as name, "

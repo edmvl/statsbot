@@ -1,6 +1,7 @@
 package ru.zhendozzz.tgbot.messageStatBot.message_executor;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
 import ru.zhendozzz.tgbot.messageStatBot.dto.UserAvatar;
 
 import java.io.File;
@@ -51,6 +52,12 @@ public interface MessageExecutor {
     String getUserStatusInChat(Long chatId, Long userId);
 
     String getUserStatusInChat(String chatId, String userId);
+
+    /**
+     * Полный статус участника чата (creator / administrator / member / restricted / left / kicked)
+     * или {@code null}, если получить не удалось.
+     */
+    ChatMember getUserStatus(String chatId, Long userId);
 
     /**
      * Возвращает данные аватара пользователя из Telegram (или {@code null}, если фото нет).

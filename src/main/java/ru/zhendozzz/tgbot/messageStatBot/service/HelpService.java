@@ -26,6 +26,7 @@ public class HelpService implements CommandExecutable {
                 message.append(BotCommands.REMINDER.getCommand()).append(" : ").append(BotCommands.REMINDER.getExplainer()).append(eof);
                 message.append(BotCommands.REMOVE_REMINDER.getCommand()).append(" : ").append(BotCommands.REMOVE_REMINDER.getExplainer()).append(eof);
                 message.append(BotCommands.QUIZ.getCommand()).append(" : ").append(BotCommands.QUIZ.getExplainer()).append(eof);
+                message.append(BotCommands.STATUS.getCommand()).append(" : ").append(BotCommands.STATUS.getExplainer()).append(eof);
             } else {
                 message.append("Для начала нажмите кнопку Меню").append(eof);
             }

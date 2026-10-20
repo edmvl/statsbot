@@ -259,6 +259,19 @@ public class MessageExecutorImpl implements MessageExecutor {
     }
 
     @Override
+    public ChatMember getUserStatus(String chatId, Long userId) {
+        GetChatMember request = new GetChatMember();
+        request.setChatId(chatId);
+        request.setUserId(userId);
+        try {
+            return tgBot.execute(request);
+        } catch (TelegramApiException e) {
+            log.error("Не удалось получить статус {} в чате {}: {}", userId, chatId, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
     public UserAvatar getUserAvatar(Long userId) {
         try {
             GetUserProfilePhotos request = GetUserProfilePhotos.builder()
