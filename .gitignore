@@ -3,6 +3,8 @@
 /dump.sql/
 /messageStatBot.iml
 /tgbot_dump
+/db_dump.bak
+*.bak
 /.gitignore
 
 # Внешняя конфигурация с секретами — не коммитим

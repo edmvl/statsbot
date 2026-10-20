@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   postgres:
     image: postgres:12
@@ -9,4 +8,5 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./tgbot_dump:/docker-entrypoint-initdb.d/dump.sql
+      # Дамп для первичной инициализации базы (файл в корне проекта).
+      - ./db_dump.bak:/docker-entrypoint-initdb.d/dump.sql

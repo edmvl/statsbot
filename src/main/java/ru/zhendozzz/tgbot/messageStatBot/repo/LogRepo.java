@@ -69,7 +69,8 @@ public interface LogRepo extends JpaRepository<Log, Long> {
      * Сообщения чата с именем отправителя из {@code users}.
      */
     @Query(value = "select l.id as id, l.date_time as dateTime, l.user_id as userId, l.text as text, "
-            + "u.first_name as firstName, u.last_name as lastName, u.user_name as userName "
+            + "u.first_name as firstName, u.last_name as lastName, u.user_name as userName, "
+            + "u.avatar_path as avatarPath "
             + "from log l left join users u on u.id = l.user_id "
             + "where l.chat_id = :chatId order by l.date_time desc",
             countQuery = "select count(*) from log where chat_id = :chatId",

@@ -14,4 +14,5 @@ public interface ChatMessageDto {
     String getFirstName();
     String getLastName();
     String getUserName();
+    String getAvatarPath();
 }

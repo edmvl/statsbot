@@ -1,102 +1,259 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Логи чата</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>История чата</title>
+    <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=11)}" data-back="/app/chats" defer></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background: var(--page-bg);
             color: var(--text);
-            padding: 16px;
+            padding: 20px 16px 48px;
+            margin: 0 auto;
+            max-width: 720px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .page-header h1 {
+            font-size: 23px;
+            line-height: 1.3;
+            margin: 0 0 4px;
+            letter-spacing: -0.3px;
+            word-break: break-word;
+        }
+
+        .subtitle {
             margin: 0;
+            color: var(--muted);
+            font-size: 13px;
         }
 
-        label, input {
-            display: block;
+        .count-badge {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
         }
 
-        fieldset {
-            padding: 0;
-            border: 0;
-            margin-top: 25px;
-        }
-
-        h1 {
-            font-size: 1.2em;
-            margin: .6em 0;
-        }
-
-        #users-contain {
-            max-width: 480px;
-            margin: 20px 0;
-        }
-
-        #users {
-            width: 100%;
-            margin: 1em 0;
-            border-collapse: collapse;
+        .msg {
+            display: flex;
+            gap: 12px;
             background: var(--card-bg);
+            border: 1px solid var(--line-soft);
             border-radius: var(--radius-md);
-            overflow: hidden;
+            padding: 12px 14px;
+            margin-bottom: 10px;
         }
 
-        #users td, #users th {
-            border-bottom: 1px solid var(--line-soft);
-            padding: .6em 10px;
-            text-align: left;
-            color: var(--text);
-            vertical-align: top;
+        .msg-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: 0 0 auto;
+            border: 1px solid var(--line);
+            background: var(--soft);
         }
 
-        #users tr:last-child td {
-            border-bottom: none;
+        .msg-avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 16px;
+            font-weight: 600;
+            flex: 0 0 auto;
+            border: 1px solid var(--line);
+        }
+
+        .msg-main {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .msg-head {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+            margin-bottom: 4px;
+        }
+
+        .msg-author {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--link);
+            text-decoration: none;
+            word-break: break-word;
+        }
+
+        .msg-author:hover {
+            text-decoration: underline;
+        }
+
+        .msg-nick {
+            font-size: 12px;
+            color: var(--muted);
+            word-break: break-word;
+        }
+
+        .msg-time {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .msg-text {
+            font-size: 15px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .msg-text:empty::before {
+            content: "—";
+            color: var(--muted);
+        }
+
+        .ban-form {
+            margin: 0;
+            display: inline-flex;
+        }
+
+        .ban-btn {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 3px 6px;
+            border-radius: 8px;
+            opacity: 0.55;
+            transition: opacity var(--transition), background var(--transition);
+        }
+
+        .ban-btn:hover,
+        .ban-btn:active {
+            opacity: 1;
+            background: rgba(229, 72, 77, 0.14);
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 36px 12px;
         }
 
         .pager {
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 14px;
-            margin-top: 16px;
+            gap: 12px;
+            margin-top: 22px;
+            flex-wrap: wrap;
         }
 
         .pager a {
-            color: var(--link);
             text-decoration: none;
+            font-size: 15px;
             font-weight: 600;
+            color: var(--accent);
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            padding: 9px 18px;
+            border-radius: var(--radius-pill);
+            transition: background var(--transition), color var(--transition);
+        }
+
+        .pager a:hover {
+            background: var(--accent);
+            color: var(--on-accent);
         }
 
         .pager .current {
             color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
         }
-
     </style>
 </head>
 <body>
-<div id="users-contain">
-    <h1 th:text="${chatName}"></h1>
-    <table id="users">
-        <tr th:each="message : ${messages}">
-            <td th:text="${message.dateTime != null ? #temporals.format(message.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></td>
-            <td>
-                <div th:text="${message.firstName}"></div>
-                <div th:text="${message.lastName}"></div>
-                <div th:if="${message.userName}">
-                    (<span th:text="${message.userName}"></span>)
-                </div>
-            </td>
-            <td th:text="${message.text}"></td>
-        </tr>
-    </table>
+<header class="page-header">
+    <div>
+        <h1 th:text="${chatName != null and !#strings.isEmpty(chatName) ? chatName : 'История чата'}">История чата</h1>
+        <p class="subtitle">Сообщения чата</p>
+    </div>
+    <span class="count-badge" th:text="${messages != null ? #lists.size(messages) : 0}">0</span>
+</header>
+
+<div th:if="${#lists.isEmpty(messages)}" class="empty">Сообщений нет</div>
+
+<div class="messages">
+    <article class="msg" th:each="m : ${messages}">
+        <img class="msg-avatar" th:if="${!#strings.isEmpty(m.avatarPath)}"
+             th:src="@{/avatar/{id}(id=${m.userId})}" alt=""/>
+        <span class="msg-avatar msg-avatar-placeholder" th:unless="${!#strings.isEmpty(m.avatarPath)}"
+              th:text="${!#strings.isEmpty(m.firstName) ? #strings.substring(m.firstName,0,1) : '👤'}">👤</span>
+
+        <div class="msg-main">
+            <div class="msg-head">
+                <a class="msg-author" th:href="@{/app/reviews/{id}(id=${m.userId})}"
+                   th:text="${!#strings.isEmpty(m.firstName)
+                           ? (m.firstName + ' ' + (m.lastName != null ? m.lastName : ''))
+                           : (!#strings.isEmpty(m.userName) ? '@' + m.userName : 'ID ' + m.userId)}">Имя</a>
+                <span class="msg-nick" th:if="${!#strings.isEmpty(m.userName) and !#strings.isEmpty(m.firstName)}"
+                      th:text="'@' + ${m.userName}"></span>
+                <time class="msg-time"
+                      th:text="${m.dateTime != null ? #temporals.format(m.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></time>
+                <form class="ban-form" method="post"
+                      th:action="@{/app/chat/{chatId}/ban(chatId=${chatId})}"
+                      onsubmit="return confirm('Заблокировать этого пользователя в чате?');">
+                    <input type="hidden" name="userId" th:value="${m.userId}"/>
+                    <input type="hidden" name="page" th:value="${currentPage}"/>
+                    <button type="submit" class="ban-btn" title="Заблокировать в чате">🚫</button>
+                </form>
+            </div>
+            <div class="msg-text" th:text="${m.text}"></div>
+        </div>
+    </article>
 </div>
+
 <div class="pager">
-    <a th:href="@{/app/chat/{chatId}(page=${prevPage}, count=${count}, chatId=${chatId})}" th:text="${prevPage}"></a>
-    <span class="current" th:text="${currentPage}"></span>
-    <a th:href="@{/app/chat/{chatId}(page=${nextPage}, count=${count}, chatId=${chatId})}" th:text="${nextPage}"></a>
+    <a th:if="${currentPage > 0}"
+       th:href="@{/app/chat/{chatId}(chatId=${chatId}, page=${prevPage}, count=${count})}">‹ Назад</a>
+    <span class="current" th:text="'Стр. ' + (${currentPage} + 1)">Стр. 1</span>
+    <a th:if="${messages != null and #lists.size(messages) >= count}"
+       th:href="@{/app/chat/{chatId}(chatId=${chatId}, page=${nextPage}, count=${count})}">Вперёд ›</a>
 </div>
 </body>
 </html>

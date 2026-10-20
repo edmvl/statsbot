@@ -12,6 +12,7 @@ import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
 import ru.zhendozzz.tgbot.messageStatBot.repo.RatingRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserNameHistoryRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserRepo;
+import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.service.FeedbackService;
 import ru.zhendozzz.tgbot.messageStatBot.service.AdsService;
 import ru.zhendozzz.tgbot.messageStatBot.service.CurrentUserService;
@@ -65,6 +66,7 @@ public class MiniAppController {
     private final UserNameHistoryRepo userNameHistoryRepo;
     private final CurrentUserService currentUserService;
     private final AdminAuthGuard adminAuthGuard;
+    private final MessageExecutor messageExecutor;
 
     public MiniAppController(
             TripService tripService,
@@ -72,7 +74,8 @@ public class MiniAppController {
             LogService logService, InterestedService interestedService,
             SettingsService settingsService, RatingRepo ratingRepo, UserRepo userRepo,
             UserNameHistoryRepo userNameHistoryRepo,
-            CurrentUserService currentUserService, AdminAuthGuard adminAuthGuard
+            CurrentUserService currentUserService, AdminAuthGuard adminAuthGuard,
+            MessageExecutor messageExecutor
     ) {
         this.tripService = tripService;
         this.feedbackService = feedbackService;
@@ -85,6 +88,7 @@ public class MiniAppController {
         this.userNameHistoryRepo = userNameHistoryRepo;
         this.currentUserService = currentUserService;
         this.adminAuthGuard = adminAuthGuard;
+        this.messageExecutor = messageExecutor;
     }
 
     @GetMapping("")
@@ -133,6 +137,79 @@ public class MiniAppController {
         model.addAttribute("nextPage", currentPage + 1);
         model.addAttribute("prevPage", Math.max(currentPage - 1, 0));
         return "chat";
+    }
+
+    /**
+     * Бан пользователя в чате по кнопке из истории сообщений.
+     *
+     * <p>Доступ уже проверен {@code ChatAdminAuthInterceptor}: сюда попадает только
+     * супер-админ или администратор этого чата.</p>
+     */
+    @PostMapping("/chat/{chatId}/ban")
+    public String banUser(
+            @PathVariable String chatId,
+            @RequestParam("userId") String userId,
+            @RequestParam(value = "page", required = false) String page,
+            HttpServletRequest request,
+            HttpServletResponse httpServletResponse
+    ) throws IOException {
+        Long adminId = currentUserService.id(request);
+        if (adminId == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Откройте приложение через Telegram");
+            return null;
+        }
+        Long chat = parseNumeric(chatId);
+        Long target = parseNumeric(userId);
+        if (chat == null || target == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Некорректный пользователь");
+            return null;
+        }
+        if (target.equals(adminId) || AccessConstants.SUPER_ADMIN_ID.equals(target)) {
+            httpServletResponse.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Этого пользователя нельзя заблокировать");
+            return null;
+        }
+
+        messageExecutor.banUser(chat, target);
+        String text = "🚫 Пользователь " + userLabel(target) + " заблокирован в чате администратором.";
+        messageExecutor.sendMessage(chatId, text);
+
+        String redirect = "/app/chat/" + chatId;
+        if (page != null && !page.trim().isEmpty()) {
+            redirect += "?page=" + java.net.URLEncoder.encode(page.trim(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        httpServletResponse.sendRedirect(redirect);
+        return null;
+    }
+
+    private Long parseNumeric(String value) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Имя пользователя для сообщения в чат: «Иван Петров (@ivan)» или id. */
+    private String userLabel(Long userId) {
+        return userRepo.findById(String.valueOf(userId))
+                .map(user -> {
+                    String name = (Objects.toString(user.getFirstName(), "") + " "
+                            + Objects.toString(user.getLastName(), "")).trim();
+                    String userName = user.getUserName();
+                    if (!name.isEmpty() && userName != null && !userName.isEmpty()) {
+                        return name + " (@" + userName + ")";
+                    }
+                    if (!name.isEmpty()) {
+                        return name;
+                    }
+                    return userName != null && !userName.isEmpty() ? "@" + userName : String.valueOf(userId);
+                })
+                .orElse(String.valueOf(userId));
     }
 
     /**
