@@ -2,6 +2,7 @@ package ru.zhendozzz.tgbot.messageStatBot.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerMapping;
 import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 import ru.zhendozzz.tgbot.messageStatBot.service.TelegramWebAppAuthService;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
@@ -11,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * Проверка доступа к админским страницам.
@@ -72,6 +74,89 @@ public class AdminAuthGuard {
             return false;
         }
     }
+
+    /**
+     * Доступ к истории чатов, настройкам и администраторам.
+     *
+     * <p>Супер-админ видит все чаты. Обычный администратор — только те чаты,
+     * в которых он назначен администратором бота. Для страницы списка чатов
+     * достаточно быть админом хотя бы одного чата, а для страниц конкретного
+     * чата проверяется именно его id.</p>
+     *
+     * @return {@code true} — доступ разрешён; иначе ответ уже записан в {@code response}
+     */
+    public boolean allowChatAdmin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String initData = TelegramRequest.initData(request);
+        if (initData == null || initData.isEmpty()) {
+            writeBootstrap(response);
+            return false;
+        }
+        Long userId = authService.getVerifiedUserId(initData);
+        if (AccessConstants.SUPER_ADMIN_ID.equals(userId)) {
+            return true;
+        }
+        if (userId != null && canAccessChatArea(request, userId)) {
+            return true;
+        }
+        log.warn("Chat access denied to {} for user {}", request.getRequestURI(), userId);
+        response.setHeader("Cache-Control", "no-store");
+        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied");
+        return false;
+    }
+
+    private boolean canAccessChatArea(HttpServletRequest request, Long userId) {
+        String chatId = resolveChatId(request);
+        if (chatId != null) {
+            return settingsService.isUserAdmin(chatId, userId);
+        }
+        // Список чатов: показываем только те, где пользователь администратор.
+        String path = requestPath(request);
+        if ("/app/chats".equals(path) || "/app/chats/".equals(path)) {
+            return settingsService.isAdminOfAnyChat(userId);
+        }
+        return false;
+    }
+
+    /**
+     * id чата из path-переменной ({@code /app/chat/{chatId}}), параметра формы
+     * (запуск розыгрыша) или, как запасной вариант, из адреса запроса.
+     */
+    private String resolveChatId(HttpServletRequest request) {
+        Object attribute = request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+        if (attribute instanceof Map) {
+            Object chatId = ((Map<?, ?>) attribute).get("chatId");
+            if (chatId != null && !chatId.toString().trim().isEmpty()) {
+                return chatId.toString().trim();
+            }
+        }
+        String parameter = request.getParameter("chatId");
+        if (parameter != null && !parameter.trim().isEmpty()) {
+            return parameter.trim();
+        }
+        String path = requestPath(request);
+        for (String prefix : CHAT_PATH_PREFIXES) {
+            if (path.startsWith(prefix) && path.length() > prefix.length()) {
+                String tail = path.substring(prefix.length());
+                int slash = tail.indexOf('/');
+                String value = slash < 0 ? tail : tail.substring(0, slash);
+                return value.trim().isEmpty() ? null : value.trim();
+            }
+        }
+        return null;
+    }
+
+    private String requestPath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && uri.startsWith(contextPath)) {
+            uri = uri.substring(contextPath.length());
+        }
+        return uri;
+    }
+
+    private static final String[] CHAT_PATH_PREFIXES = {
+            "/app/chat-settings/", "/app/chat-admins/", "/app/chat/"
+    };
 
     public static void writeBootstrap(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_OK);

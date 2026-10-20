@@ -13,4 +13,6 @@ public interface SettingsRepo extends JpaRepository<Settings, Long> {
     List<Settings> findByChatId(String chatId);
 
     List<Settings> findByChatIdAndIsAdminIsTrue(String chatId);
+
+    List<Settings> findByUserIdAndIsAdminIsTrue(String userId);
 }

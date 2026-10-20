@@ -160,6 +160,7 @@ class TemplateRenderTest {
         // дата и время на странице поездок — в русском формате
         assertThat(tripsHtml).contains("15 октября 2026, 14:30");
 
+        engine.process("chats", context);
         engine.process("driver-reviews", context);
         engine.process("chat", context);
         engine.process("subscriptions", context);

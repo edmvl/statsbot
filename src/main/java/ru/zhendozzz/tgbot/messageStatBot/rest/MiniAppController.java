@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -38,10 +39,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Controller
 @RequestMapping("/app")
@@ -84,7 +87,12 @@ public class MiniAppController {
     }
 
     @GetMapping("")
-    public String index() {
+    public String index(HttpServletRequest request, Model model) {
+        Long userId = currentUserService.id(request);
+        boolean superAdmin = currentUserService.isSuperAdmin(request);
+        boolean adminAccess = superAdmin || settingsService.isAdminOfAnyChat(userId);
+        model.addAttribute("adminAccess", adminAccess);
+        model.addAttribute("superAdmin", superAdmin);
         return "index";
     }
 
@@ -163,9 +171,18 @@ public class MiniAppController {
     }
 
     @GetMapping("/chats")
-    public String chatsView(Model model) {
+    public String chatsView(HttpServletRequest request, Model model) {
+        boolean superAdmin = currentUserService.isSuperAdmin(request);
         List<ChatViewDto> chats = logService.getAllChats();
+        if (!superAdmin) {
+            Set<String> adminChatIds = new HashSet<>(
+                    settingsService.findAdminChatIds(currentUserService.id(request)));
+            chats = chats.stream()
+                    .filter(chat -> adminChatIds.contains(chat.getChatId()))
+                    .toList();
+        }
         model.addAttribute("chats", chats);
+        model.addAttribute("superAdmin", superAdmin);
         return "chats";
     }
 
@@ -177,6 +194,7 @@ public class MiniAppController {
             @QueryParam("dateTo") String dateTo,
             @QueryParam("author") String author,
             @QueryParam("text") String text,
+            HttpServletRequest request,
             Model model
     ) {
         int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
@@ -199,6 +217,7 @@ public class MiniAppController {
         model.addAttribute("author", defaultValue(author));
         model.addAttribute("text", defaultValue(text));
         model.addAttribute("ruLocale", RU_LOCALE);
+        model.addAttribute("currentUserId", currentUserService.idAsString(request));
         return "trips";
     }
 
@@ -233,7 +252,8 @@ public class MiniAppController {
             @RequestParam(value = "rating", required = false) String rating,
             @RequestParam(value = "comment", required = false) String comment,
             HttpServletRequest request,
-            HttpServletResponse httpServletResponse) throws IOException {
+            HttpServletResponse httpServletResponse,
+            RedirectAttributes redirectAttributes) throws IOException {
         // Автора отзыва берём только из подписанного Telegram initData, а не из формы.
         String reviewerId = currentUserService.idAsString(request);
         int stars = parseStars(rating);
@@ -242,9 +262,15 @@ public class MiniAppController {
                     "Откройте приложение через Telegram");
             return null;
         }
-        tripService.addRating(reviewedUserId, reviewerId, String.valueOf(stars), truncate(comment, 255));
-        httpServletResponse.sendRedirect("trips");
-        return "trips";
+        if (reviewerId.equals(reviewedUserId.trim())) {
+            redirectAttributes.addFlashAttribute("reviewError", "Нельзя оставить отзыв о себе.");
+            return "redirect:/app/trips";
+        }
+        boolean saved = tripService.addRating(reviewedUserId.trim(), reviewerId, String.valueOf(stars), truncate(comment, 255));
+        if (!saved) {
+            redirectAttributes.addFlashAttribute("reviewError", "Нельзя оставить отзыв о себе.");
+        }
+        return "redirect:/app/trips";
     }
 
     private int parseStars(String rating) {

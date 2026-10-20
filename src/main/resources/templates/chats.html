@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Список чатов</title>
+    <title>История чатов</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
@@ -20,57 +20,181 @@
         body {
             background: var(--page-bg);
             color: var(--text);
-            font-family: Arial, sans-serif;
-            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            padding: 20px 16px 48px;
+            margin: 0 auto;
+            max-width: 720px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .page-header h1 {
+            font-size: 23px;
+            line-height: 1.25;
+            margin: 0 0 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .subtitle {
             margin: 0;
+            color: var(--muted);
+            font-size: 13px;
         }
 
-        h1 {
-            font-size: 22px;
-            margin: 0 0 12px;
+        .count-badge {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
         }
 
-        .chat-row {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--line-soft);
+        .toolbar {
+            margin-bottom: 14px;
         }
 
-        .chat-title {
-            line-height: 1.6;
+        .search-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--soft);
+        }
+
+        .chat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: 0 6px 18px var(--shadow);
+        }
+
+        .chat-main {
+            min-width: 0;
         }
 
         .chat-name {
-            word-break: break-word;
+            display: inline-block;
+            max-width: 100%;
             color: var(--link);
             text-decoration: none;
-            font-weight: 600;
+            font-size: 17px;
+            font-weight: 700;
+            word-break: break-word;
+            line-height: 1.35;
         }
 
         .chat-name:hover {
             text-decoration: underline;
         }
 
-        .chat-actions {
-            margin-left: 8px;
+        .chat-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .chat-id {
             white-space: nowrap;
         }
 
-        .icon-link,
-        .icon-btn {
-            text-decoration: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            line-height: 1;
-            padding: 0 2px;
-            vertical-align: middle;
+        .chat-last {
+            word-break: break-word;
         }
 
-        .chat-last {
+        .dot {
+            color: var(--line);
+        }
+
+        .chat-actions {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 40px;
+            padding: 9px 8px;
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-sm);
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            text-decoration: none;
+            line-height: 1.15;
+            cursor: pointer;
+            transition: background var(--transition), border-color var(--transition), transform var(--transition);
+        }
+
+        .action:hover {
+            background: var(--soft);
+            border-color: var(--line);
+        }
+
+        .action:active {
+            transform: scale(0.98);
+        }
+
+        .action.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--on-accent);
+        }
+
+        .action.primary:hover {
+            filter: brightness(0.94);
+        }
+
+        .empty,
+        .no-results {
+            text-align: center;
             color: var(--muted);
-            font-size: 12px;
-            margin-top: 2px;
+            padding: 36px 12px;
+        }
+
+        .no-results {
+            display: none;
         }
 
         .modal {
@@ -153,29 +277,75 @@
             background: var(--soft);
             color: var(--text);
         }
+
+        @media (max-width: 560px) {
+            body {
+                padding: 16px 12px 44px;
+            }
+
+            .chat-actions {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
     </style>
 </head>
 <body>
-<h1>Чаты</h1>
-
-<div id="chat-list">
-    <div class="chat-row" th:each="chat : ${chats}">
-        <div class="chat-title">
-            <a class="chat-name" th:href="@{/app/chat/{chatId}(chatId=${chat.getChatId()})}"
-               th:text="${chat.getChatName()}"></a><span class="chat-actions">
-                <a class="icon-link" th:href="@{/app/chat-settings/{chatId}(chatId=${chat.getChatId()})}"
-                   title="Настройки чата">⚙️</a>
-                <a class="icon-link" th:href="@{/app/chat-admins/{chatId}(chatId=${chat.getChatId()})}"
-                   title="Администраторы бота">👑</a>
-                <button type="button" class="icon-btn" title="Запустить розыгрыш"
-                        th:data-chat-id="${chat.getChatId()}"
-                        th:data-chat-name="${chat.getChatName()}"
-                        onclick="openChallenge(this)">🎁</button>
-            </span>
-        </div>
-        <div class="chat-last" th:text="${chat.lastMessage}"></div>
+<header class="page-header">
+    <div>
+        <h1>💬 История чатов</h1>
+        <p class="subtitle"
+           th:text="${superAdmin ? 'Все чаты бота' : 'Только чаты, где вы администратор'}">
+            Только чаты, где вы администратор
+        </p>
     </div>
+    <span class="count-badge" th:text="${#lists.size(chats)}">0</span>
+</header>
+
+<div class="toolbar" th:if="${!#lists.isEmpty(chats)}">
+    <input class="search-input" id="chatSearch" type="search"
+           placeholder="Поиск по названию или ID" aria-label="Поиск чата"
+           oninput="filterChats()"/>
 </div>
+
+<div id="chat-list" class="chat-list">
+    <article class="chat-card" th:each="chat : ${chats}"
+             th:attr="data-search=${#strings.toLowerCase(chat.getChatName() + ' ' + chat.getChatId())}">
+        <div class="chat-main">
+            <a class="chat-name" th:href="@{/app/chat/{chatId}(chatId=${chat.getChatId()})}"
+               th:text="${chat.getChatName()}"></a>
+            <div class="chat-meta">
+                <span class="chat-id" th:text="'ID ' + ${chat.getChatId()}"></span>
+                <span class="dot" th:if="${chat.getLastMessage()}">·</span>
+                <span class="chat-last" th:if="${chat.getLastMessage()}"
+                      th:text="'Последнее сообщение: ' + ${chat.getLastMessage()}"></span>
+            </div>
+        </div>
+
+        <div class="chat-actions">
+            <a class="action primary" th:href="@{/app/chat/{chatId}(chatId=${chat.getChatId()})}"
+               title="История сообщений">
+                <span aria-hidden="true">💬</span><span>История</span>
+            </a>
+            <a class="action" th:href="@{/app/chat-settings/{chatId}(chatId=${chat.getChatId()})}"
+               title="Настройки чата">
+                <span aria-hidden="true">⚙️</span><span>Настройки</span>
+            </a>
+            <a class="action" th:href="@{/app/chat-admins/{chatId}(chatId=${chat.getChatId()})}"
+               title="Администраторы бота">
+                <span aria-hidden="true">👑</span><span>Админы</span>
+            </a>
+            <button type="button" class="action" title="Запустить розыгрыш"
+                    th:data-chat-id="${chat.getChatId()}"
+                    th:data-chat-name="${chat.getChatName()}"
+                    onclick="openChallenge(this)">
+                <span aria-hidden="true">🎁</span><span>Розыгрыш</span>
+            </button>
+        </div>
+    </article>
+</div>
+
+<div id="noResults" class="no-results">Ничего не найдено</div>
+<div class="empty" th:if="${#lists.isEmpty(chats)}">Нет доступных чатов</div>
 
 <!-- Модальное окно запуска розыгрыша -->
 <div id="challengeModal" class="modal">
@@ -204,6 +374,21 @@
 </div>
 
 <script>
+    function filterChats() {
+        var query = document.getElementById('chatSearch').value.trim().toLowerCase();
+        var cards = document.querySelectorAll('.chat-card');
+        var visible = 0;
+        for (var i = 0; i < cards.length; i++) {
+            var text = cards[i].getAttribute('data-search') || '';
+            var match = text.indexOf(query) !== -1;
+            cards[i].style.display = match ? '' : 'none';
+            if (match) {
+                visible++;
+            }
+        }
+        document.getElementById('noResults').style.display = visible ? 'none' : 'block';
+    }
+
     function openChallenge(button) {
         document.getElementById('chChatId').value = button.getAttribute('data-chat-id');
         document.getElementById('chChatName').value = button.getAttribute('data-chat-name');

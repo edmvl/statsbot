@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.api.objects.webapp.WebAppInfo;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class TripService implements CommandExecutable {
@@ -79,7 +80,17 @@ public class TripService implements CommandExecutable {
         }
     }
 
-    public void addRating(String userId, String reviewUserId, String rating, String comment) {
+    /**
+     * Сохраняет отзыв о пользователе.
+     *
+     * @return {@code false}, если автор пытается оставить отзыв самому себе
+     *         (такие отзывы не сохраняются)
+     */
+    public boolean addRating(String userId, String reviewUserId, String rating, String comment) {
+        if (userId != null && Objects.equals(userId, reviewUserId)) {
+            return false;
+        }
         ratingRepo.save(new Rating(userId, reviewUserId, rating, comment));
+        return true;
     }
 }

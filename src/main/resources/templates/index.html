@@ -161,20 +161,23 @@
     </a>
 </nav>
 
-<!-- Раздел администратора: показывается только супер-админу (по Telegram id) -->
-<div data-super-admin-id="115965184" style="display:none">
+<!-- Раздел администратора: супер-админ или администратор хотя бы одного чата -->
+<div th:if="${adminAccess}">
     <div class="section-title">Администрирование</div>
     <nav class="menu">
         <a class="menu-card" href="/app/chats">
             <span class="menu-icon">💬</span>
             <span class="menu-text">
                 <span class="menu-title">История чатов</span>
-                <span class="menu-desc">Сообщения, настройки и администраторы бота</span>
+                <span class="menu-desc"
+                      th:text="${superAdmin ? 'Все чаты: сообщения, настройки и администраторы' : 'Ваши чаты: сообщения, настройки и администраторы'}">
+                    Сообщения, настройки и администраторы бота
+                </span>
             </span>
             <span class="menu-arrow">›</span>
         </a>
 
-        <a class="menu-card" href="/app/subscriptions">
+        <a class="menu-card" href="/app/subscriptions" th:if="${superAdmin}">
             <span class="menu-icon">📋</span>
             <span class="menu-text">
                 <span class="menu-title">Подписки</span>
@@ -183,7 +186,7 @@
             <span class="menu-arrow">›</span>
         </a>
 
-        <a class="menu-card" href="/app/ads">
+        <a class="menu-card" href="/app/ads" th:if="${superAdmin}">
             <span class="menu-icon">📢</span>
             <span class="menu-text">
                 <span class="menu-title">Реклама</span>

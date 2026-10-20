@@ -7,6 +7,7 @@ import ru.zhendozzz.tgbot.messageStatBot.repo.SettingsRepo;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -45,8 +46,32 @@ public class SettingsService {
     }
 
     public boolean isUserAdmin(Long chatId, Long userId) {
-        Settings settings = settingsRepo.findByChatIdAndUserId(String.valueOf(chatId), String.valueOf(userId));
-        return Objects.nonNull(settings) && settings.getIsAdmin();
+        return isUserAdmin(String.valueOf(chatId), userId);
+    }
+
+    public boolean isUserAdmin(String chatId, Long userId) {
+        if (chatId == null || userId == null) {
+            return false;
+        }
+        Settings settings = settingsRepo.findByChatIdAndUserId(chatId, String.valueOf(userId));
+        return Objects.nonNull(settings) && Boolean.TRUE.equals(settings.getIsAdmin());
+    }
+
+    /** Чаты, в которых пользователь назначен администратором бота. */
+    public List<String> findAdminChatIds(Long userId) {
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+        return settingsRepo.findByUserIdAndIsAdminIsTrue(String.valueOf(userId)).stream()
+                .map(Settings::getChatId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /** true — пользователь админ хотя бы одного чата. */
+    public boolean isAdminOfAnyChat(Long userId) {
+        return !findAdminChatIds(userId).isEmpty();
     }
 
     public List<Settings> findAdmins(String chatId) {
