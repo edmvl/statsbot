@@ -81,15 +81,15 @@
     <h1 th:text="${chatName}"></h1>
     <table id="users">
         <tr th:each="message : ${messages}">
-            <td th:text="${{message.getDateTime()}}"></td>
+            <td th:text="${message.dateTime != null ? #temporals.format(message.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></td>
             <td>
-                <div th:text="${{message.getFirstName()}}"></div>
-                <div th:text="${{message.getLastName()}}"></div>
-                <div th:if="${{message.getUserName()}}">
-                    (<span th:text="${{message.getUserName()}}"></span>)
+                <div th:text="${message.firstName}"></div>
+                <div th:text="${message.lastName}"></div>
+                <div th:if="${message.userName}">
+                    (<span th:text="${message.userName}"></span>)
                 </div>
             </td>
-            <td th:text="${{message.getText()}}"></td>
+            <td th:text="${message.text}"></td>
         </tr>
     </table>
 </div>

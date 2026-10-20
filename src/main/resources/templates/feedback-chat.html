@@ -123,9 +123,9 @@
     </div>
     <table id="users">
         <tr th:each="feedBackChat : ${feedBackChatList}">
-            <td th:text="${{feedBackChat.getDateTime()}}"></td>
-            <td th:text="${{feedBackChat.getUserName()}}"></td>
-            <td th:text="${{feedBackChat.getDescription()}}"></td>
+            <td th:text="${feedBackChat.dateTime != null ? #temporals.format(feedBackChat.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></td>
+            <td th:text="${feedBackChat.userName}"></td>
+            <td th:text="${feedBackChat.description}"></td>
         </tr>
     </table>
 </div>

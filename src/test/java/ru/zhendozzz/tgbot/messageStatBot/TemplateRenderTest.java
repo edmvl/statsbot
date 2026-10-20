@@ -6,6 +6,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.WebContext;
+import org.thymeleaf.spring5.SpringTemplateEngine;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.web.servlet.JavaxServletWebApplication;
@@ -43,7 +44,9 @@ class TemplateRenderTest {
         resolver.setSuffix(".html");
         resolver.setTemplateMode(TemplateMode.HTML);
         resolver.setCharacterEncoding("UTF-8");
-        TemplateEngine engine = new TemplateEngine();
+        // SpringTemplateEngine использует SpEL — так тесты ловят ошибки вида EL1001E
+        // (обычный TemplateEngine работает на OGNL и такие места молча пропускает).
+        SpringTemplateEngine engine = new SpringTemplateEngine();
         engine.setTemplateResolver(resolver);
         return engine;
     }
@@ -97,6 +100,18 @@ class TemplateRenderTest {
         engine.process("ads", context);
         engine.process("ad-proposal", context);
         engine.process("chat-admins", context);
+    }
+
+    @Test
+    void rendersIndexWithoutAdminAttributes() {
+        // Так index.html рендерится как welcome-page для "/" — с пустой моделью.
+        TemplateEngine engine = engine();
+        WebContext context = webContext();
+        baseVars(context);
+
+        String html = engine.process("index", context);
+
+        assertThat(html).contains("Урмарский помощник");
     }
 
     @Test

@@ -165,7 +165,7 @@
      Изначально скрыт, если сервер не увидел авторизацию; клиентский скрипт раскроет
      его по Telegram id / ответу /app/access (первый заход может быть без cookie). -->
 <div id="adminSection" data-admin-section
-     th:attr="hidden=${!adminAccess},data-super-admin-id=${superAdminId}">
+     th:attr="hidden=${adminAccess == null || !adminAccess},data-super-admin-id=${superAdminId}">
     <div class="section-title">Администрирование</div>
     <nav class="menu">
         <a class="menu-card" href="/app/chats">
@@ -173,7 +173,7 @@
             <span class="menu-text">
                 <span class="menu-title">История чатов</span>
                 <span class="menu-desc"
-                      th:text="${superAdmin ? 'Все чаты: сообщения, настройки и администраторы' : 'Ваши чаты: сообщения, настройки и администраторы'}">
+                      th:text="${superAdmin != null and superAdmin ? 'Все чаты: сообщения, настройки и администраторы' : 'Ваши чаты: сообщения, настройки и администраторы'}">
                     Сообщения, настройки и администраторы бота
                 </span>
             </span>
@@ -181,7 +181,7 @@
         </a>
 
         <a class="menu-card" href="/app/subscriptions" data-super-admin-only
-           th:attr="hidden=${!superAdmin}">
+           th:attr="hidden=${superAdmin == null || !superAdmin}">
             <span class="menu-icon">📋</span>
             <span class="menu-text">
                 <span class="menu-title">Подписки</span>
@@ -191,7 +191,7 @@
         </a>
 
         <a class="menu-card" href="/app/ads" data-super-admin-only
-           th:attr="hidden=${!superAdmin}">
+           th:attr="hidden=${superAdmin == null || !superAdmin}">
             <span class="menu-icon">📢</span>
             <span class="menu-text">
                 <span class="menu-title">Реклама</span>
