@@ -493,31 +493,29 @@ public class MiniAppController {
             HttpServletRequest request,
             HttpServletResponse httpServletResponse
     ) throws IOException {
-        String userId = currentUserService.idAsString(request);
-        if (userId == null) {
-            // Первый заход без cookie — отдаём страницу получения доступа.
-            adminAuthGuard.allow(request, httpServletResponse, true);
-            return null;
-        }
         FeedBack feedback = feedbackService.findFeedbackOrNull(feedbackId);
         if (feedback == null) {
             httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND, "Обращение не найдено");
             return null;
         }
-        boolean admin = adminAuthGuard.isTripAdmin(request);
-        boolean owner = userId.equals(feedback.getUserId());
+        // Ссылку из чата обычно открывают в обычном браузере — там нет Telegram initData.
+        // Просмотр открыт всем, поэтому страницу отдаём и без авторизации, но без действий:
+        // кнопки всё равно отрисуются только автору и админу.
+        String userId = currentUserService.idAsString(request);
+        boolean authenticated = userId != null;
+        boolean admin = authenticated && adminAuthGuard.isTripAdmin(request);
+        boolean owner = authenticated && userId.equals(feedback.getUserId());
         boolean banned = feedbackService.isBannedByFeedback(feedbackId);
-        boolean target = Objects.nonNull(feedback.getTargetUserId())
+        boolean target = authenticated && Objects.nonNull(feedback.getTargetUserId())
                 && feedback.getTargetUserId().equals(userId);
 
-        // Смотреть обращение может любой авторизованный пользователь, но действия
-        // (комментарий, закрытие, блокировка, правка пользователя) — только автор и админ.
         List<FeedBackChat> feedBackChatList = feedbackService.findChatByFeedbackId(feedbackId);
         model.addAttribute("feedBackChatList", feedBackChatList);
         model.addAttribute("feedback", feedback);
         model.addAttribute("files", fileLoaderService.getFiles(feedbackId));
         model.addAttribute("commentFiles", commentFiles(feedBackChatList));
         model.addAttribute("banned", banned);
+        model.addAttribute("authenticated", authenticated);
         model.addAttribute("isAdmin", admin);
         model.addAttribute("isOwner", owner);
         model.addAttribute("isTarget", target);

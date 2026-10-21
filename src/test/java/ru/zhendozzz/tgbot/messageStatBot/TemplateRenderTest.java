@@ -124,6 +124,7 @@ class TemplateRenderTest {
         context.setVariable("isOwner", true);
 
         // Автор: поле выбора доступно, комментарий можно оставить.
+        context.setVariable("authenticated", true);
         context.setVariable("canEditTarget", true);
         context.setVariable("canReply", true);
         String editor = engine.process("feedback-chat", context);
@@ -131,6 +132,7 @@ class TemplateRenderTest {
                 .contains("id=\"targetSearch\"")
                 .contains("/app/feedback-chat/1/target")
                 .contains("class=\"reply-form\"")
+                .contains("data-back=\"/app/feedback\"")
                 // Элемент для подписи выбранного пользователя должен быть в DOM всегда,
                 // иначе JS падал на selected.textContent и не включал кнопку «Сохранить».
                 .contains("id=\"selectedUser\"")
@@ -139,6 +141,7 @@ class TemplateRenderTest {
         // Остальные (в том числе тот, на кого жалуются) — смотрят, но сделать ничего не могут.
         feedback.setTargetUserId("777");
         feedback.setTargetUserName("Иван Петров (@ivan)");
+        context.setVariable("authenticated", false);
         context.setVariable("canEditTarget", false);
         context.setVariable("canReply", false);
         context.setVariable("isAdmin", false);
@@ -151,6 +154,8 @@ class TemplateRenderTest {
                 .doesNotContain("class=\"reply-form\"")
                 .doesNotContain("class=\"close-form\"")
                 .doesNotContain("/app/feedback-chat/1/ban")
+                // Без initData (ссылка открыта в браузере) кнопки «Назад» нет.
+                .doesNotContain("data-back=")
                 .contains("<h2>Переписка</h2>")
                 .contains("Иван Петров (@ivan)")
                 .contains("Вы указаны в этой жалобе");

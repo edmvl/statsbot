@@ -25,6 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -127,6 +128,31 @@ class MiniAppControllerTest {
 
         assertThat(view).isNull();
         assertThat(response.getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    void feedbackChatOpensReadOnlyWithoutTelegram() throws Exception {
+        // Ссылку из чата открыли в обычном браузере: initData нет, но смотреть можно.
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ExtendedModelMap model = new ExtendedModelMap();
+
+        FeedBack feedback = new FeedBack();
+        feedback.setId(7L);
+        feedback.setUserId("100");
+        when(currentUserService.idAsString(request)).thenReturn(null);
+        when(feedbackService.findFeedbackOrNull(7L)).thenReturn(feedback);
+        when(feedbackService.findChatByFeedbackId(7L)).thenReturn(List.of());
+
+        String view = controller.feedbackChat(model, 7L, request, response);
+
+        assertThat(view).isEqualTo("feedback-chat");
+        assertThat(model.get("authenticated")).isEqualTo(false);
+        assertThat(model.get("canReply")).isEqualTo(false);
+        assertThat(model.get("canEditTarget")).isEqualTo(false);
+        assertThat(response.getStatus()).isEqualTo(200);
+        assertThat(response.getContentAsString()).doesNotContain("Доступ только через Telegram");
+        verify(adminAuthGuard, never()).allow(any(), any(), anyBoolean());
     }
 
     @Test
