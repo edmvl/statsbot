@@ -516,10 +516,12 @@
     </div>
     <div class="field-hint">Необязательно. Чтобы убрать пользователя — нажмите ✕ и сохраните.</div>
     <div class="user-results" id="userResults" hidden></div>
-    <div class="selected-user" id="selectedUser" th:if="${feedback.targetUserId != null}"
-         th:text="'Жалоба на: ' + ${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
-                                      ? feedback.targetUserName
-                                      : feedback.targetUserId}">Жалоба на: Иван</div>
+    <div class="selected-user" id="selectedUser" hidden>
+        Жалоба на: <span th:if="${feedback.targetUserId != null}"
+                          th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
+                                   ? feedback.targetUserName
+                                   : feedback.targetUserId}">Иван</span>
+    </div>
     <form method="post" th:action="@{/app/feedback-chat/{id}/target(id=${feedback.id})}">
         <input type="hidden" name="targetUserId" id="targetUserId"
                th:value="${feedback.targetUserId != null ? feedback.targetUserId : ''}"/>
@@ -653,8 +655,11 @@
         function selectTarget(user) {
             hidden.value = user.id;
             search.value = user.name || ('ID ' + user.id);
-            selected.textContent = targetLabel(user);
-            setShown(selected, true);
+            // Элемент может отсутствовать в старых рендерах — не падаем на нём.
+            if (selected) {
+                selected.textContent = targetLabel(user);
+                setShown(selected, true);
+            }
             results.innerHTML = '';
             setShown(results, false);
             setShown(clearBtn, true);
@@ -761,6 +766,7 @@
 
         if (hidden.value) {
             setShown(clearBtn, true);
+            setShown(selected, true);
         }
     })();
 </script>

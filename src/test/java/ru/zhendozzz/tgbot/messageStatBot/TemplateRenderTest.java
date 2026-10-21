@@ -131,6 +131,9 @@ class TemplateRenderTest {
                 .contains("id=\"targetSearch\"")
                 .contains("/app/feedback-chat/1/target")
                 .contains("class=\"reply-form\"")
+                // Элемент для подписи выбранного пользователя должен быть в DOM всегда,
+                // иначе JS падал на selected.textContent и не включал кнопку «Сохранить».
+                .contains("id=\"selectedUser\"")
                 .contains("Пользователь, на которого жалоба, не указан");
 
         // Остальные (в том числе тот, на кого жалуются) — смотрят, но сделать ничего не могут.
