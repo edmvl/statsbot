@@ -32,10 +32,14 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
 
     private final SettingsService settingsService;
 
-    public WordsFilterService(MessageExecutor messageExecutor, WordsFilterRepo wordsFilterRepo, SettingsService settingsService) {
+    private final LogService logService;
+
+    public WordsFilterService(MessageExecutor messageExecutor, WordsFilterRepo wordsFilterRepo,
+                              SettingsService settingsService, LogService logService) {
         this.messageExecutor = messageExecutor;
         this.wordsFilterRepo = wordsFilterRepo;
         this.settingsService = settingsService;
+        this.logService = logService;
     }
 
     public void deleteByFilter(MessageDTO messageDTO, Update update) {
@@ -50,6 +54,7 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
         List<String> wordsToFilter = wordsFilterRepo.findAll().stream().map(WordsFilter::getWord).map(String::toLowerCase).toList();
         if (wordsToFilter.stream().anyMatch(s -> words.stream().anyMatch(s.toLowerCase()::equals))) {
             messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
+            logService.markDeleted(messageDTO.getChatId(), messageDTO.getMessageId());
         }
         if (settingsService.isEnabled(messageDTO.getChatId().toString(), ChatSettingConstants.TRIP_CHANNEL)) {
             Message message = update.getMessage();
@@ -58,6 +63,7 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
                 long messagesWithUrl = entities.stream().filter(messageEntity -> Objects.nonNull(messageEntity.getUrl())).count();
                 if (messagesWithUrl > 0) {
                     messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
+                    logService.markDeleted(messageDTO.getChatId(), messageDTO.getMessageId());
                 }
             }
         }

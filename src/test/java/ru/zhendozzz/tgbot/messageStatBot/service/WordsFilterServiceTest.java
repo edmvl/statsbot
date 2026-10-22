@@ -31,6 +31,7 @@ class WordsFilterServiceTest {
     private MessageExecutor messageExecutor;
     private WordsFilterRepo wordsFilterRepo;
     private SettingsService settingsService;
+    private LogService logService;
     private WordsFilterService service;
 
     @BeforeEach
@@ -38,7 +39,8 @@ class WordsFilterServiceTest {
         messageExecutor = mock(MessageExecutor.class);
         wordsFilterRepo = mock(WordsFilterRepo.class);
         settingsService = mock(SettingsService.class);
-        service = new WordsFilterService(messageExecutor, wordsFilterRepo, settingsService);
+        logService = mock(LogService.class);
+        service = new WordsFilterService(messageExecutor, wordsFilterRepo, settingsService, logService);
 
         when(wordsFilterRepo.findAll()).thenReturn(List.of());
         when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.TRIP_CHANNEL))).thenReturn(true);
@@ -93,6 +95,8 @@ class WordsFilterServiceTest {
         service.deleteByFilter(dto, update);
 
         verify(messageExecutor).deleteMessage(-100L, 6);
+        // В истории чата сообщение должно остаться с пометкой «удалено».
+        verify(logService).markDeleted(-100L, 6);
     }
 
     @Test

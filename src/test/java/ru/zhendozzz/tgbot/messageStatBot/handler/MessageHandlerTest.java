@@ -81,6 +81,23 @@ class MessageHandlerTest {
         verify(commandExecutable).executeCommand(dto, update);
     }
 
+    @Test
+    void processesEditedMessageWithoutRunningCommands() {
+        Message message = message(user(1L, "admin", false, "Иван", "Петров"));
+        message.setText(".топ");
+        message.setEditDate(1_700_000_500);
+        Update update = new Update();
+        update.setEditedMessage(message);
+
+        handler.choose(update);
+
+        MessageDTO dto = captureMessage();
+        assertThat(dto.isEdited()).isTrue();
+        assertThat(dto.getEditDateTime()).isNotNull();
+        assertThat(dto.getMessageId()).isEqualTo(10);
+        verify(commandExecutable, never()).executeCommand(any(), any());
+    }
+
     private MessageDTO captureMessage() {
         ArgumentCaptor<MessageDTO> captor = ArgumentCaptor.forClass(MessageDTO.class);
         verify(needProcessMessage).processMessage(captor.capture(), any());

@@ -56,6 +56,13 @@ public class MessageHandler implements Handler<Update> {
     @Override
     public void choose(Update update) {
         Message message = update.getMessage();
+        // Пользователь может отредактировать сообщение — Telegram присылает его как
+        // edited_message (а не message). Обрабатываем так же, но без запуска команд.
+        boolean edited = false;
+        if (Objects.isNull(message)) {
+            message = update.getEditedMessage();
+            edited = Objects.nonNull(message);
+        }
         if (Objects.isNull(message)) {
             return;
         }
@@ -82,9 +89,14 @@ public class MessageHandler implements Handler<Update> {
                 .userText(resolveText(message, serviceMessage))
                 .file(file)
                 .serviceMessage(serviceMessage)
+                .edited(edited)
+                .editDateTime(edited && Objects.nonNull(message.getEditDate())
+                        ? LocalDateTime.ofInstant(Instant.ofEpochSecond(message.getEditDate()), ZoneId.systemDefault())
+                        : null)
                 .build();
         // Служебные события не являются командами и не должны запускать обработчики команд.
-        if (!serviceMessage
+        // Команды из отредактированных сообщений тоже не выполняем.
+        if (!serviceMessage && !edited
                 && getAllBotCommands().stream().anyMatch(s -> messageDTO.getUserText().toLowerCase(Locale.ROOT).startsWith(s.toLowerCase()))) {
             commandExecutables.forEach(service -> service.executeCommand(messageDTO, update));
         }

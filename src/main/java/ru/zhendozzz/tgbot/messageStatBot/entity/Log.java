@@ -44,4 +44,16 @@ public class Log {
     @Column(name = "logger_type")
     String loggerType;
 
+    /** id сообщения в Telegram — по нему находим строку при редактировании и удалении. */
+    @Column(name = "message_id")
+    Integer messageId;
+
+    /** Время последней правки; {@code null} — сообщение не редактировали. */
+    @Column(name = "edited_at")
+    LocalDateTime editedAt;
+
+    /** Сообщение удалено ботом (например, фильтром слов). */
+    @Column(name = "deleted")
+    Boolean deleted;
+
 }

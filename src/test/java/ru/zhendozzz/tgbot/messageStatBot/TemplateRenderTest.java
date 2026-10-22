@@ -19,6 +19,7 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.TripViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
 import ru.zhendozzz.tgbot.messageStatBot.entity.BannedUser;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
+import ru.zhendozzz.tgbot.messageStatBot.entity.LogEdit;
 import ru.zhendozzz.tgbot.messageStatBot.entity.UserNameHistory;
 import ru.zhendozzz.tgbot.messageStatBot.rest.ChatAdminsController;
 import ru.zhendozzz.tgbot.messageStatBot.rest.ChatSettingsController;
@@ -252,6 +253,9 @@ class TemplateRenderTest {
         when(trip.getCnt()).thenReturn("5");
         when(trip.getComments()).thenReturn("Отличный попутчик");
         when(trip.getAvatarPath()).thenReturn(null);
+        when(trip.getLogId()).thenReturn(9L);
+        when(trip.getEditedAt()).thenReturn(LocalDateTime.of(2026, 10, 15, 15, 0));
+        when(trip.getDeleted()).thenReturn(false);
 
         DriverReviewDto review = mock(DriverReviewDto.class);
         when(review.getId()).thenReturn(1L);
@@ -271,6 +275,9 @@ class TemplateRenderTest {
         when(message.getFirstName()).thenReturn("Иван");
         when(message.getLastName()).thenReturn("Петров");
         when(message.getUserName()).thenReturn("ivan");
+        when(message.getMessageId()).thenReturn(10);
+        when(message.getEditedAt()).thenReturn(LocalDateTime.of(2026, 10, 15, 15, 30));
+        when(message.getDeleted()).thenReturn(true);
 
         TgUser driver = new TgUser();
         driver.setId("100");
@@ -284,6 +291,18 @@ class TemplateRenderTest {
         context.setVariable("tripList", List.of(trip));
         context.setVariable("reviews", List.of(review));
         context.setVariable("messages", List.of(message));
+
+        LogEdit tripEdit = new LogEdit();
+        tripEdit.setLogId(9L);
+        tripEdit.setText("Старый текст поездки");
+        tripEdit.setEditedAt(LocalDateTime.of(2026, 10, 15, 15, 0));
+
+        LogEdit chatEdit = new LogEdit();
+        chatEdit.setLogId(1L);
+        chatEdit.setText("Старый привет");
+        chatEdit.setEditedAt(LocalDateTime.of(2026, 10, 15, 15, 30));
+
+        context.setVariable("edits", Map.of(9L, List.of(tripEdit), 1L, List.of(chatEdit)));
         context.setVariable("driver", driver);
         context.setVariable("history", List.of(
                 history("Иван", "Петров", "ivan", LocalDateTime.now()),
@@ -298,11 +317,24 @@ class TemplateRenderTest {
 
         String tripsHtml = engine.process("trips", context);
         // дата и время на странице поездок — в русском формате
-        assertThat(tripsHtml).contains("15 октября 2026, 14:30");
+        assertThat(tripsHtml)
+                .contains("15 октября 2026, 14:30")
+                // правка сообщения: пометка и кнопка с предыдущей версией
+                .contains("✏️ изменено")
+                .contains("История изменений (1)")
+                .contains("Старый текст поездки");
 
         engine.process("chats", context);
         engine.process("driver-reviews", context);
-        engine.process("chat", context);
+
+        String chatHtml = engine.process("chat", context);
+        // удалённое сообщение и история правок в истории чата
+        assertThat(chatHtml)
+                .contains("🗑 удалено")
+                .contains("is-deleted")
+                .contains("История изменений (1)")
+                .contains("Старый привет");
+
         engine.process("subscriptions", context);
         engine.process("ads", context);
     }

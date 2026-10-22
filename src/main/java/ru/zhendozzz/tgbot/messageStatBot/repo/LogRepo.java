@@ -16,10 +16,14 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 
 @Repository
 public interface LogRepo extends JpaRepository<Log, Long> {
+
+    /** Строка лога по сообщению Telegram (для правок и пометки удаления). */
+    Optional<Log> findFirstByChatIdAndMessageId(String chatId, Integer messageId);
 
     /**
      * Отображаемое имя пользователя (ФИО и ник) берётся из таблицы {@code users}.
@@ -69,6 +73,7 @@ public interface LogRepo extends JpaRepository<Log, Long> {
      * Сообщения чата с именем отправителя из {@code users}.
      */
     @Query(value = "select l.id as id, l.date_time as dateTime, l.user_id as userId, l.text as text, "
+            + "l.message_id as messageId, l.edited_at as editedAt, l.deleted as deleted, "
             + "u.first_name as firstName, u.last_name as lastName, u.user_name as userName, "
             + "u.avatar_path as avatarPath "
             + "from log l left join users u on u.id = l.user_id "
@@ -87,8 +92,9 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             + "order by date_time desc", nativeQuery = true)
     List<ChatViewDto> getAllChats();
 
-    @Query(value = "select l.user_id as userId, l.date_time as dateTime, u.user_name as userName, "
+    @Query(value = "select l.id as logId, l.user_id as userId, l.date_time as dateTime, u.user_name as userName, "
             + "u.first_name as firstName, u.last_name as lastName, u.avatar_path as avatarPath, "
+            + "l.edited_at as editedAt, l.deleted as deleted, "
             + "replace(l.text, '\r', CHR(13)) as text, "
             + "(select round(avg(stars), 2) from rating where rating.user_id = l.user_id) as rating, "
             + "(select string_agg(comment, CHR(13)) from rating where rating.user_id = l.user_id) as comments, "

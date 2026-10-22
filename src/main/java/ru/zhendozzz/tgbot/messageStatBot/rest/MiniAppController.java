@@ -146,6 +146,10 @@ public class MiniAppController {
         int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
         List<ChatMessageDto> messages = logService.findByChatId(chatId, currentPage, cnt);
         model.addAttribute("messages", messages);
+        model.addAttribute("edits", logService.findEdits(messages.stream()
+                .map(ChatMessageDto::getId)
+                .filter(Objects::nonNull)
+                .toList()));
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("count", cnt);
         model.addAttribute("chatId", chatId);
@@ -324,6 +328,10 @@ public class MiniAppController {
         model.addAttribute("nextPage", currentPage + 1);
         model.addAttribute("prevPage", Math.max(currentPage - 1, 0));
         model.addAttribute("tripList", tripList);
+        model.addAttribute("edits", logService.findEdits(tripList.stream()
+                .map(TripViewDto::getLogId)
+                .filter(Objects::nonNull)
+                .toList()));
         model.addAttribute("dateFrom", defaultValue(dateFrom));
         model.addAttribute("dateTo", defaultValue(dateTo));
         model.addAttribute("author", defaultValue(author));

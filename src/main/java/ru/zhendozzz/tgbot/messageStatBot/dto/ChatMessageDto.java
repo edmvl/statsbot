@@ -15,4 +15,9 @@ public interface ChatMessageDto {
     String getLastName();
     String getUserName();
     String getAvatarPath();
+    Integer getMessageId();
+    /** Время последней правки или {@code null}. */
+    LocalDateTime getEditedAt();
+    /** Сообщение удалено ботом. */
+    Boolean getDeleted();
 }

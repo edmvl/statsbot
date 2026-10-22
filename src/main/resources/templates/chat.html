@@ -205,6 +205,79 @@
             font-size: 14px;
             font-weight: 600;
         }
+
+        /* Пометки «изменено» / «удалено» и история версий сообщения */
+        .msg-flags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 7px;
+        }
+
+        .flag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: var(--radius-pill);
+            border: 1px solid transparent;
+        }
+
+        .flag-edited {
+            background: rgba(240, 161, 30, 0.16);
+            color: #b97a06;
+        }
+
+        .flag-deleted {
+            background: rgba(229, 72, 77, 0.14);
+            color: var(--danger);
+        }
+
+        .flag-button {
+            background: var(--soft);
+            color: var(--text);
+            border-color: var(--line);
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .flag-button:hover {
+            background: var(--soft-strong);
+        }
+
+        .msg-edits {
+            margin-top: 8px;
+            padding: 9px 12px;
+            border-left: 3px solid var(--line);
+            background: var(--inner-bg);
+            border-radius: var(--radius-sm);
+        }
+
+        .msg-edit + .msg-edit {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .msg-edit-time {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .msg-edit-text {
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            opacity: 0.85;
+        }
+
+        .msg.is-deleted .msg-text {
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
@@ -219,7 +292,8 @@
 <div th:if="${#lists.isEmpty(messages)}" class="empty">Сообщений нет</div>
 
 <div class="messages">
-    <article class="msg" th:each="m : ${messages}">
+    <article class="msg" th:each="m : ${messages}"
+             th:classappend="${m.deleted != null and m.deleted} ? ' is-deleted'">
         <img class="msg-avatar" th:if="${!#strings.isEmpty(m.avatarPath)}"
              th:src="@{/avatar/{id}(id=${m.userId})}" alt=""/>
         <span class="msg-avatar msg-avatar-placeholder" th:unless="${!#strings.isEmpty(m.avatarPath)}"
@@ -244,6 +318,28 @@
                 </form>
             </div>
             <div class="msg-text" th:text="${m.text}"></div>
+
+            <div class="msg-flags" th:if="${m.editedAt != null or (m.deleted != null and m.deleted)}">
+                <span class="flag flag-deleted" th:if="${m.deleted != null and m.deleted}">🗑 удалено</span>
+                <span class="flag flag-edited" th:if="${m.editedAt != null}">✏️ изменено</span>
+                <button type="button" class="flag flag-button"
+                        th:if="${m.editedAt != null and edits != null and edits[m.id] != null
+                                 and !#lists.isEmpty(edits[m.id])}"
+                        th:attr="data-edits-toggle='edits-' + ${m.id}, aria-expanded='false'"
+                        th:text="'История изменений (' + ${#lists.size(edits[m.id])} + ')'">История изменений</button>
+            </div>
+
+            <div class="msg-edits" th:id="'edits-' + ${m.id}" hidden
+                 th:if="${edits != null and edits[m.id] != null and !#lists.isEmpty(edits[m.id])}">
+                <div class="msg-edit" th:each="e : ${edits[m.id]}">
+                    <div class="msg-edit-time"
+                         th:text="${e.editedAt != null
+                                  ? 'Версия до ' + #temporals.format(e.editedAt, 'dd.MM.yyyy HH:mm')
+                                  : 'Предыдущая версия'}">Версия до 01.01.2026 12:00</div>
+                    <div class="msg-edit-text"
+                         th:text="${e.text != null and !#strings.isEmpty(e.text) ? e.text : '— без текста —'}"></div>
+                </div>
+            </div>
         </div>
     </article>
 </div>
@@ -255,5 +351,23 @@
     <a th:if="${messages != null and #lists.size(messages) >= count}"
        th:href="@{/app/chat/{chatId}(chatId=${chatId}, page=${nextPage}, count=${count})}">Вперёд ›</a>
 </div>
+
+<script>
+    // Раскрыть/скрыть историю изменений сообщения.
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        var button = target && target.closest ? target.closest('[data-edits-toggle]') : null;
+        if (!button) {
+            return;
+        }
+        var box = document.getElementById(button.getAttribute('data-edits-toggle'));
+        if (!box) {
+            return;
+        }
+        var opening = box.hidden;
+        box.hidden = !opening;
+        button.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    });
+</script>
 </body>
 </html>

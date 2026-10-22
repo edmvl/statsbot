@@ -25,4 +25,8 @@ public class MessageDTO {
     private FileDto file;
     /** Служебное событие чата (добавление/выход участника, смена названия и т.п.). */
     private boolean serviceMessage;
+    /** Update пришёл как {@code edited_message} — сообщение отредактировали. */
+    private boolean edited;
+    /** Время правки (для edited-сообщений). */
+    private LocalDateTime editDateTime;
 }

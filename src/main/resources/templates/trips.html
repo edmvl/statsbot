@@ -289,6 +289,77 @@
             box-shadow: inset 0 0 0 1px var(--line-soft);
         }
 
+        .trip-card.is-deleted .message-text {
+            opacity: 0.6;
+        }
+
+        /* Пометки «изменено» / «удалено» и история версий сообщения */
+        .msg-flags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .flag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: var(--radius-pill);
+            border: 1px solid transparent;
+        }
+
+        .flag-edited {
+            background: rgba(240, 161, 30, 0.16);
+            color: #b97a06;
+        }
+
+        .flag-deleted {
+            background: rgba(229, 72, 77, 0.14);
+            color: var(--danger);
+        }
+
+        .flag-button {
+            background: var(--soft);
+            color: var(--text);
+            border-color: var(--line);
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .flag-button:hover {
+            background: var(--soft-strong);
+        }
+
+        .msg-edits {
+            padding: 9px 12px;
+            border-left: 3px solid var(--line);
+            background: var(--inner-bg);
+            border-radius: var(--radius-sm);
+        }
+
+        .msg-edit + .msg-edit {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .msg-edit-time {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .msg-edit-text {
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            opacity: 0.85;
+        }
+
         /* Отзывы — вторичный блок: подпись и цитата с тонкой линией слева. */
         .comments-section {
             margin-top: 4px;
@@ -647,7 +718,8 @@
 <div th:if="${#lists.isEmpty(tripList)}" class="empty">Ничего не найдено</div>
 
 <!-- Список карточек -->
-<div th:each="trip : ${tripList}" class="trip-card">
+<div th:each="trip : ${tripList}" class="trip-card"
+     th:classappend="${trip.deleted != null and trip.deleted} ? ' is-deleted'">
 
     <!-- Верхняя часть: пользователь + сообщения + рейтинг -->
     <div class="trip-header">
@@ -687,6 +759,28 @@
 
         <div class="message-text" th:text="${trip.text}">
             Текст сообщения о поездке, впечатления, маршрут.
+        </div>
+
+        <div class="msg-flags" th:if="${trip.editedAt != null or (trip.deleted != null and trip.deleted)}">
+            <span class="flag flag-deleted" th:if="${trip.deleted != null and trip.deleted}">🗑 удалено</span>
+            <span class="flag flag-edited" th:if="${trip.editedAt != null}">✏️ изменено</span>
+            <button type="button" class="flag flag-button"
+                    th:if="${trip.editedAt != null and edits != null and edits[trip.logId] != null
+                             and !#lists.isEmpty(edits[trip.logId])}"
+                    th:attr="data-edits-toggle='edits-' + ${trip.logId}, aria-expanded='false'"
+                    th:text="'История изменений (' + ${#lists.size(edits[trip.logId])} + ')'">История изменений</button>
+        </div>
+
+        <div class="msg-edits" th:id="'edits-' + ${trip.logId}" hidden
+             th:if="${edits != null and edits[trip.logId] != null and !#lists.isEmpty(edits[trip.logId])}">
+            <div class="msg-edit" th:each="e : ${edits[trip.logId]}">
+                <div class="msg-edit-time"
+                     th:text="${e.editedAt != null
+                              ? 'Версия до ' + #temporals.format(e.editedAt, 'dd.MM.yyyy HH:mm')
+                              : 'Предыдущая версия'}">Версия до 01.01.2026 12:00</div>
+                <div class="msg-edit-text"
+                     th:text="${e.text != null and !#strings.isEmpty(e.text) ? e.text : '— без текста —'}"></div>
+            </div>
         </div>
 
         <!-- Комментарии / отзывы -->
@@ -896,6 +990,22 @@
     } else {
         initSubscriptions();
     }
+
+    // Раскрыть/скрыть историю изменений сообщения.
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        var button = target && target.closest ? target.closest('[data-edits-toggle]') : null;
+        if (!button) {
+            return;
+        }
+        var box = document.getElementById(button.getAttribute('data-edits-toggle'));
+        if (!box) {
+            return;
+        }
+        var opening = box.hidden;
+        box.hidden = !opening;
+        button.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    });
 </script>
 
 </body>

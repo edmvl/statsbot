@@ -40,7 +40,7 @@ public class BanNotificationService implements NeedProcessMessage {
     @Override
     public void processMessage(MessageDTO messageDTO, Update update) {
         Long userId = messageDTO.getUserId();
-        if (Objects.isNull(userId) || messageDTO.isServiceMessage()) {
+        if (Objects.isNull(userId) || messageDTO.isServiceMessage() || messageDTO.isEdited()) {
             return;
         }
         BannedUser ban = bannedUserRepo.findFirstByUserIdOrderByBannedAtDesc(String.valueOf(userId))
