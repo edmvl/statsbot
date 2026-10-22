@@ -11,7 +11,8 @@ public interface Processor {
             executePreCheckoutQuery(update);
         }
 
-        if (update.hasMessage()) {
+        // edited_message — тоже сообщение: его нужно сохранить как правку.
+        if (update.hasMessage() || update.hasEditedMessage()) {
             executeMessage(update);
         }
 

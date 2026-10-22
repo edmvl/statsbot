@@ -26,6 +26,12 @@ public interface LogRepo extends JpaRepository<Log, Long> {
     Optional<Log> findFirstByChatIdAndMessageId(String chatId, Integer messageId);
 
     /**
+     * Строка лога по автору и времени отправки — запасной поиск для сообщений,
+     * сохранённых до появления {@code message_id}.
+     */
+    Optional<Log> findFirstByChatIdAndUserIdAndDateTime(String chatId, String userId, LocalDateTime dateTime);
+
+    /**
      * Отображаемое имя пользователя (ФИО и ник) берётся из таблицы {@code users}.
      */
     @Query(value = "select concat_ws(' ', first_name, last_name) || COALESCE(' (' || user_name || ')', '') "

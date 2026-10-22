@@ -22,6 +22,8 @@ import static org.mockito.Mockito.when;
 
 class LogServiceTest {
 
+    private static final LocalDateTime SENT_AT = LocalDateTime.of(2026, 10, 22, 12, 0);
+
     private final LogRepo logRepo = mock(LogRepo.class);
     private final LogEditRepo logEditRepo = mock(LogEditRepo.class);
     private final LogService service = new LogService(logRepo, logEditRepo);
@@ -72,6 +74,26 @@ class LogServiceTest {
     }
 
     @Test
+    void editFindsPreDeployMessageByAuthorAndDate() {
+        // Сообщение сохранили до появления message_id: находим его по автору и времени.
+        Log existing = log(5L, "старый текст");
+        existing.setMessageId(null);
+        when(logRepo.findFirstByChatIdAndMessageId("-100", 10)).thenReturn(Optional.empty());
+        when(logRepo.findFirstByChatIdAndUserIdAndDateTime("-100", "777", SENT_AT))
+                .thenReturn(Optional.of(existing));
+
+        service.updateEdited(dto(true));
+
+        assertThat(existing.getMessageId()).isEqualTo(10);
+        assertThat(existing.getText()).isEqualTo("новый текст");
+        assertThat(existing.getEditedAt()).isNotNull();
+
+        ArgumentCaptor<LogEdit> captor = ArgumentCaptor.forClass(LogEdit.class);
+        verify(logEditRepo).save(captor.capture());
+        assertThat(captor.getValue().getText()).isEqualTo("старый текст");
+    }
+
+    @Test
     void markDeletedSetsFlag() {
         Log existing = log(1L, "текст");
         when(logRepo.findFirstByChatIdAndMessageId("-100", 10)).thenReturn(Optional.of(existing));
@@ -117,7 +139,7 @@ class LogServiceTest {
                 .chatId(-100L)
                 .chatName("Чат")
                 .messageId(10)
-                .dateTime(LocalDateTime.of(2026, 10, 22, 12, 0))
+                .dateTime(SENT_AT)
                 .userId(777L)
                 .userName("ivan")
                 .userText("новый текст")

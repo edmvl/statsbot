@@ -76,12 +76,23 @@ public class LogService implements NeedProcessMessage {
      */
     public void updateEdited(MessageDTO messageDTO) {
         String chatId = String.valueOf(messageDTO.getChatId());
-        Log existing = logRepo.findFirstByChatIdAndMessageId(chatId, messageDTO.getMessageId()).orElse(null);
+        Log existing = logRepo.findFirstByChatIdAndMessageId(chatId, messageDTO.getMessageId())
+                .orElse(null);
+        if (Objects.isNull(existing) && Objects.nonNull(messageDTO.getDateTime())) {
+            // Сообщение сохранили до появления message_id — ищем по автору и времени отправки
+            // (у правки date = время отправки исходного сообщения).
+            existing = logRepo.findFirstByChatIdAndUserIdAndDateTime(
+                            chatId, String.valueOf(messageDTO.getUserId()), messageDTO.getDateTime())
+                    .orElse(null);
+        }
         if (Objects.isNull(existing)) {
-            // Сообщение появилось раньше, чем мы начали хранить message_id:
-            // старую версию взять неоткуда, сохраняем хотя бы актуальную.
+            // Старую версию взять неоткуда — сохраняем хотя бы актуальную.
             save(messageDTO);
             return;
+        }
+        if (Objects.isNull(existing.getMessageId())) {
+            // Запоминаем id, чтобы следующая правка находилась по нему.
+            existing.setMessageId(messageDTO.getMessageId());
         }
         LocalDateTime editedAt = Objects.nonNull(messageDTO.getEditDateTime())
                 ? messageDTO.getEditDateTime()
