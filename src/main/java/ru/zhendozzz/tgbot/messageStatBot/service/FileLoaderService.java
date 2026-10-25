@@ -98,6 +98,46 @@ public class FileLoaderService implements NeedProcessMessage {
         return getFiles(String.valueOf(feedbackId));
     }
 
+    /**
+     * Сохраняет один файл в каталог с ключом (например, {@code quest-12}) и возвращает
+     * имя сохранённого файла — его храним в БД и отдаём через {@code /images}.
+     */
+    public String saveSingleFile(MultipartFile file, String key) {
+        try {
+            Path uploadPath = Paths.get(uploadDir, key);
+            Files.createDirectories(uploadPath);
+            String fileName = System.currentTimeMillis() + "_" + safeFileName(file.getOriginalFilename());
+            Files.copy(file.getInputStream(), uploadPath.resolve(fileName));
+            return fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Ошибка при сохранении файла", e);
+        }
+    }
+
+    /** Удаляет файлы каталога с ключом (при замене или удалении вложения). */
+    public void clearFiles(String key) {
+        Path uploadPath = Paths.get(uploadDir, key);
+        try (var walk = Files.walk(uploadPath)) {
+            walk.filter(Files::isRegularFile).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException ignored) {
+                    // файл занят — не критично, останется мусором
+                }
+            });
+        } catch (IOException ignored) {
+            // каталога нет — удалять нечего
+        }
+    }
+
+    /** Имя без каталогов и опасных символов. */
+    private String safeFileName(String originalName) {
+        String name = Objects.toString(originalName, "file");
+        name = name.replace('\\', '_').replace('/', '_');
+        name = name.replaceAll("[^\\p{L}\\p{N}._-]", "_");
+        return name.isEmpty() ? "file" : name;
+    }
+
     /** Файлы из каталога с произвольным ключом (для вложений к комментариям). */
     public List<String> getFiles(String key) {
         Path uploadPath = Paths.get(uploadDir, key);

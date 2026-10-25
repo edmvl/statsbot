@@ -98,6 +98,7 @@ GET /app/... (Telegram WebView или браузер)
 {upload-dir}/ads/{adsId}/...        вложения объявлений
 {upload-dir}/{feedbackId}/...       вложения жалобы
 {upload-dir}/fc-{commentId}/...     вложения комментария жалобы
+{upload-dir}/quest-{checkpointId}/...  картинка/звук к вопросу квеста
 {upload-dir}/avatars/{userId}.jpg   аватарки (скачивает UserService)
 ```
 

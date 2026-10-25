@@ -21,6 +21,7 @@ telegrambots 6.9.7.1 (long polling), немного jQuery в webjars.
 6. Пошаговые чек-листы типовых задач — `references/recipes.md`.
 7. Почему сделано именно так (и что уже отклонено) — `references/decisions.md`.
    Перед спорным изменением сверься: возможно, это уже обсуждали.
+8. Гео-квесты (карта, чекпоинты, прохождение) — `references/quests.md`.
 
 Правила и команды сборки продублированы в `AGENTS.md` (он загружается всегда).
 
@@ -43,7 +44,7 @@ src/main/resources/
   templates/*.html              страницы Mini App
   static/css/theme.css          общие переменные тем Telegram
   static/js/app-back.js         «назад», спиннер, cookie авторизации, раскрытие админ-меню
-  db/migration/                 Flyway (V1 … V16)
+  db/migration/                 Flyway (V1 … V17)
 src/test/java/…                 unit + TemplateRenderTest (рендер всех шаблонов)
 ```
 

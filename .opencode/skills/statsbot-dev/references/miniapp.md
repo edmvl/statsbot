@@ -54,6 +54,9 @@
 | `/app/feedback` | `feedback.html` | форма обращения |
 | `/app/feedback-chat/{id}` | `feedback-chat.html` | **просмотр всем** (в т.ч. без Telegram), действия — автор/админ |
 | `/app/feedback-list`, `/app/bans` | `feedback-list.html`, `bans.html` | админ канала поездок / супер |
+| `/app/quests` | `quests.html` | всем (управление — супер-админ) |
+| `/app/quests/{id}` | `quest.html` | участник (любой авторизованный) |
+| `/app/quests/{id}/edit`, `/app/quests/{id}/results` | `quest-edit.html`, `quest-results.html` | только супер-админ |
 | `/app/error` (`error.html`) | ошибки 403/404/500 | — |
 
 API: `/app/access` (JSON прав для меню), `/api/feedback/users?q=` (поиск пользователя),

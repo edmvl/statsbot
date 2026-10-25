@@ -20,6 +20,9 @@ import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
 import ru.zhendozzz.tgbot.messageStatBot.entity.BannedUser;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
 import ru.zhendozzz.tgbot.messageStatBot.entity.LogEdit;
+import ru.zhendozzz.tgbot.messageStatBot.entity.Quest;
+import ru.zhendozzz.tgbot.messageStatBot.entity.QuestCheckpoint;
+import ru.zhendozzz.tgbot.messageStatBot.dto.QuestProgress;
 import ru.zhendozzz.tgbot.messageStatBot.entity.UserNameHistory;
 import ru.zhendozzz.tgbot.messageStatBot.rest.ChatAdminsController;
 import ru.zhendozzz.tgbot.messageStatBot.rest.ChatSettingsController;
@@ -30,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -236,6 +240,65 @@ class TemplateRenderTest {
         engine.process("error", context);
         context.setVariable("status", null);
         engine.process("error", context);
+    }
+
+    @Test
+    void rendersQuestPages() {
+        TemplateEngine engine = engine();
+        WebContext context = webContext();
+        baseVars(context);
+
+        Quest quest = new Quest();
+        quest.setId(3L);
+        quest.setTitle("Тайны старого парка");
+        quest.setDescription("Гуляем по парку и ищем таблички");
+        quest.setActive(true);
+
+        QuestCheckpoint checkpoint = new QuestCheckpoint();
+        checkpoint.setId(7L);
+        checkpoint.setQuestId(3L);
+        checkpoint.setTitle("Беседка у пруда");
+        checkpoint.setQuestion("Что написано на табличке?");
+        checkpoint.setAnswer("Урмары");
+        checkpoint.setLat(55.751244);
+        checkpoint.setLon(37.618423);
+        checkpoint.setRadiusM(50);
+        checkpoint.setMediaType("image");
+        checkpoint.setMediaFile("123_hint.jpg");
+
+        QuestProgress progress = new QuestProgress(true, false, Set.of(), 0, 1);
+
+        context.setVariable("quests", List.of(quest));
+        context.setVariable("checkpointCounts", Map.of(3L, 1L));
+        context.setVariable("progress", Map.of(3L, progress));
+        context.setVariable("superAdmin", true);
+        context.setVariable("mapsApiKey", "");
+        context.setVariable("quest", quest);
+        context.setVariable("checkpoints", List.of(checkpoint));
+        context.setVariable("mediaDirs", Map.of(7L, "quest-7"));
+        context.setVariable("defaultRadius", 50);
+        context.setVariable("maxRadius", 5000);
+        context.setVariable("participants", List.of());
+        context.setVariable("completed", List.of());
+        context.setVariable("totalStarted", 0);
+        context.setVariable("checkpointCount", 1L);
+
+        String list = engine.process("quests", context);
+        assertThat(list)
+                .contains("Тайны старого парка")
+                .contains("/app/quests/3/edit")
+                .contains("Результаты");
+
+        // На странице квеста в модели лежит прогресс одного участника, а не карта по квестам.
+        context.setVariable("progress", progress);
+        String page = engine.process("quest", context);
+        assertThat(page)
+                .contains("Что написано на табличке?")
+                .contains("/app/quests/3/answer")
+                .contains("quest-7");
+
+        engine.process("quest-edit", context);
+        engine.process("quest-results", context);
     }
 
     @Test

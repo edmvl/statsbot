@@ -51,6 +51,8 @@ docker compose down -v        # снести вместе с данными
 | `feedback` | жалобы (`target_user_id`, `close_reason`, `closed_at`, `finished`) |
 | `feedback_chat` | переписка по жалобе |
 | `banned_user` | баны: `user_id`, `chat_id`, `user_name`, `feedback_id`, `banned_by`, `banned_at` |
+| `quest`, `quest_checkpoint` | гео-квесты: координаты, радиус, вопрос, вложение |
+| `quest_participant`, `quest_pass` | участники квестов и пройденные чекпоинты |
 | `words_filter`, `remind`, `quiz`, `challenge*`, `selected`, `horo`, `prediction` | остальные механики |
 
 ## Соглашения JPA

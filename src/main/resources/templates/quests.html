@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Квесты</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app" defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--page-bg);
+            color: var(--text);
+            padding: 20px 16px 48px;
+            margin: 0 auto;
+            max-width: 640px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .page-header h1 {
+            font-size: 23px;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .quest-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin: 0 0 4px;
+            letter-spacing: -0.2px;
+        }
+
+        .quest-desc {
+            font-size: 14px;
+            color: var(--muted);
+            margin: 0 0 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .chip-active {
+            background: rgba(46, 158, 91, 0.16);
+            color: var(--good);
+        }
+
+        .chip-off {
+            background: rgba(229, 72, 77, 0.14);
+            color: var(--danger);
+        }
+
+        .chip-done {
+            background: rgba(46, 158, 91, 0.16);
+            color: var(--good);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--line);
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: var(--soft);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--on-accent);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(0.94);
+            background: var(--accent);
+        }
+
+        .btn-danger {
+            background: rgba(229, 72, 77, 0.14);
+            border-color: rgba(229, 72, 77, 0.35);
+            color: var(--danger);
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 36px 12px;
+        }
+
+        .error {
+            background: rgba(229, 72, 77, 0.14);
+            border: 1px solid rgba(229, 72, 77, 0.35);
+            border-radius: var(--radius-sm);
+            color: var(--danger);
+            padding: 10px 14px;
+            font-size: 14px;
+            margin-bottom: 14px;
+        }
+
+        .create-card summary {
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            list-style: none;
+        }
+
+        .create-card summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .create-card summary::before {
+            content: "＋ ";
+            color: var(--accent);
+        }
+
+        .create-form {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .progress-line {
+            font-size: 13px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+<header class="page-header">
+    <h1>🧭 Квесты</h1>
+    <span class="count-badge" th:text="${#lists.size(quests)}">0</span>
+</header>
+
+<div class="error" th:if="${questError != null}" th:text="${questError}">Ошибка</div>
+
+<!-- Создание квеста: только супер-админ -->
+<details class="card create-card" th:if="${superAdmin != null and superAdmin}">
+    <summary>Новый квест</summary>
+    <form class="create-form" method="post" th:action="@{/app/quests/new}">
+        <div>
+            <label for="newTitle">Название</label>
+            <input type="text" id="newTitle" name="title" required maxlength="255"
+                   placeholder="Например: Тайны старого парка"/>
+        </div>
+        <div>
+            <label for="newDescription">Описание</label>
+            <textarea id="newDescription" name="description" rows="3"
+                      placeholder="Что нужно сделать, правила, подсказки"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Создать квест</button>
+    </form>
+</details>
+
+<div class="empty" th:if="${#lists.isEmpty(quests)}">
+    <span th:if="${superAdmin != null and superAdmin}">Квестов пока нет — создай первый.</span>
+    <span th:unless="${superAdmin != null and superAdmin}">Активных квестов пока нет.</span>
+</div>
+
+<div class="card" th:each="quest : ${quests}">
+    <h2 class="quest-title" th:text="${quest.title}">Название квеста</h2>
+    <p class="quest-desc" th:if="${quest.description != null and !#strings.isEmpty(quest.description)}"
+       th:text="${quest.description}">Описание</p>
+
+    <div class="chips">
+        <span class="chip" th:text="'📍 ' + ${checkpointCounts[quest.id]} + ' чекпоинтов'">📍 0 чекпоинтов</span>
+        <span class="chip chip-off" th:if="${quest.active == null or !quest.active}">выключен</span>
+        <span class="chip chip-done"
+              th:if="${progress[quest.id] != null and progress[quest.id].joined and progress[quest.id].finished}">
+            ✅ завершён
+        </span>
+        <span class="chip"
+              th:if="${progress[quest.id] != null and progress[quest.id].joined and !progress[quest.id].finished}"
+              th:text="'пройдено ' + ${progress[quest.id].passed} + ' из ' + ${progress[quest.id].total}">пройдено 0 из 0</span>
+    </div>
+
+    <div class="actions">
+        <a class="btn btn-primary" th:href="@{/app/quests/{id}(id=${quest.id})}">Открыть</a>
+        <a class="btn" th:if="${superAdmin != null and superAdmin}"
+           th:href="@{/app/quests/{id}/edit(id=${quest.id})}">Редактировать</a>
+        <a class="btn" th:if="${superAdmin != null and superAdmin}"
+           th:href="@{/app/quests/{id}/results(id=${quest.id})}">Результаты</a>
+    </div>
+</div>
+</body>
+</html>
