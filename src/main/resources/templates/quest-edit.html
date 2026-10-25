@@ -292,7 +292,7 @@
 </section>
 
 <section class="card">
-    <h2 class="card-title">Чекпоинты</h2>
+    <h2 class="card-title">Карта</h2>
 
     <div class="map-fallback" id="mapFallback" hidden>
         Карта не загрузилась. Координаты можно ввести вручную.
@@ -300,30 +300,6 @@
     <div class="map" id="map"></div>
     <p class="hint">Тапните по карте, чтобы подставить координаты нового чекпоинта.
         Радиус появления — расстояние в метрах, внутри которого вопрос открывается.</p>
-
-    <div class="cp" th:each="cp : ${checkpoints}"
-         th:attr="data-checkpoint=${cp.id},data-lat=${cp.lat},data-lon=${cp.lon},data-title=${cp.title}">
-        <div class="cp-head">
-            <span class="cp-title" th:text="${cp.title}">Чекпоинт</span>
-            <span class="cp-meta"
-                  th:text="'📍 ' + ${cp.lat} + ', ' + ${cp.lon} + ' · радиус ' + ${cp.radiusM} + ' м'"></span>
-        </div>
-        <div class="cp-question" th:text="${cp.question}">Вопрос</div>
-        <div class="cp-answer" th:text="'Ответ: ' + ${cp.answer}">Ответ</div>
-        <div class="cp-media" th:if="${cp.mediaFile != null}">
-            <img th:if="${cp.mediaType == 'image'}"
-                 th:src="@{/images(name=${cp.mediaFile}, id=${mediaDirs[cp.id]})}" alt=""/>
-            <audio th:if="${cp.mediaType == 'audio'}" controls
-                   th:src="@{/images(name=${cp.mediaFile}, id=${mediaDirs[cp.id]})}"></audio>
-        </div>
-        <form method="post"
-              th:action="@{/app/quests/{id}/checkpoints/{cp}/delete(id=${quest.id}, cp=${cp.id})}"
-              onsubmit="return confirm('Удалить чекпоинт?');">
-            <button type="submit" class="btn btn-danger">Удалить</button>
-        </form>
-    </div>
-
-    <p class="empty" th:if="${#lists.isEmpty(checkpoints)}">Чекпоинтов пока нет — добавьте первый ниже.</p>
 </section>
 
 <section class="card">
@@ -365,6 +341,34 @@
         </div>
         <button type="submit" class="btn btn-primary">Добавить чекпоинт</button>
     </form>
+</section>
+
+<section class="card">
+    <h2 class="card-title">Чекпоинты</h2>
+
+    <div class="cp" th:each="cp : ${checkpoints}"
+         th:attr="data-checkpoint=${cp.id},data-lat=${cp.lat},data-lon=${cp.lon},data-title=${cp.title}">
+        <div class="cp-head">
+            <span class="cp-title" th:text="${cp.title}">Чекпоинт</span>
+            <span class="cp-meta"
+                  th:text="'📍 ' + ${cp.lat} + ', ' + ${cp.lon} + ' · радиус ' + ${cp.radiusM} + ' м'"></span>
+        </div>
+        <div class="cp-question" th:text="${cp.question}">Вопрос</div>
+        <div class="cp-answer" th:text="'Ответ: ' + ${cp.answer}">Ответ</div>
+        <div class="cp-media" th:if="${cp.mediaFile != null}">
+            <img th:if="${cp.mediaType == 'image'}"
+                 th:src="@{/images(name=${cp.mediaFile}, id=${mediaDirs[cp.id]})}" alt=""/>
+            <audio th:if="${cp.mediaType == 'audio'}" controls
+                   th:src="@{/images(name=${cp.mediaFile}, id=${mediaDirs[cp.id]})}"></audio>
+        </div>
+        <form method="post"
+              th:action="@{/app/quests/{id}/checkpoints/{cp}/delete(id=${quest.id}, cp=${cp.id})}"
+              onsubmit="return confirm('Удалить чекпоинт?');">
+            <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+    </div>
+
+    <p class="empty" th:if="${#lists.isEmpty(checkpoints)}">Чекпоинтов пока нет — добавьте первый в форме выше.</p>
 </section>
 
 <script th:src="@{/vendor/leaflet/leaflet.js}"></script>
