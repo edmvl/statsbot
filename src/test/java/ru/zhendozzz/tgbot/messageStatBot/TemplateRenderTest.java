@@ -272,7 +272,6 @@ class TemplateRenderTest {
         context.setVariable("checkpointCounts", Map.of(3L, 1L));
         context.setVariable("progress", Map.of(3L, progress));
         context.setVariable("superAdmin", true);
-        context.setVariable("mapsApiKey", "");
         context.setVariable("quest", quest);
         context.setVariable("checkpoints", List.of(checkpoint));
         context.setVariable("mediaDirs", Map.of(7L, "quest-7"));

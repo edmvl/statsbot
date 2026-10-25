@@ -5,6 +5,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <link rel="stylesheet" th:href="@{/vendor/leaflet/leaflet.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=12)}" data-back="/app/quests" defer></script>
     <style>
@@ -144,6 +145,17 @@
             border: 1px solid var(--line);
             background: var(--soft);
             margin-bottom: 10px;
+            z-index: 0;
+        }
+
+        /* Точка чекпоинта: цветной кружок вместо стандартной иконки Leaflet. */
+        .quest-pin span {
+            display: block;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid #ffffff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
         }
 
         .map-fallback {
@@ -267,11 +279,9 @@
     <h2 class="card-title">Чекпоинты</h2>
 
     <div class="map-fallback" id="mapFallback" hidden>
-        Карта недоступна: не задан ключ Яндекс.Карт (<code>yandex.maps.api-key</code>).
-        Координаты можно ввести вручную.
+        Карта не загрузилась. Координаты можно ввести вручную.
     </div>
-    <div class="map" id="map"
-         th:attr="data-key=${mapsApiKey}"></div>
+    <div class="map" id="map"></div>
     <p class="hint">Тапните по карте, чтобы подставить координаты нового чекпоинта.
         Радиус появления — расстояние в метрах, внутри которого вопрос открывается.</p>
 
@@ -341,8 +351,7 @@
     </form>
 </section>
 
-<script th:if="${mapsApiKey != null and !#strings.isEmpty(mapsApiKey)}"
-        th:src="@{https://api-maps.yandex.ru/2.1/(apikey=${mapsApiKey},lang=ru_RU)}"></script>
+<script th:src="@{/vendor/leaflet/leaflet.js}"></script>
 <script>
     (function () {
         var mapEl = document.getElementById('map');
@@ -350,51 +359,53 @@
         if (!mapEl) {
             return;
         }
-        var key = mapEl.getAttribute('data-key');
-        if (!key || !window.ymaps) {
+        if (!window.L) {
             mapEl.hidden = true;
             if (fallback) {
                 fallback.hidden = false;
             }
             return;
         }
-        ymaps.ready(function () {
-            var latInput = document.getElementById('lat');
-            var lonInput = document.getElementById('lon');
-            var points = [];
-            document.querySelectorAll('[data-checkpoint]').forEach(function (el) {
-                points.push({
-                    lat: parseFloat(el.getAttribute('data-lat')),
-                    lon: parseFloat(el.getAttribute('data-lon')),
-                    title: el.getAttribute('data-title') || 'Чекпоинт'
-                });
-            });
+        var latInput = document.getElementById('lat');
+        var lonInput = document.getElementById('lon');
 
-            var center = points.length ? [points[0].lat, points[0].lon] : [55.751244, 37.618423];
-            var map = new ymaps.Map('map', {
-                center: center,
-                zoom: points.length ? 14 : 4,
-                controls: ['zoomControl', 'geolocationControl']
+        var points = [];
+        document.querySelectorAll('[data-checkpoint]').forEach(function (el) {
+            points.push({
+                lat: parseFloat(el.getAttribute('data-lat')),
+                lon: parseFloat(el.getAttribute('data-lon')),
+                title: el.getAttribute('data-title') || 'Чекпоинт'
             });
-            points.forEach(function (point) {
-                map.geoObjects.add(new ymaps.Placemark(
-                    [point.lat, point.lon],
-                    {hintContent: point.title},
-                    {preset: 'islands#blueDotIcon'}));
-            });
+        });
 
-            var pick = null;
-            map.events.add('click', function (event) {
-                var coords = event.get('coords');
-                latInput.value = coords[0].toFixed(6);
-                lonInput.value = coords[1].toFixed(6);
-                if (pick) {
-                    map.geoObjects.remove(pick);
-                }
-                pick = new ymaps.Placemark(coords, {hintContent: 'Новый чекпоинт'},
-                    {preset: 'islands#redDotIcon'});
-                map.geoObjects.add(pick);
+        var center = points.length ? [points[0].lat, points[0].lon] : [55.751244, 37.618423];
+        var map = L.map(mapEl).setView(center, points.length ? 14 : 4);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        function pinIcon(color) {
+            return L.divIcon({
+                className: 'quest-pin',
+                html: '<span style="background:' + color + '"></span>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
             });
+        }
+
+        points.forEach(function (point) {
+            L.marker([point.lat, point.lon], {icon: pinIcon('#2481cc'), title: point.title}).addTo(map);
+        });
+
+        var pick = null;
+        map.on('click', function (event) {
+            latInput.value = event.latlng.lat.toFixed(6);
+            lonInput.value = event.latlng.lng.toFixed(6);
+            if (pick) {
+                map.removeLayer(pick);
+            }
+            pick = L.marker(event.latlng, {icon: pinIcon('#e5484d')}).addTo(map);
         });
     })();
 </script>

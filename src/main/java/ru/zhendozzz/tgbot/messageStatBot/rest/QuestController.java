@@ -1,6 +1,5 @@
 package ru.zhendozzz.tgbot.messageStatBot.rest;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,10 +39,6 @@ public class QuestController {
     private final QuestService questService;
     private final CurrentUserService currentUserService;
     private final AdminAuthGuard adminAuthGuard;
-
-    /** Ключ JavaScript API Яндекс.Карт; пусто — карта не показывается. */
-    @Value("${yandex.maps.api-key:}")
-    private String mapsApiKey;
 
     public QuestController(
             QuestService questService,
@@ -102,7 +97,6 @@ public class QuestController {
         model.addAttribute("checkpoints", checkpoints);
         model.addAttribute("progress", questService.progress(questId, userId));
         model.addAttribute("superAdmin", superAdmin);
-        model.addAttribute("mapsApiKey", mapsApiKey);
         model.addAttribute("mediaDirs", checkpoints.stream()
                 .collect(Collectors.toMap(QuestCheckpoint::getId, cp -> QuestService.mediaDir(cp.getId()))));
         return "quest";
@@ -168,7 +162,6 @@ public class QuestController {
         model.addAttribute("quest", quest);
         List<QuestCheckpoint> checkpoints = questService.findCheckpoints(questId);
         model.addAttribute("checkpoints", checkpoints);
-        model.addAttribute("mapsApiKey", mapsApiKey);
         model.addAttribute("defaultRadius", QuestService.DEFAULT_RADIUS_M);
         model.addAttribute("maxRadius", QuestService.MAX_RADIUS_M);
         model.addAttribute("mediaDirs", checkpoints.stream()

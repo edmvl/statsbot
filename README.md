@@ -54,8 +54,7 @@ ExecStart=/usr/bin/java -jar /home/edmvl/messageStatBot.jar
 
 ### Переменные окружения (альтернатива файлам)
 
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`,
-`YANDEX_MAPS_API_KEY` (карта в квестах; можно не задавать).
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 Имеют приоритет над файлами.
 
 Если профильный файл не найден, берутся запасные значения из

@@ -5,6 +5,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <link rel="stylesheet" th:href="@{/vendor/leaflet/leaflet.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=12)}" data-back="/app/quests" defer></script>
     <style>
@@ -123,6 +124,17 @@
             border: 1px solid var(--line);
             background: var(--soft);
             margin-bottom: 10px;
+            z-index: 0;
+        }
+
+        /* Точка чекпоинта: цветной кружок вместо стандартной иконки Leaflet. */
+        .quest-pin span {
+            display: block;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid #ffffff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
         }
 
         .map-fallback {
@@ -311,9 +323,9 @@
 
 <section class="card">
     <div class="map-fallback" id="mapFallback" hidden>
-        Карта недоступна: не задан ключ Яндекс.Карт.
+        Карта не загрузилась — проверьте соединение с интернетом.
     </div>
-    <div class="map" id="map" th:attr="data-key=${mapsApiKey}"></div>
+    <div class="map" id="map"></div>
 
     <div class="geo-line">
         <button type="button" class="btn" id="geoBtn">📍 Обновить геопозицию</button>
@@ -367,8 +379,7 @@
     <p class="empty" th:if="${#lists.isEmpty(checkpoints)}">В квесте пока нет чекпоинтов.</p>
 </section>
 
-<script th:if="${mapsApiKey != null and !#strings.isEmpty(mapsApiKey)}"
-        th:src="@{https://api-maps.yandex.ru/2.1/(apikey=${mapsApiKey},lang=ru_RU)}"></script>
+<script th:src="@{/vendor/leaflet/leaflet.js}"></script>
 <script>
     (function () {
         var mapEl = document.getElementById('map');
@@ -387,23 +398,31 @@
         });
 
         var map = null;
-        var userPlacemark = null;
-        var key = mapEl ? mapEl.getAttribute('data-key') : null;
-        if (mapEl && key && window.ymaps) {
-            ymaps.ready(function () {
-                var center = checkpoints.length ? [checkpoints[0].lat, checkpoints[0].lon] : [55.751244, 37.618423];
-                map = new ymaps.Map('map', {
-                    center: center,
-                    zoom: checkpoints.length ? 15 : 4,
-                    controls: ['zoomControl', 'geolocationControl']
-                });
-                checkpoints.forEach(function (cp) {
-                    map.geoObjects.add(new ymaps.Circle(
-                        [[cp.lat, cp.lon], cp.radius], {},
-                        {fillColor: '#2481cc22', strokeColor: '#2481cc', strokeWidth: 1, strokeOpacity: 0.6}));
-                    map.geoObjects.add(new ymaps.Placemark(
-                        [cp.lat, cp.lon], {hintContent: 'Чекпоинт'}, {preset: 'islands#blueDotIcon'}));
-                });
+        var userMarker = null;
+        if (mapEl && window.L) {
+            var center = checkpoints.length ? [checkpoints[0].lat, checkpoints[0].lon] : [55.751244, 37.618423];
+            map = L.map(mapEl).setView(center, checkpoints.length ? 15 : 4);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+            checkpoints.forEach(function (cp) {
+                L.circle([cp.lat, cp.lon], {
+                    radius: cp.radius,
+                    color: '#2481cc',
+                    weight: 1,
+                    fillColor: '#2481cc',
+                    fillOpacity: 0.15
+                }).addTo(map);
+                L.marker([cp.lat, cp.lon], {
+                    icon: L.divIcon({
+                        className: 'quest-pin',
+                        html: '<span style="background:#2481cc"></span>',
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    }),
+                    title: 'Чекпоинт'
+                }).addTo(map);
             });
         } else if (mapEl) {
             mapEl.hidden = true;
@@ -456,13 +475,18 @@
             });
 
             if (map) {
-                if (userPlacemark) {
-                    map.geoObjects.remove(userPlacemark);
+                if (userMarker) {
+                    userMarker.setLatLng([lat, lon]);
+                } else {
+                    userMarker = L.circleMarker([lat, lon], {
+                        radius: 8,
+                        color: '#ffffff',
+                        weight: 2,
+                        fillColor: '#e5484d',
+                        fillOpacity: 1
+                    }).addTo(map);
                 }
-                userPlacemark = new ymaps.Placemark([lat, lon], {hintContent: 'Вы здесь'},
-                    {preset: 'islands#redDotIcon'});
-                map.geoObjects.add(userPlacemark);
-                map.setCenter([lat, lon], 15, {duration: 300});
+                map.setView([lat, lon], Math.max(map.getZoom(), 15));
             }
         }
 
