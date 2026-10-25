@@ -127,6 +127,22 @@
             z-index: 0;
         }
 
+        /*
+         * Атрибуция карты остаётся в DOM (требование лицензии OSM), но визуально
+         * скрыта: элемент не занимает места и не мешает на карте.
+         */
+        .leaflet-control-attribution {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            margin: -1px !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            clip: rect(0 0 0 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+
         /* Точка чекпоинта: цветной кружок вместо стандартной иконки Leaflet. */
         .quest-pin span {
             display: block;
