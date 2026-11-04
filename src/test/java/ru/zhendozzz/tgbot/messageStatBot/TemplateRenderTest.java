@@ -328,6 +328,7 @@ class TemplateRenderTest {
         when(trip.getTripFrom()).thenReturn("Чебоксары");
         when(trip.getTripTo()).thenReturn("Урмары");
         when(trip.getTripSeats()).thenReturn(3);
+        when(trip.getTripSeekingCar()).thenReturn(false);
         when(trip.getMessageId()).thenReturn(55);
         when(trip.getTripTime()).thenReturn(LocalDateTime.of(2026, 10, 23, 8, 30));
         when(trip.getLogId()).thenReturn(9L);

@@ -46,9 +46,24 @@ public class TripMessageParser {
                     + "сентября|октября|ноября|декабря)");
 
     private static final Pattern SEATS = Pattern.compile(
-            "(\\d{1,2})\\s*(?:свободн\\p{L}*\\s*)?(?:мест\\p{L}*|пассажир\\p{L}*)");
+            "(\\d{1,2})\\s*(?:свободн\\p{L}*\\s*)?"
+                    + "(?:мест\\p{L}*|пассажир\\p{L}*|попутчик\\p{L}*|человек\\p{L}*|чел\\p{L}*\\.?)");
+    private static final Pattern SEATS_BEFORE_WORD = Pattern.compile(
+            "(?:мест\\p{L}*|пассажир\\p{L}*|попутчик\\p{L}*|человек\\p{L}*)\\s*[:=]?\\s*(\\d{1,2})");
     private static final Pattern SEATS_AFTER_WORD = Pattern.compile(
             "(?:свободн\\p{L}*|свободно|осталось)\\s*(\\d{1,2})\\s*(?:мест\\p{L}*)?");
+    private static final Pattern SEATS_WITH_FREE = Pattern.compile(
+            "(\\d{1,2})\\s+свободн\\p{L}*");
+    private static final Pattern SEATS_ACTION = Pattern.compile(
+            "(?:возьму|беру|подвезу|заберу)\\s+(\\d{1,2})");
+    private static final Pattern SEATS_WORD = Pattern.compile(
+            "(один|одно|два|две|три|четыре|пять|шесть|семь|восемь|девять)\\s+"
+                    + "(?:свободн\\p{L}*\\s*)?(?:мест\\p{L}*|пассажир\\p{L}*|попутчик\\p{L}*|человек\\p{L}*)");
+    private static final Map<String, Integer> WORD_SEATS = Map.ofEntries(
+            Map.entry("один", 1), Map.entry("одно", 1), Map.entry("два", 2),
+            Map.entry("две", 2), Map.entry("три", 3), Map.entry("четыре", 4),
+            Map.entry("пять", 5), Map.entry("шесть", 6), Map.entry("семь", 7),
+            Map.entry("восемь", 8), Map.entry("девять", 9));
 
     /** Фразы «ищу машину», а не «ищу попутчиков» (последнее — водитель с местами). */
     private static final List<String> SEEKING_CAR_PHRASES = List.of(
@@ -87,7 +102,7 @@ public class TripMessageParser {
         String value = text.toLowerCase(Locale.ROOT).replace('ё', 'е');
         String[] points = detectPoints(value);
         boolean seekingCar = isSeekingCar(value);
-        Integer seats = seekingCar ? null : parseSeats(value);
+        Integer seats = parseSeats(value);
         LocalTime time = parseTime(value);
         if (time == null) {
             return new TripMessageInfo(points[0], points[1], null, seekingCar, seats);
@@ -142,9 +157,26 @@ public class TripMessageParser {
     private Integer parseSeats(String text) {
         Integer seats = firstSeats(SEATS, text);
         if (seats == null) {
+            seats = firstSeats(SEATS_BEFORE_WORD, text);
+        }
+        if (seats == null) {
             seats = firstSeats(SEATS_AFTER_WORD, text);
         }
-        return seats;
+        if (seats == null) {
+            seats = firstSeats(SEATS_WITH_FREE, text);
+        }
+        if (seats == null) {
+            seats = firstSeats(SEATS_ACTION, text);
+        }
+        return seats == null ? firstWordSeats(text) : seats;
+    }
+
+    private Integer firstWordSeats(String text) {
+        Matcher matcher = SEATS_WORD.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+        return WORD_SEATS.get(matcher.group(1));
     }
 
     private Integer firstSeats(Pattern pattern, String text) {

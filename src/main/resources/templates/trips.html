@@ -915,7 +915,9 @@
                 <span class="chip trip-time-badge" th:if="${trip.tripTime != null}"
                       th:text="'🕒 ' + ${#temporals.format(trip.tripTime, 'd MMMM, HH:mm', ruLocale)}">🕒 22 октября, 18:30</span>
                 <span class="chip" th:if="${trip.tripSeats != null}"
-                      th:text="'👥 Свободно: ' + ${trip.tripSeats}">👥 Свободно: 3</span>
+                      th:text="${(trip.tripSeekingCar != null and trip.tripSeekingCar)
+                               ? '👥 Требуется мест: ' + trip.tripSeats
+                               : '👥 Свободно: ' + trip.tripSeats}">👥 Свободно: 3</span>
             </div>
             <div class="trip-meta-bottom">
                 <span class="date-text"

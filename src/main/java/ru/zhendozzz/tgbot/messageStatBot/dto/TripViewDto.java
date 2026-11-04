@@ -25,8 +25,10 @@ public interface TripViewDto {
     String getTripTo();
     /** Распознанное время поездки или {@code null}. */
     LocalDateTime getTripTime();
-    /** Количество свободных мест или {@code null}. */
+    /** Количество свободных или требуемых мест или {@code null}. */
     Integer getTripSeats();
+    /** Автор ищет машину (тогда места — требуемые, а не свободные). */
+    Boolean getTripSeekingCar();
     /** id сообщения в Telegram (для ссылки на сообщение). */
     Integer getMessageId();
 }

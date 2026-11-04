@@ -156,11 +156,32 @@ class TripMessageParserTest {
     }
 
     @Test
-    void doesNotCountPassengerRequestAsFreeSeats() {
+    void parsesSeatsForPassengerRequest() {
         TripMessageInfo info = parser.parse("Ищу машину, нужно 3 места, Урмары → Чебоксары", sentAt);
 
         assertThat(info.seekingCar()).isTrue();
-        assertThat(info.seats()).isNull();
+        assertThat(info.seats()).isEqualTo(3);
+    }
+
+    @Test
+    void parsesSeatsAfterPlaceWord() {
+        TripMessageInfo info = parser.parse("Чебоксары → Урмары в 18:00, мест: 4", sentAt);
+
+        assertThat(info.seats()).isEqualTo(4);
+    }
+
+    @Test
+    void parsesWordSeats() {
+        TripMessageInfo info = parser.parse("Урмары → Чебоксары в 7:30, три места", sentAt);
+
+        assertThat(info.seats()).isEqualTo(3);
+    }
+
+    @Test
+    void parsesSeatsAfterAction() {
+        TripMessageInfo info = parser.parse("Чебоксары → Урмары в 18:00, возьму 3", sentAt);
+
+        assertThat(info.seats()).isEqualTo(3);
     }
 
     @Test
