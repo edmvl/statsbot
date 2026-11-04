@@ -243,6 +243,61 @@ class AdsServiceTest {
     }
 
     @Test
+    void publishesProposalWithoutPayment() {
+        Ads ad = proposal(12L, AdStatus.PENDING);
+        ad.setDays(2);
+        when(adsRepository.findById(12L)).thenReturn(Optional.of(ad));
+        when(adsRepository.save(any(Ads.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(adsFileRepository.findByAdsIdOrderByIdAsc(12L)).thenReturn(List.of());
+        when(messageExecutor.sendMessageWithoutPreview("-700", "Реклама")).thenReturn(77);
+
+        Ads saved = adsService.publishProposalWithoutPayment(12L);
+
+        assertThat(saved.getStatus()).isEqualTo(AdStatus.ACTIVE);
+        assertThat(saved.getStarsPaid()).isZero();
+        assertThat(saved.getPaymentChargeId()).isNull();
+        assertThat(saved.getDateStart()).isNotNull();
+        assertThat(saved.getDateEnd()).isAfter(LocalDateTime.now().plusDays(1));
+        assertThat(saved.getLastMessage()).isEqualTo("77");
+        verify(messageExecutor).sendMessageWithoutPreview("-700", "Реклама");
+        verify(messageExecutor).sendMessage(any());
+    }
+
+    @Test
+    void publishesApprovedProposalWithoutPayment() {
+        Ads ad = proposal(13L, AdStatus.APPROVED);
+        when(adsRepository.findById(13L)).thenReturn(Optional.of(ad));
+        when(adsRepository.save(any(Ads.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(adsFileRepository.findByAdsIdOrderByIdAsc(13L)).thenReturn(List.of());
+        when(messageExecutor.sendMessageWithoutPreview("-700", "Реклама")).thenReturn(78);
+
+        Ads saved = adsService.publishProposalWithoutPayment(13L);
+
+        assertThat(saved.getStatus()).isEqualTo(AdStatus.ACTIVE);
+        assertThat(saved.getLastMessage()).isEqualTo("78");
+    }
+
+    @Test
+    void publishWithoutPaymentRejectsActiveOrRejectedProposal() {
+        Ads active = proposal(14L, AdStatus.ACTIVE);
+        when(adsRepository.findById(14L)).thenReturn(Optional.of(active));
+
+        assertThatThrownBy(() -> adsService.publishProposalWithoutPayment(14L))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void publishWithoutPaymentRejectsChatWithAdsDisabled() {
+        Ads ad = proposal(15L, AdStatus.PENDING);
+        when(adsRepository.findById(15L)).thenReturn(Optional.of(ad));
+        when(settingsService.isEnabled("-700", ChatSettingConstants.ENABLE_ADS)).thenReturn(false);
+
+        assertThatThrownBy(() -> adsService.publishProposalWithoutPayment(15L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("отключ");
+    }
+
+    @Test
     void priceIsPerDay() {
         Ads ad = proposal(4L, AdStatus.PENDING);
         ad.setDays(5);

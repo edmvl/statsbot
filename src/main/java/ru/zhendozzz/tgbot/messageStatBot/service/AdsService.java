@@ -325,6 +325,35 @@ public class AdsService {
         return saved;
     }
 
+    /**
+     * Публикует предложение без оплаты: супер-админ может взять заявку в публикацию
+     * сразу, не дожидаясь оплаты звёздами и без неё.
+     */
+    public Ads publishProposalWithoutPayment(Long id) {
+        Ads ad = getAdById(id);
+        if (!AdStatus.PENDING.equals(ad.getStatus()) && !AdStatus.APPROVED.equals(ad.getStatus())) {
+            throw new IllegalStateException("Предложение уже опубликовано или отклонено");
+        }
+        if (!adsEnabled(ad.getChatId())) {
+            throw new IllegalStateException("В чате отключён показ рекламы");
+        }
+        int days = Objects.isNull(ad.getDays()) ? 1 : ad.getDays();
+        LocalDateTime now = LocalDateTime.now();
+        ad.setStatus(AdStatus.ACTIVE);
+        ad.setStarsPaid(0);
+        ad.setPaymentChargeId(null);
+        ad.setDateStart(now);
+        ad.setDateEnd(now.plusDays(days));
+        Ads saved = adsRepository.save(ad);
+
+        deleteLastMessages(saved);
+        publish(saved);
+        fillFiles(saved);
+        notifyProposer(saved, "Ваше предложение рекламы опубликовано без оплаты на "
+                + days + " дн.");
+        return saved;
+    }
+
     public Ads rejectProposal(Long id) {
         Ads ad = getAdById(id);
         if (!AdStatus.PENDING.equals(ad.getStatus())) {

@@ -136,6 +136,10 @@
             font-size: 12px;
         }
 
+        .free-publish-btn {
+            background: var(--good, #2e9e5b);
+        }
+
         .ads-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -210,6 +214,7 @@
 
         .ad-card .actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             margin-top: 12px;
             padding-top: 12px;
@@ -217,7 +222,7 @@
         }
 
         .ad-card .actions .btn {
-            flex: 1;
+            flex: 1 1 140px;
             justify-content: center;
             font-size: 12px;
         }
@@ -735,13 +740,17 @@
                 const statusLine = status !== 'ACTIVE'
                     ? `<div class="status-line status-${status}">${statusLabel(status)}</div>`
                     : '';
+                const priceText = ad.starsPaid === 0 ? 'бесплатно' : priceOf(ad) + ' ⭐';
                 const proposalMeta = ad.userId
-                    ? `<div class="period"><i class="fas fa-user"></i> <a class="user-link" href="/app/reviews/${encodeURIComponent(ad.userId)}">${escapeHtml(ad.userId)}</a> · ${ad.days || 0} дн. · ${priceOf(ad)} ⭐</div>`
+                    ? `<div class="period"><i class="fas fa-user"></i> <a class="user-link" href="/app/reviews/${encodeURIComponent(ad.userId)}">${escapeHtml(ad.userId)}</a> · ${ad.days || 0} дн. · ${priceText}</div>`
                     : '';
                 const actions = status === 'PENDING'
                     ? `<div class="actions">
                             <button class="btn btn-sm approve-btn" data-id="${ad.id}">
                                 <i class="fas fa-check"></i> Одобрить
+                            </button>
+                            <button class="btn btn-sm free-publish-btn" data-id="${ad.id}">
+                                <i class="fas fa-bolt"></i> Опубликовать без оплаты
                             </button>
                             <button class="btn btn-sm btn-danger reject-btn" data-id="${ad.id}">
                                 <i class="fas fa-times"></i> Отклонить
@@ -751,6 +760,10 @@
                             ${status === 'ACTIVE' ? `
                             <button class="btn btn-sm edit-btn" data-id="${ad.id}">
                                 <i class="fas fa-edit"></i> Редактировать
+                            </button>` : ''}
+                            ${status === 'APPROVED' ? `
+                            <button class="btn btn-sm free-publish-btn" data-id="${ad.id}">
+                                <i class="fas fa-bolt"></i> Опубликовать без оплаты
                             </button>` : ''}
                             <button class="btn btn-sm btn-danger delete-btn" data-id="${ad.id}">
                                 <i class="fas fa-trash"></i> Удалить
@@ -1065,12 +1078,17 @@
 
         // Модерация предложений рекламы
         function moderate(id, action) {
+            const messages = {
+                'approve': 'Предложение одобрено',
+                'reject': 'Предложение отклонено',
+                'publish-free': 'Опубликовано без оплаты'
+            };
             $.ajax({
                 url: `/api/ads/proposals/${id}/${action}`,
                 method: 'POST',
                 success: function() {
                     loadAds();
-                    showToast(action === 'approve' ? 'Предложение одобрено' : 'Предложение отклонено', 'success');
+                    showToast(messages[action] || 'Готово', 'success');
                 },
                 error: function(xhr) {
                     showToast(xhr.responseJSON?.message || 'Ошибка при обработке', 'error');
@@ -1081,6 +1099,12 @@
         $(document).on('click', '.approve-btn', function() {
             if (confirm('Одобрить предложение? После оплаты звёздами оно будет опубликовано.')) {
                 moderate($(this).data('id'), 'approve');
+            }
+        });
+
+        $(document).on('click', '.free-publish-btn', function() {
+            if (confirm('Опубликовать предложение без оплаты?')) {
+                moderate($(this).data('id'), 'publish-free');
             }
         });
 

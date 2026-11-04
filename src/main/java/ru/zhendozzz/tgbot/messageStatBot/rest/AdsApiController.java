@@ -70,6 +70,18 @@ public class AdsApiController {
         }
     }
 
+    /** Публикация предложения без оплаты звёздами (решение супер-админа). */
+    @PostMapping("/proposals/{id}/publish-free")
+    public ResponseEntity<?> publishProposalWithoutPayment(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(adsService.publishProposalWithoutPayment(id));
+        } catch (IllegalStateException e) {
+            return badRequest(e.getMessage());
+        } catch (RuntimeException e) {
+            return notFound();
+        }
+    }
+
     @PostMapping
     public ResponseEntity<?> createAd(@RequestBody Ads ad) {
         try {
