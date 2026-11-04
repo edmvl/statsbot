@@ -289,7 +289,7 @@
 
 <div class="hint" th:if="${#strings.isEmpty(currentUserId)}">
     Откройте страницу через Telegram — тогда мы покажем ваши подписки.
-    Подписаться и отписаться также можно на странице «Отзывы и рейтинги»,
+    Подписаться и отписаться также можно на странице «Поездки»,
     переключателем «Подписаться».
 </div>
 
@@ -312,7 +312,7 @@
 
 <div class="empty" th:if="${!#strings.isEmpty(currentUserId) and #lists.isEmpty(subscriptions)}">
     Вы пока ни на кого не подписаны. Найдите пользователя выше и добавьте подписку
-    или подпишитесь на странице «Отзывы и рейтинги».
+    или подпишитесь на странице «Поездки».
 </div>
 
 <form method="post" th:action="@{/app/my-subscriptions}" class="row" th:each="sub : ${subscriptions}">

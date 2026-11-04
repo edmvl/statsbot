@@ -20,4 +20,10 @@ public interface ChatMessageDto {
     LocalDateTime getEditedAt();
     /** Сообщение удалено ботом. */
     Boolean getDeleted();
+    /** Распознанное направление поездки (только для канала попутчиков). */
+    String getTripDirection();
+    /** Человекочитаемое направление для бейджа. */
+    String getTripDirectionLabel();
+    /** Распознанное время поездки. */
+    LocalDateTime getTripTime();
 }

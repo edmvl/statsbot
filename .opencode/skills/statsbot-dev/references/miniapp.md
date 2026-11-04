@@ -47,7 +47,7 @@
 | `/app/chat/{chatId}` | `chat.html` | админ чата / супер |
 | `/app/chat-settings/{chatId}` | `chat-settings.html` | админ чата / супер |
 | `/app/chat-admins/{chatId}` | `chat-admins.html` | админ чата / супер |
-| `/app/trips` | `trips.html` («Отзывы о поездках») | всем |
+| `/app/trips` | `trips.html` («Поездки», вкладки направлений) | всем |
 | `/app/reviews/{userId}` | `driver-reviews.html` | всем |
 | `/app/subscriptions`, `/app/my-subscriptions` | `subscriptions.html`, `my-subscriptions.html` | супер / свои подписки |
 | `/app/ads`, `/app/ad-proposal` | `ads.html`, `ad-proposal.html` | супер / предложение рекламы |

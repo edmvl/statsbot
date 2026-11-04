@@ -5,6 +5,7 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.ChatMessageDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ChatViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.FileDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
+import ru.zhendozzz.tgbot.messageStatBot.dto.TripMessageInfo;
 import ru.zhendozzz.tgbot.messageStatBot.entity.Log;
 import ru.zhendozzz.tgbot.messageStatBot.entity.LogEdit;
 import ru.zhendozzz.tgbot.messageStatBot.repo.LogEditRepo;
@@ -25,16 +26,33 @@ import java.util.logging.Level;
 @lombok.extern.java.Log
 public class LogService implements NeedProcessMessage {
 
+    /** Как часто перечитывать id канала поездок (чтобы не ходить в БД на каждое сообщение). */
+    private static final long TRIP_CHAT_CACHE_MS = 60_000;
+
     private final LogRepo logRepo;
     private final LogEditRepo logEditRepo;
+    private final SettingsService settingsService;
+    private final TripMessageParser tripMessageParser;
 
-    public LogService(LogRepo logRepo, LogEditRepo logEditRepo) {
+    private volatile boolean tripChatLoaded;
+    private volatile long tripChatLoadedAt;
+    private volatile String cachedTripChatId;
+
+    public LogService(LogRepo logRepo, LogEditRepo logEditRepo,
+                      SettingsService settingsService, TripMessageParser tripMessageParser) {
         this.logRepo = logRepo;
         this.logEditRepo = logEditRepo;
+        this.settingsService = settingsService;
+        this.tripMessageParser = tripMessageParser;
     }
 
-    public List<ChatMessageDto> findByChatId(String chatId, int page, int size) {
-        return logRepo.getMessagesByChatId(chatId, PageRequest.of(page, size)).getContent();
+    public List<ChatMessageDto> findByChatId(String chatId, int page, int size, String direction) {
+        return logRepo.getMessagesByChatId(chatId, blankToEmpty(direction), LocalDateTime.now(),
+                PageRequest.of(page, size)).getContent();
+    }
+
+    private String blankToEmpty(String value) {
+        return Objects.isNull(value) ? "" : value.trim();
     }
 
     public String findChatName(String chatId) {
@@ -132,6 +150,38 @@ public class LogService implements NeedProcessMessage {
             log.setFileType(file.getFileType().getFileType());
             log.setFile(file.getFileId());
         }
+        applyTripRecognition(log, messageDTO);
+    }
+
+    /**
+     * Распознаём направление и время только для сообщений канала поездок.
+     * Id канала кешируется на минуту, чтобы не делать запрос к настройкам на каждое сообщение.
+     */
+    private void applyTripRecognition(Log log, MessageDTO messageDTO) {
+        String tripChatId = tripChatId();
+        if (messageDTO.isServiceMessage() || tripChatId == null
+                || !tripChatId.equals(String.valueOf(messageDTO.getChatId()))) {
+            log.setTripDirection(null);
+            log.setTripTime(null);
+            return;
+        }
+        TripMessageInfo info = tripMessageParser.parse(messageDTO.getUserText(), messageDTO.getDateTime());
+        log.setTripDirection(Objects.isNull(info.direction()) ? null : info.direction().name());
+        log.setTripTime(info.tripTime());
+    }
+
+    private String tripChatId() {
+        long now = System.currentTimeMillis();
+        if (!tripChatLoaded || now - tripChatLoadedAt >= TRIP_CHAT_CACHE_MS) {
+            synchronized (this) {
+                if (!tripChatLoaded || now - tripChatLoadedAt >= TRIP_CHAT_CACHE_MS) {
+                    cachedTripChatId = settingsService.findTripChannelId();
+                    tripChatLoadedAt = now;
+                    tripChatLoaded = true;
+                }
+            }
+        }
+        return cachedTripChatId;
     }
 
     @Override

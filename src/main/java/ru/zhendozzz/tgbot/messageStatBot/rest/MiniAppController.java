@@ -25,6 +25,7 @@ import ru.zhendozzz.tgbot.messageStatBot.service.TripService;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.AdStatus;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
+import ru.zhendozzz.tgbot.messageStatBot.util.enums.TripDirection;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -143,11 +144,15 @@ public class MiniAppController {
             @PathVariable String chatId,
             @QueryParam("page") String page,
             @QueryParam("count") String count,
+            @QueryParam("direction") String direction,
             Model model
     ) {
         int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
         int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
-        List<ChatMessageDto> messages = logService.findByChatId(chatId, currentPage, cnt);
+        String tripChatId = settingsService.findTripChannelId();
+        boolean tripChat = tripChatId != null && tripChatId.equals(chatId);
+        String tab = tripChat ? normalizeTripDirection(direction) : "";
+        List<ChatMessageDto> messages = logService.findByChatId(chatId, currentPage, cnt, tab);
         model.addAttribute("messages", messages);
         model.addAttribute("edits", logService.findEdits(messages.stream()
                 .map(ChatMessageDto::getId)
@@ -155,6 +160,8 @@ public class MiniAppController {
                 .toList()));
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("count", cnt);
+        model.addAttribute("direction", tab);
+        model.addAttribute("tripChat", tripChat);
         model.addAttribute("chatId", chatId);
         model.addAttribute("chatName", logService.findChatName(chatId));
         model.addAttribute("nextPage", currentPage + 1);
@@ -348,6 +355,7 @@ public class MiniAppController {
             @QueryParam("count") String count,
             @QueryParam("dateFrom") String dateFrom,
             @QueryParam("dateTo") String dateTo,
+            @QueryParam("direction") String direction,
             @QueryParam("author") String author,
             @QueryParam("text") String text,
             HttpServletRequest request,
@@ -355,11 +363,13 @@ public class MiniAppController {
     ) {
         int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
         int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
+        String tab = normalizeTripDirection(direction);
         List<TripViewDto> tripList = tripService.getTripList(
                 currentPage * cnt,
                 cnt,
                 parseDateStart(dateFrom),
                 parseDateEnd(dateTo),
+                tab,
                 author,
                 text
         );
@@ -368,6 +378,7 @@ public class MiniAppController {
         model.addAttribute("nextPage", currentPage + 1);
         model.addAttribute("prevPage", Math.max(currentPage - 1, 0));
         model.addAttribute("tripList", tripList);
+        model.addAttribute("direction", tab);
         model.addAttribute("edits", logService.findEdits(tripList.stream()
                 .map(TripViewDto::getLogId)
                 .filter(Objects::nonNull)
@@ -379,6 +390,19 @@ public class MiniAppController {
         model.addAttribute("ruLocale", RU_LOCALE);
         model.addAttribute("currentUserId", currentUserService.idAsString(request));
         return "trips";
+    }
+
+    private String normalizeTripDirection(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return TripDirection.CHEBOKSARY_URMARY.name();
+        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if ("OTHER".equals(normalized)) {
+            return normalized;
+        }
+        return TripDirection.fromDb(normalized) != null
+                ? normalized
+                : TripDirection.CHEBOKSARY_URMARY.name();
     }
 
     private LocalDateTime parseDateStart(String value) {

@@ -19,4 +19,10 @@ public interface TripViewDto {
     LocalDateTime getEditedAt();
     /** Сообщение удалено ботом. */
     Boolean getDeleted();
+    /** Распознанное направление поездки (значение {@code TripDirection}) или {@code null}. */
+    String getTripDirection();
+    /** Человекочитаемое направление для бейджа. */
+    String getTripDirectionLabel();
+    /** Распознанное время поездки или {@code null}. */
+    LocalDateTime getTripTime();
 }

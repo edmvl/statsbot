@@ -76,17 +76,38 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             @Param("limit") int limit);
 
     /**
-     * Сообщения чата с именем отправителя из {@code users}.
+     * Сообщения чата с именем отправителя из {@code users}. Для канала поездок можно
+     * отфильтровать по направлению и поднять ближайшие поездки наверх.
      */
     @Query(value = "select l.id as id, l.date_time as dateTime, l.user_id as userId, l.text as text, "
             + "l.message_id as messageId, l.edited_at as editedAt, l.deleted as deleted, "
+            + "l.trip_direction as tripDirection, l.trip_time as tripTime, "
+            + "case l.trip_direction "
+            + "  when 'CHEBOKSARY_URMARY' then 'Чебоксары → Урмары' "
+            + "  when 'URMARY_CHEBOKSARY' then 'Урмары → Чебоксары' "
+            + "  else null end as tripDirectionLabel, "
             + "u.first_name as firstName, u.last_name as lastName, u.user_name as userName, "
             + "u.avatar_path as avatarPath "
             + "from log l left join users u on u.id = l.user_id "
-            + "where l.chat_id = :chatId order by l.date_time desc",
-            countQuery = "select count(*) from log where chat_id = :chatId",
+            + "where l.chat_id = :chatId "
+            + "and (cast(:direction as text) = '' "
+            + "  or (cast(:direction as text) = 'OTHER' and l.trip_direction is null) "
+            + "  or l.trip_direction = :direction) "
+            + "order by "
+            + "case when cast(:direction as text) <> '' and cast(:direction as text) <> 'OTHER' "
+            + "  and l.trip_time is not null and l.trip_time >= :now then 0 else 1 end, "
+            + "case when cast(:direction as text) <> '' and cast(:direction as text) <> 'OTHER' "
+            + "  and l.trip_time is not null and l.trip_time >= :now then l.trip_time end asc nulls last, "
+            + "l.date_time desc",
+            countQuery = "select count(*) from log l where l.chat_id = :chatId "
+                    + "and (cast(:direction as text) = '' "
+                    + "  or (cast(:direction as text) = 'OTHER' and l.trip_direction is null) "
+                    + "  or l.trip_direction = :direction)",
             nativeQuery = true)
-    Page<ChatMessageDto> getMessagesByChatId(@Param("chatId") String chatId, Pageable pageable);
+    Page<ChatMessageDto> getMessagesByChatId(@Param("chatId") String chatId,
+                                             @Param("direction") String direction,
+                                             @Param("now") LocalDateTime now,
+                                             Pageable pageable);
 
     @Query(value = "select chat_name from log where chat_id = ?1 and chat_name is not null order by id desc limit 1", nativeQuery = true)
     String findChatNameByChatId(String chatId);
@@ -101,6 +122,11 @@ public interface LogRepo extends JpaRepository<Log, Long> {
     @Query(value = "select l.id as logId, l.user_id as userId, l.date_time as dateTime, u.user_name as userName, "
             + "u.first_name as firstName, u.last_name as lastName, u.avatar_path as avatarPath, "
             + "l.edited_at as editedAt, l.deleted as deleted, "
+            + "l.trip_direction as tripDirection, l.trip_time as tripTime, "
+            + "case l.trip_direction "
+            + "  when 'CHEBOKSARY_URMARY' then 'Чебоксары → Урмары' "
+            + "  when 'URMARY_CHEBOKSARY' then 'Урмары → Чебоксары' "
+            + "  else null end as tripDirectionLabel, "
             + "replace(l.text, '\r', CHR(13)) as text, "
             + "(select round(avg(stars), 2) from rating where rating.user_id = l.user_id) as rating, "
             + "(select string_agg(comment, CHR(13)) from rating where rating.user_id = l.user_id) as comments, "
@@ -109,15 +135,26 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             + "where l.chat_id = (select chat_id from chat_settings where setting_name = 'trip_channel' and setting_value = 'true' order by id limit 1) "
             + "and l.date_time >= :dateFrom "
             + "and l.date_time <= :dateTo "
+            + "and (cast(:direction as text) = '' "
+            + "  or (cast(:direction as text) = 'OTHER' and l.trip_direction is null) "
+            + "  or l.trip_direction = :direction) "
             + "and (cast(:author as text) = '' or u.first_name ilike '%' || :author || '%' "
             + "or u.last_name ilike '%' || :author || '%' or u.user_name ilike '%' || :author || '%') "
             + "and (cast(:searchText as text) = '' or lower(l.text) like lower('%' || :searchText || '%')) "
-            + "order by l.date_time desc limit :limit offset :offset", nativeQuery = true)
+            + "order by "
+            + "case when cast(:direction as text) <> 'OTHER' "
+            + "  and l.trip_time is not null and l.trip_time >= :now then 0 else 1 end, "
+            + "case when cast(:direction as text) <> 'OTHER' "
+            + "  and l.trip_time is not null and l.trip_time >= :now then l.trip_time end asc nulls last, "
+            + "l.date_time desc "
+            + "limit :limit offset :offset", nativeQuery = true)
     List<TripViewDto> getTripChatWithRating(
             @Param("offset") int offset,
             @Param("limit") int limit,
             @Param("dateFrom") LocalDateTime dateFrom,
             @Param("dateTo") LocalDateTime dateTo,
+            @Param("direction") String direction,
             @Param("author") String author,
-            @Param("searchText") String searchText);
+            @Param("searchText") String searchText,
+            @Param("now") LocalDateTime now);
 }

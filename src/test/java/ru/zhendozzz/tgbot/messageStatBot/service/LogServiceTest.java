@@ -26,7 +26,9 @@ class LogServiceTest {
 
     private final LogRepo logRepo = mock(LogRepo.class);
     private final LogEditRepo logEditRepo = mock(LogEditRepo.class);
-    private final LogService service = new LogService(logRepo, logEditRepo);
+    private final SettingsService settingsService = mock(SettingsService.class);
+    private final LogService service = new LogService(
+            logRepo, logEditRepo, settingsService, new TripMessageParser());
 
     @Test
     void savesNewMessageWithTelegramId() {
@@ -40,6 +42,39 @@ class LogServiceTest {
         assertThat(saved.getDeleted()).isFalse();
         assertThat(saved.getEditedAt()).isNull();
         verify(logEditRepo, never()).save(any(LogEdit.class));
+    }
+
+    @Test
+    void recognizesTripForTripChannel() {
+        when(settingsService.findTripChannelId()).thenReturn("-100");
+        MessageDTO dto = MessageDTO.builder()
+                .chatId(-100L)
+                .chatName("Попутчики")
+                .messageId(11)
+                .dateTime(SENT_AT)
+                .userId(777L)
+                .userName("ivan")
+                .userText("Урмары-Чебоксары завтра в 18:00")
+                .build();
+
+        service.save(dto);
+
+        ArgumentCaptor<Log> captor = ArgumentCaptor.forClass(Log.class);
+        verify(logRepo).save(captor.capture());
+        Log saved = captor.getValue();
+        assertThat(saved.getTripDirection()).isEqualTo("URMARY_CHEBOKSARY");
+        assertThat(saved.getTripTime()).isEqualTo(LocalDateTime.of(2026, 10, 23, 18, 0));
+    }
+
+    @Test
+    void doesNotRecognizeTripOutsideTripChannel() {
+        when(settingsService.findTripChannelId()).thenReturn("-200");
+        service.save(dto(false));
+
+        ArgumentCaptor<Log> captor = ArgumentCaptor.forClass(Log.class);
+        verify(logRepo).save(captor.capture());
+        assertThat(captor.getValue().getTripDirection()).isNull();
+        assertThat(captor.getValue().getTripTime()).isNull();
     }
 
     @Test

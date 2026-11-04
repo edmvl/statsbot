@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
     <script th:src="@{/js/app-back.js(v=13)}" data-back="/app" defer></script>
-    <title>Отзывы о поездках</title>
+    <title>Поездки</title>
 
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
@@ -48,6 +48,38 @@
             background: var(--soft);
             padding: 6px 14px;
             border-radius: var(--radius-pill);
+        }
+
+        /* ----- Вкладки направления ----- */
+        .direction-tabs {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            margin-bottom: 12px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .direction-tab {
+            flex: 0 0 auto;
+            padding: 8px 14px;
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-pill);
+            background: var(--card-bg);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
+        }
+        .direction-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--on-accent);
+        }
+        .direction-tab:not(.active):hover {
+            background: var(--soft);
+            color: var(--text);
         }
 
         /* ----- Поиск ----- */
@@ -270,6 +302,16 @@
             color: var(--muted);
             border-bottom: 1px dashed var(--line);
             padding-bottom: 12px;
+        }
+        .trip-meta-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .trip-time-badge {
+            color: var(--accent);
+            font-weight: 700;
         }
         .trip-meta .date-text {
             font-weight: 500;
@@ -681,9 +723,24 @@
 
 <!-- Заголовок -->
 <div class="page-header">
-    <h1>🚐 Отзывы о поездках</h1>
+    <h1>🚐 Поездки</h1>
     <span class="trip-count" th:text="'Найдено: ' + ${#lists.size(tripList)}">Найдено: 0</span>
 </div>
+
+<nav class="direction-tabs" aria-label="Направление поездки">
+    <a class="direction-tab" th:classappend="${direction == 'CHEBOKSARY_URMARY'} ? ' active'"
+       th:href="@{/app/trips(direction='CHEBOKSARY_URMARY', page=0, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}">
+        Чебоксары-Урмары
+    </a>
+    <a class="direction-tab" th:classappend="${direction == 'URMARY_CHEBOKSARY'} ? ' active'"
+       th:href="@{/app/trips(direction='URMARY_CHEBOKSARY', page=0, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}">
+        Урмары-Чебоксары
+    </a>
+    <a class="direction-tab" th:classappend="${direction == 'OTHER'} ? ' active'"
+       th:href="@{/app/trips(direction='OTHER', page=0, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}">
+        Остальное
+    </a>
+</nav>
 
 <div class="alert-error" th:if="${reviewError}" th:text="${reviewError}"></div>
 
@@ -691,6 +748,7 @@
 <form class="search-panel" method="get" th:action="@{/app/trips}">
     <input type="hidden" name="page" value="0"/>
     <input type="hidden" name="count" th:value="${count}"/>
+    <input type="hidden" name="direction" th:value="${direction}"/>
 
     <div class="search-field">
         <label for="dateFrom">С</label>
@@ -753,6 +811,13 @@
     <!-- Тело поездки -->
     <div class="trip-body">
         <div class="trip-meta">
+            <div class="trip-meta-badges"
+                 th:if="${trip.tripDirectionLabel != null or trip.tripTime != null}">
+                <span class="chip" th:if="${trip.tripDirectionLabel != null}"
+                      th:text="${trip.tripDirectionLabel}">Чебоксары → Урмары</span>
+                <span class="chip trip-time-badge" th:if="${trip.tripTime != null}"
+                      th:text="'🕒 ' + ${#temporals.format(trip.tripTime, 'd MMMM, HH:mm', ruLocale)}">🕒 22 октября, 18:30</span>
+            </div>
             <span class="date-text"
                   th:text="${trip.dateTime != null ? #temporals.format(trip.dateTime, 'd MMMM yyyy, HH:mm', ruLocale) : ''}">15 октября 2026, 14:30</span>
         </div>
@@ -821,9 +886,9 @@
 
 <!-- Пагинация -->
 <div class="pagination">
-    <a th:href="@{/app/trips(page=${prevPage}, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'‹ Назад'" th:unless="${prevPage == null}">‹ Назад</a>
+    <a th:href="@{/app/trips(page=${prevPage}, count=${count}, direction=${direction}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'‹ Назад'" th:unless="${prevPage == null}">‹ Назад</a>
     <span class="current-page" th:text="${currentPage}">1</span>
-    <a th:href="@{/app/trips(page=${nextPage}, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'Вперед ›'" th:unless="${nextPage == null}">Вперед ›</a>
+    <a th:href="@{/app/trips(page=${nextPage}, count=${count}, direction=${direction}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'Вперед ›'" th:unless="${nextPage == null}">Вперед ›</a>
 </div>
 
 <!-- ====== Модальное окно ====== -->
