@@ -95,6 +95,45 @@ class TripMessageParserTest {
     }
 
     @Test
+    void marksPassengerLookingForCar() {
+        TripMessageInfo info = parser.parse("Ищу машину до Чебоксар в 18:00", sentAt);
+
+        assertThat(info.seekingCar()).isTrue();
+        assertThat(info.to()).isEqualTo("Чебоксары");
+    }
+
+    @Test
+    void marksDriverOfferingSeatsAsNotSeeking() {
+        TripMessageInfo info = parser.parse("Ищу попутчиков, есть места, выезжаю в 18:00", sentAt);
+
+        assertThat(info.seekingCar()).isFalse();
+    }
+
+    @Test
+    void doesNotMarkDriverAsSeekingEvenWithQuestion() {
+        TripMessageInfo info = parser.parse("Кто со мной? Есть 3 места, еду из Чебоксар в Урмары", sentAt);
+
+        assertThat(info.seekingCar()).isFalse();
+        assertThat(info.from()).isEqualTo("Чебоксары");
+        assertThat(info.to()).isEqualTo("Урмары");
+    }
+
+    @Test
+    void marksRequestToGiveLiftAsSeeking() {
+        TripMessageInfo info = parser.parse("Кто может подвезти из Урмар в Чебоксары после 18:00?", sentAt);
+
+        assertThat(info.seekingCar()).isTrue();
+    }
+
+    @Test
+    void marksWhoIsGoingAsSeekingWhenNoDriverPhrases() {
+        TripMessageInfo info = parser.parse("Кто едет в Чебоксары в 18:00?", sentAt);
+
+        assertThat(info.seekingCar()).isTrue();
+        assertThat(info.to()).isEqualTo("Чебоксары");
+    }
+
+    @Test
     void doesNotGuessPointWithoutPreposition() {
         TripMessageInfo info = parser.parse("Чебоксары 8:00", sentAt);
 

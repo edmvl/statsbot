@@ -72,4 +72,8 @@ public class Log {
     @Column(name = "trip_parsed")
     Boolean tripParsed;
 
+    /** Автор ищет машину/попутку, а не предлагает поездку. */
+    @Column(name = "trip_seeking_car")
+    Boolean tripSeekingCar;
+
 }

@@ -355,6 +355,7 @@ public class MiniAppController {
             @QueryParam("dateTo") String dateTo,
             @QueryParam("from") String from,
             @QueryParam("to") String to,
+            @QueryParam("hideSeekers") String hideSeekers,
             @QueryParam("author") String author,
             @QueryParam("text") String text,
             HttpServletRequest request,
@@ -364,6 +365,8 @@ public class MiniAppController {
         int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
         String selectedFrom = defaultValue(from).trim();
         String selectedTo = defaultValue(to).trim();
+        boolean hide = "true".equalsIgnoreCase(defaultValue(hideSeekers))
+                || "on".equalsIgnoreCase(defaultValue(hideSeekers));
         List<TripViewDto> tripList = tripService.getTripList(
                 currentPage * cnt,
                 cnt,
@@ -371,6 +374,7 @@ public class MiniAppController {
                 parseDateEnd(dateTo),
                 selectedFrom,
                 selectedTo,
+                hide,
                 author,
                 text
         );
@@ -381,6 +385,7 @@ public class MiniAppController {
         model.addAttribute("tripList", tripList);
         model.addAttribute("from", selectedFrom);
         model.addAttribute("to", selectedTo);
+        model.addAttribute("hideSeekers", hide);
         List<String> points = tripPoints();
         model.addAttribute("fromPoints", points);
         model.addAttribute("toPoints", points);

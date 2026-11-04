@@ -84,6 +84,7 @@ class TemplateRenderTest {
         context.setVariable("to", "");
         context.setVariable("fromPoints", List.of("Урмары", "Чебоксары", "Новочебоксарск"));
         context.setVariable("toPoints", List.of("Урмары", "Чебоксары", "Новочебоксарск"));
+        context.setVariable("hideSeekers", false);
         context.setVariable("driverId", "123");
         context.setVariable("chatId", "123");
         context.setVariable("chatName", "Чат");

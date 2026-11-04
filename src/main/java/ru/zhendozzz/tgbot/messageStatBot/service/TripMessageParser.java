@@ -45,6 +45,21 @@ public class TripMessageParser {
             "([0-3]?\\d)\\s+(января|февраля|марта|апреля|мая|июня|июля|августа|"
                     + "сентября|октября|ноября|декабря)");
 
+    /** Фразы «ищу машину», а не «ищу попутчиков» (последнее — водитель с местами). */
+    private static final List<String> SEEKING_CAR_PHRASES = List.of(
+            "ищу машину", "ищу попутку", "ищу попутное", "ищу водителя", "ищу место",
+            "ищу места", "ищу транспорт", "нужна машина", "нужна попутка", "нужна поездка",
+            "нужен водитель", "нужно место", "нужны места", "нужен транспорт",
+            "кто может подвезти", "кто может подбросить", "кто подвезет", "кто подбросит",
+            "кто едет", "кто поедет", "кто едит",
+            "подвезите", "подбросьте", "возьмете с собой", "возьмете меня",
+            "можно с вами", "можно с тобой");
+
+    private static final List<String> DRIVER_PHRASES = List.of(
+            "есть места", "свободные места", "есть свободные", "возьму попутчик",
+            "возьму пассажир", "выезжаю", "поеду", "едем", "еду в", "могу подвезти",
+            "подвезу", "заберу", "есть место");
+
     private static final Map<String, Integer> MONTHS = Map.ofEntries(
             Map.entry("января", 1), Map.entry("февраля", 2), Map.entry("марта", 3),
             Map.entry("апреля", 4), Map.entry("мая", 5), Map.entry("июня", 6),
@@ -62,13 +77,14 @@ public class TripMessageParser {
 
     public TripMessageInfo parse(String text, LocalDateTime messageTime) {
         if (text == null || text.trim().isEmpty() || messageTime == null) {
-            return new TripMessageInfo(null, null, null);
+            return new TripMessageInfo(null, null, null, false);
         }
         String value = text.toLowerCase(Locale.ROOT).replace('ё', 'е');
         String[] points = detectPoints(value);
+        boolean seekingCar = isSeekingCar(value);
         LocalTime time = parseTime(value);
         if (time == null) {
-            return new TripMessageInfo(points[0], points[1], null);
+            return new TripMessageInfo(points[0], points[1], null, seekingCar);
         }
 
         LocalDate baseDate = messageTime.toLocalDate();
@@ -114,7 +130,16 @@ public class TripMessageParser {
             // Время уже прошло — скорее всего, поездка на следующий день.
             tripTime = tripTime.plusDays(1);
         }
-        return new TripMessageInfo(points[0], points[1], tripTime);
+        return new TripMessageInfo(points[0], points[1], tripTime, seekingCar);
+    }
+
+    private boolean isSeekingCar(String text) {
+        boolean seeks = SEEKING_CAR_PHRASES.stream().anyMatch(text::contains);
+        if (!seeks) {
+            return false;
+        }
+        boolean offers = DRIVER_PHRASES.stream().anyMatch(text::contains);
+        return !offers;
     }
 
     /**

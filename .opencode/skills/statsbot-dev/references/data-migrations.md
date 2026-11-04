@@ -40,7 +40,7 @@ docker compose down -v        # снести вместе с данными
 | Таблица | Назначение |
 |---|---|
 | `users` | пользователи: имя, ник, аватар (`avatar_path`), `user_name_history` — история смен |
-| `log` | сообщения: `chat_id`, `date_time`, `user_id`, `chat_name`, `text`, `filetype`, `file`, `logger_type`, **`message_id`**, **`edited_at`**, **`deleted`**, **`trip_from`**, **`trip_to`**, **`trip_time`**, **`trip_parsed`** |
+| `log` | сообщения: `chat_id`, `date_time`, `user_id`, `chat_name`, `text`, `filetype`, `file`, `logger_type`, **`message_id`**, **`edited_at`**, **`deleted`**, **`trip_from`**, **`trip_to`**, **`trip_time`**, **`trip_parsed`**, **`trip_seeking_car`** |
 | `log_edit` | предыдущие версии сообщений (`log_id`, `text`, `filetype`, `file`, `edited_at`) |
 | `chat_settings` | настройки чата (`setting_name`/`setting_value`), в т.ч. `trip_channel`, `enable_ads`, `enable_stats`, `enable_member_control` |
 | `settings` | админы чатов (`chat_id`, `user_id`, `is_admin`) |

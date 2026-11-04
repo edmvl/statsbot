@@ -123,6 +123,7 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             + "and l.date_time <= :dateTo "
             + "and (cast(:tripFrom as text) = '' or l.trip_from = :tripFrom) "
             + "and (cast(:tripTo as text) = '' or l.trip_to = :tripTo) "
+            + "and (cast(:hideSeekers as boolean) = false or coalesce(l.trip_seeking_car, false) = false) "
             + "and (cast(:author as text) = '' or u.first_name ilike '%' || :author || '%' "
             + "or u.last_name ilike '%' || :author || '%' or u.user_name ilike '%' || :author || '%') "
             + "and (cast(:searchText as text) = '' or lower(l.text) like lower('%' || :searchText || '%')) "
@@ -138,6 +139,7 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             @Param("dateTo") LocalDateTime dateTo,
             @Param("tripFrom") String tripFrom,
             @Param("tripTo") String tripTo,
+            @Param("hideSeekers") boolean hideSeekers,
             @Param("author") String author,
             @Param("searchText") String searchText,
             @Param("now") LocalDateTime now);

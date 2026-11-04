@@ -71,6 +71,7 @@ public class TripLogBackfillService implements ApplicationRunner {
                 if (Objects.nonNull(info.tripTime())) {
                     row.setTripTime(info.tripTime());
                 }
+                row.setTripSeekingCar(info.seekingCar());
                 row.setTripParsed(true);
             }
             try {

@@ -42,6 +42,7 @@ public class TripService implements CommandExecutable {
             LocalDateTime dateTo,
             String tripFrom,
             String tripTo,
+            boolean hideSeekers,
             String author,
             String text
     ) {
@@ -52,6 +53,7 @@ public class TripService implements CommandExecutable {
                 dateTo == null ? MAX_DATE : dateTo,
                 blankToEmpty(tripFrom),
                 blankToEmpty(tripTo),
+                hideSeekers,
                 normalizeAuthor(author),
                 blankToEmpty(text),
                 LocalDateTime.now());

@@ -66,6 +66,7 @@ class LogServiceTest {
         assertThat(saved.getTripFrom()).isEqualTo("Урмары");
         assertThat(saved.getTripTo()).isEqualTo("Чебоксары");
         assertThat(saved.getTripTime()).isEqualTo(LocalDateTime.of(2026, 10, 23, 18, 0));
+        assertThat(saved.getTripSeekingCar()).isFalse();
     }
 
     @Test

@@ -108,6 +108,47 @@
             flex: 0 0 auto;
             margin-left: auto;
         }
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 36px;
+            padding: 0 13px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-pill);
+            background: var(--card-bg);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
+        }
+        .filter-chip input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+        .filter-dot {
+            width: 14px;
+            height: 14px;
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            background: transparent;
+            flex: 0 0 auto;
+        }
+        .filter-chip.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--on-accent);
+        }
+        .filter-chip.active .filter-dot {
+            background: var(--on-accent);
+            border-color: var(--on-accent);
+        }
         .btn-search,
         .btn-reset {
             height: 36px;
@@ -684,9 +725,36 @@
             .trip-badges { margin-left: 0; }
             .trip-actions { justify-content: stretch; }
             .btn-feedback { width: 100%; justify-content: center; }
-            .search-field { flex: 1 1 44%; }
-            .search-actions { margin-left: 0; width: 100%; }
-            .btn-search, .btn-reset { flex: 1 1 0; }
+            .search-panel {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                padding: 12px;
+            }
+            .search-field {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+                flex: none;
+            }
+            .search-field-wide { grid-column: 1 / -1; }
+            .search-field label { font-size: 11px; }
+            .search-field input,
+            .search-field select { width: 100%; }
+            .search-actions {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                width: 100%;
+                margin-left: 0;
+            }
+            .filter-chip {
+                grid-column: 1 / -1;
+                justify-content: center;
+            }
+            .btn-search, .btn-reset { width: 100%; }
             .modal-content { padding: 22px 18px; }
             .stars label { font-size: 32px; }
         }
@@ -741,6 +809,13 @@
     </div>
 
     <div class="search-actions">
+        <label class="filter-chip" th:classappend="${hideSeekers} ? ' active'"
+               title="Скрыть сообщения от тех, кто ищет машину">
+            <input type="checkbox" name="hideSeekers" value="true" th:checked="${hideSeekers}"
+                   onchange="this.form.submit()"/>
+            <span class="filter-dot"></span>
+            <span>Без ищущих</span>
+        </label>
         <button class="btn-search" type="submit">Найти</button>
         <a class="btn-reset" th:href="@{/app/trips}">Сбросить</a>
     </div>
@@ -862,9 +937,9 @@
 
 <!-- Пагинация -->
 <div class="pagination">
-    <a th:href="@{/app/trips(page=${prevPage}, count=${count}, from=${from}, to=${to}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'‹ Назад'" th:unless="${prevPage == null}">‹ Назад</a>
+    <a th:href="@{/app/trips(page=${prevPage}, count=${count}, from=${from}, to=${to}, hideSeekers=${hideSeekers}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'‹ Назад'" th:unless="${prevPage == null}">‹ Назад</a>
     <span class="current-page" th:text="${currentPage}">1</span>
-    <a th:href="@{/app/trips(page=${nextPage}, count=${count}, from=${from}, to=${to}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'Вперед ›'" th:unless="${nextPage == null}">Вперед ›</a>
+    <a th:href="@{/app/trips(page=${nextPage}, count=${count}, from=${from}, to=${to}, hideSeekers=${hideSeekers}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'Вперед ›'" th:unless="${nextPage == null}">Вперед ›</a>
 </div>
 
 <!-- ====== Модальное окно ====== -->

@@ -169,12 +169,14 @@ public class LogService implements NeedProcessMessage {
             log.setTripFrom(null);
             log.setTripTo(null);
             log.setTripTime(null);
+            log.setTripSeekingCar(false);
             return;
         }
         TripMessageInfo info = tripMessageParser.parse(messageDTO.getUserText(), messageDTO.getDateTime());
         log.setTripFrom(info.from());
         log.setTripTo(info.to());
         log.setTripTime(info.tripTime());
+        log.setTripSeekingCar(info.seekingCar());
     }
 
     private String tripChatId() {
