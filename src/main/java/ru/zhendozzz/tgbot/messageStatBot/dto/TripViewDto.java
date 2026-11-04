@@ -25,4 +25,6 @@ public interface TripViewDto {
     String getTripTo();
     /** Распознанное время поездки или {@code null}. */
     LocalDateTime getTripTime();
+    /** Количество свободных мест или {@code null}. */
+    Integer getTripSeats();
 }

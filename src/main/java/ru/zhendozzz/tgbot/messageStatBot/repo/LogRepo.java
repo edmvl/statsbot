@@ -76,28 +76,23 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             @Param("limit") int limit);
 
     /**
-     * Сообщения чата с именем отправителя из {@code users}. Для канала поездок
-     * ближайшие поездки поднимаются наверх.
+     * Сообщения чата с именем отправителя из {@code users}.
      */
     @Query(value = "select l.id as id, l.date_time as dateTime, l.user_id as userId, l.text as text, "
             + "l.message_id as messageId, l.edited_at as editedAt, l.deleted as deleted, "
-            + "l.trip_from as tripFrom, l.trip_to as tripTo, l.trip_time as tripTime, "
             + "u.first_name as firstName, u.last_name as lastName, u.user_name as userName, "
             + "u.avatar_path as avatarPath "
             + "from log l left join users u on u.id = l.user_id "
-            + "where l.chat_id = :chatId "
-            + "order by "
-            + "case when cast(:tripChat as boolean) and l.trip_time is not null "
-            + "  and l.trip_time >= :now then 0 else 1 end, "
-            + "case when cast(:tripChat as boolean) and l.trip_time is not null "
-            + "  and l.trip_time >= :now then l.trip_time end asc nulls last, "
-            + "l.date_time desc",
-            countQuery = "select count(*) from log l where l.chat_id = :chatId",
+            + "where l.chat_id = :chatId order by l.date_time desc",
+            countQuery = "select count(*) from log where chat_id = :chatId",
             nativeQuery = true)
-    Page<ChatMessageDto> getMessagesByChatId(@Param("chatId") String chatId,
-                                             @Param("tripChat") boolean tripChat,
-                                             @Param("now") LocalDateTime now,
-                                             Pageable pageable);
+    Page<ChatMessageDto> getMessagesByChatId(@Param("chatId") String chatId, Pageable pageable);
+
+    @Query("select count(l) from Log l where l.chatId = :chatId "
+            + "and (l.dateTime > :dateTime or (l.dateTime = :dateTime and l.id > :id))")
+    long countNewerMessages(@Param("chatId") String chatId,
+                            @Param("dateTime") LocalDateTime dateTime,
+                            @Param("id") Long id);
 
     @Query(value = "select chat_name from log where chat_id = ?1 and chat_name is not null order by id desc limit 1", nativeQuery = true)
     String findChatNameByChatId(String chatId);
@@ -113,6 +108,7 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             + "u.first_name as firstName, u.last_name as lastName, u.avatar_path as avatarPath, "
             + "l.edited_at as editedAt, l.deleted as deleted, "
             + "l.trip_from as tripFrom, l.trip_to as tripTo, l.trip_time as tripTime, "
+            + "l.trip_seats as tripSeats, "
             + "replace(l.text, '\r', CHR(13)) as text, "
             + "(select round(avg(stars), 2) from rating where rating.user_id = l.user_id) as rating, "
             + "(select string_agg(comment, CHR(13)) from rating where rating.user_id = l.user_id) as comments, "
@@ -121,6 +117,8 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             + "where l.chat_id = (select chat_id from chat_settings where setting_name = 'trip_channel' and setting_value = 'true' order by id limit 1) "
             + "and l.date_time >= :dateFrom "
             + "and l.date_time <= :dateTo "
+            + "and (l.trip_from is not null or l.trip_to is not null) "
+            + "and l.trip_duplicate_of is null "
             + "and (cast(:tripFrom as text) = '' or l.trip_from = :tripFrom) "
             + "and (cast(:tripTo as text) = '' or l.trip_to = :tripTo) "
             + "and (cast(:hideSeekers as boolean) = false or coalesce(l.trip_seeking_car, false) = false) "
@@ -153,4 +151,29 @@ public interface LogRepo extends JpaRepository<Log, Long> {
     List<String> findDistinctTripTo();
 
     List<Log> findTop500ByChatIdAndTripParsedFalseOrderByIdAsc(String chatId);
+
+    @Query(value = "select * from log "
+            + "where chat_id = :chatId and user_id = :userId "
+            + "and coalesce(trip_from, '') = coalesce(:tripFrom, '') "
+            + "and coalesce(trip_to, '') = coalesce(:tripTo, '') "
+            + "and trip_time >= :start and trip_time < :end "
+            + "and (trip_from is not null or trip_to is not null) "
+            + "order by trip_time, id", nativeQuery = true)
+    List<Log> findTripCandidatesForDay(@Param("chatId") String chatId,
+                                       @Param("userId") String userId,
+                                       @Param("tripFrom") String tripFrom,
+                                       @Param("tripTo") String tripTo,
+                                       @Param("start") LocalDateTime start,
+                                       @Param("end") LocalDateTime end);
+
+    @Query(value = "select distinct user_id from log "
+            + "where chat_id = :chatId and trip_time is not null "
+            + "and (trip_from is not null or trip_to is not null)", nativeQuery = true)
+    List<String> findDistinctTripUserIds(@Param("chatId") String chatId);
+
+    @Query(value = "select * from log "
+            + "where chat_id = :chatId and user_id = :userId and trip_time is not null "
+            + "and (trip_from is not null or trip_to is not null) "
+            + "order by coalesce(trip_from, ''), coalesce(trip_to, ''), trip_time, id", nativeQuery = true)
+    List<Log> findTripRowsForUser(@Param("chatId") String chatId, @Param("userId") String userId);
 }

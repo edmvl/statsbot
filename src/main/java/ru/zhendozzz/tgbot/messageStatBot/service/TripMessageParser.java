@@ -45,6 +45,11 @@ public class TripMessageParser {
             "([0-3]?\\d)\\s+(января|февраля|марта|апреля|мая|июня|июля|августа|"
                     + "сентября|октября|ноября|декабря)");
 
+    private static final Pattern SEATS = Pattern.compile(
+            "(\\d{1,2})\\s*(?:свободн\\p{L}*\\s*)?(?:мест\\p{L}*|пассажир\\p{L}*)");
+    private static final Pattern SEATS_AFTER_WORD = Pattern.compile(
+            "(?:свободн\\p{L}*|свободно|осталось)\\s*(\\d{1,2})\\s*(?:мест\\p{L}*)?");
+
     /** Фразы «ищу машину», а не «ищу попутчиков» (последнее — водитель с местами). */
     private static final List<String> SEEKING_CAR_PHRASES = List.of(
             "ищу машину", "ищу попутку", "ищу попутное", "ищу водителя", "ищу место",
@@ -77,14 +82,15 @@ public class TripMessageParser {
 
     public TripMessageInfo parse(String text, LocalDateTime messageTime) {
         if (text == null || text.trim().isEmpty() || messageTime == null) {
-            return new TripMessageInfo(null, null, null, false);
+            return new TripMessageInfo(null, null, null, false, null);
         }
         String value = text.toLowerCase(Locale.ROOT).replace('ё', 'е');
         String[] points = detectPoints(value);
         boolean seekingCar = isSeekingCar(value);
+        Integer seats = seekingCar ? null : parseSeats(value);
         LocalTime time = parseTime(value);
         if (time == null) {
-            return new TripMessageInfo(points[0], points[1], null, seekingCar);
+            return new TripMessageInfo(points[0], points[1], null, seekingCar, seats);
         }
 
         LocalDate baseDate = messageTime.toLocalDate();
@@ -130,7 +136,28 @@ public class TripMessageParser {
             // Время уже прошло — скорее всего, поездка на следующий день.
             tripTime = tripTime.plusDays(1);
         }
-        return new TripMessageInfo(points[0], points[1], tripTime, seekingCar);
+        return new TripMessageInfo(points[0], points[1], tripTime, seekingCar, seats);
+    }
+
+    private Integer parseSeats(String text) {
+        Integer seats = firstSeats(SEATS, text);
+        if (seats == null) {
+            seats = firstSeats(SEATS_AFTER_WORD, text);
+        }
+        return seats;
+    }
+
+    private Integer firstSeats(Pattern pattern, String text) {
+        Matcher matcher = pattern.matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+        try {
+            int seats = Integer.parseInt(matcher.group(1));
+            return seats >= 1 && seats <= 9 ? seats : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private boolean isSeekingCar(String text) {

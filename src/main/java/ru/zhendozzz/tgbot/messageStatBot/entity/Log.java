@@ -76,4 +76,12 @@ public class Log {
     @Column(name = "trip_seeking_car")
     Boolean tripSeekingCar;
 
+    /** id более свежего сообщения той же поездки; {@code null} — основное сообщение. */
+    @Column(name = "trip_duplicate_of")
+    Long tripDuplicateOf;
+
+    /** Количество свободных мест (если указано в сообщении). */
+    @Column(name = "trip_seats")
+    Integer tripSeats;
+
 }

@@ -20,10 +20,4 @@ public interface ChatMessageDto {
     LocalDateTime getEditedAt();
     /** Сообщение удалено ботом. */
     Boolean getDeleted();
-    /** Распознанная точка отправления (только для канала попутчиков). */
-    String getTripFrom();
-    /** Распознанная точка прибытия. */
-    String getTripTo();
-    /** Распознанное время поездки. */
-    LocalDateTime getTripTime();
 }

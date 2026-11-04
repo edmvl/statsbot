@@ -28,11 +28,14 @@ public class TripLogBackfillService implements ApplicationRunner {
     private final LogRepo logRepo;
     private final SettingsService settingsService;
     private final TripMessageParser parser;
+    private final TripDuplicateService tripDuplicateService;
 
-    public TripLogBackfillService(LogRepo logRepo, SettingsService settingsService, TripMessageParser parser) {
+    public TripLogBackfillService(LogRepo logRepo, SettingsService settingsService,
+                                  TripMessageParser parser, TripDuplicateService tripDuplicateService) {
         this.logRepo = logRepo;
         this.settingsService = settingsService;
         this.parser = parser;
+        this.tripDuplicateService = tripDuplicateService;
     }
 
     @Override
@@ -72,6 +75,7 @@ public class TripLogBackfillService implements ApplicationRunner {
                     row.setTripTime(info.tripTime());
                 }
                 row.setTripSeekingCar(info.seekingCar());
+                row.setTripSeats(info.seats());
                 row.setTripParsed(true);
             }
             try {
@@ -93,5 +97,8 @@ public class TripLogBackfillService implements ApplicationRunner {
             }
         }
         log.info("Фоновый разбор сообщений поездок завершён, всего: {}", total);
+        if (total > 0) {
+            tripDuplicateService.regroupAll(chatId);
+        }
     }
 }

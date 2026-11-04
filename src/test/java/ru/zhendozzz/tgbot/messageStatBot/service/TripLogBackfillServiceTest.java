@@ -7,6 +7,7 @@ import ru.zhendozzz.tgbot.messageStatBot.repo.LogRepo;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -17,8 +18,9 @@ class TripLogBackfillServiceTest {
 
     private final LogRepo logRepo = mock(LogRepo.class);
     private final SettingsService settingsService = mock(SettingsService.class);
+    private final TripDuplicateService tripDuplicateService = mock(TripDuplicateService.class);
     private final TripLogBackfillService service = new TripLogBackfillService(
-            logRepo, settingsService, new TripMessageParser());
+            logRepo, settingsService, new TripMessageParser(), tripDuplicateService);
 
     @Test
     void parsesOldMessagesInBatches() {
@@ -36,6 +38,7 @@ class TripLogBackfillServiceTest {
         service.backfill();
 
         verify(logRepo).saveAll(anyList());
+        verify(tripDuplicateService).regroupAll("-100");
         org.assertj.core.api.Assertions.assertThat(old.getTripFrom()).isEqualTo("Чебоксары");
         org.assertj.core.api.Assertions.assertThat(old.getTripTo()).isEqualTo("Урмары");
         org.assertj.core.api.Assertions.assertThat(old.getTripParsed()).isTrue();
@@ -49,5 +52,6 @@ class TripLogBackfillServiceTest {
 
         verify(logRepo, never()).findTop500ByChatIdAndTripParsedFalseOrderByIdAsc("-100");
         verify(logRepo, never()).saveAll(anyList());
+        verify(tripDuplicateService, never()).regroupAll(any());
     }
 }

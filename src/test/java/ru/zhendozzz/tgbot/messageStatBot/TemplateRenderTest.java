@@ -85,6 +85,7 @@ class TemplateRenderTest {
         context.setVariable("fromPoints", List.of("Урмары", "Чебоксары", "Новочебоксарск"));
         context.setVariable("toPoints", List.of("Урмары", "Чебоксары", "Новочебоксарск"));
         context.setVariable("hideSeekers", false);
+        context.setVariable("tripChatId", "-100");
         context.setVariable("driverId", "123");
         context.setVariable("chatId", "123");
         context.setVariable("chatName", "Чат");
@@ -325,6 +326,7 @@ class TemplateRenderTest {
         when(trip.getAvatarPath()).thenReturn(null);
         when(trip.getTripFrom()).thenReturn("Чебоксары");
         when(trip.getTripTo()).thenReturn("Урмары");
+        when(trip.getTripSeats()).thenReturn(3);
         when(trip.getTripTime()).thenReturn(LocalDateTime.of(2026, 10, 23, 8, 30));
         when(trip.getLogId()).thenReturn(9L);
         when(trip.getEditedAt()).thenReturn(LocalDateTime.of(2026, 10, 15, 15, 0));
@@ -351,9 +353,6 @@ class TemplateRenderTest {
         when(message.getMessageId()).thenReturn(10);
         when(message.getEditedAt()).thenReturn(LocalDateTime.of(2026, 10, 15, 15, 30));
         when(message.getDeleted()).thenReturn(true);
-        when(message.getTripFrom()).thenReturn("Чебоксары");
-        when(message.getTripTo()).thenReturn("Урмары");
-        when(message.getTripTime()).thenReturn(LocalDateTime.of(2026, 10, 23, 8, 30));
 
         TgUser driver = new TgUser();
         driver.setId("100");

@@ -27,8 +27,9 @@ class LogServiceTest {
     private final LogRepo logRepo = mock(LogRepo.class);
     private final LogEditRepo logEditRepo = mock(LogEditRepo.class);
     private final SettingsService settingsService = mock(SettingsService.class);
+    private final TripDuplicateService tripDuplicateService = mock(TripDuplicateService.class);
     private final LogService service = new LogService(
-            logRepo, logEditRepo, settingsService, new TripMessageParser());
+            logRepo, logEditRepo, settingsService, new TripMessageParser(), tripDuplicateService);
 
     @Test
     void savesNewMessageWithTelegramId() {

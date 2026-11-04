@@ -7,6 +7,7 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 import ru.zhendozzz.tgbot.messageStatBot.config.AdminAuthGuard;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
+import ru.zhendozzz.tgbot.messageStatBot.entity.Log;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.repo.RatingRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserNameHistoryRepo;
@@ -21,6 +22,7 @@ import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 import ru.zhendozzz.tgbot.messageStatBot.service.TripService;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +30,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -42,11 +45,33 @@ class MiniAppControllerTest {
     private final FeedbackService feedbackService = mock(FeedbackService.class);
     private final AdminAuthGuard adminAuthGuard = mock(AdminAuthGuard.class);
     private final InterestedService interestedService = mock(InterestedService.class);
+    private final LogService logService = mock(LogService.class);
     private final MiniAppController controller = new MiniAppController(
             mock(TripService.class), feedbackService, mock(FileLoaderService.class),
-            mock(LogService.class), interestedService, settingsService,
+            logService, interestedService, settingsService,
             mock(RatingRepo.class), userRepo, mock(UserNameHistoryRepo.class),
             currentUserService, adminAuthGuard, messageExecutor, mock(ChatInviteService.class));
+
+    @Test
+    void chatOpensPageContainingLinkedMessage() {
+        Log target = new Log();
+        target.setId(10L);
+        target.setChatId("-100");
+        target.setDateTime(LocalDateTime.of(2026, 11, 4, 9, 0));
+        when(logService.findLogById(10L)).thenReturn(target);
+        when(logService.countNewerMessages("-100", target.getDateTime(), 10L)).thenReturn(65L);
+        when(logService.findByChatId("-100", 2, 30)).thenReturn(List.of());
+        when(logService.findEdits(anyList())).thenReturn(Map.of());
+        when(logService.findChatName("-100")).thenReturn("Поездки");
+        ExtendedModelMap model = new ExtendedModelMap();
+
+        String view = controller.tripView("-100", "0", "30", "10", model);
+
+        assertThat(view).isEqualTo("chat");
+        assertThat(model.get("currentPage")).isEqualTo(2);
+        assertThat(model.get("focusLogId")).isEqualTo(10L);
+        verify(logService).findByChatId("-100", 2, 30);
+    }
 
     @Test
     void accessReportsChatAdmin() {

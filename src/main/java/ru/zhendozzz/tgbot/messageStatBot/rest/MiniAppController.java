@@ -8,6 +8,7 @@ import ru.zhendozzz.tgbot.messageStatBot.config.AdminAuthGuard;
 import ru.zhendozzz.tgbot.messageStatBot.dto.TripViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBackChat;
+import ru.zhendozzz.tgbot.messageStatBot.entity.Log;
 import ru.zhendozzz.tgbot.messageStatBot.entity.TgUser;
 import ru.zhendozzz.tgbot.messageStatBot.repo.RatingRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserNameHistoryRepo;
@@ -146,13 +147,19 @@ public class MiniAppController {
             @PathVariable String chatId,
             @QueryParam("page") String page,
             @QueryParam("count") String count,
+            @QueryParam("message") String message,
             Model model
     ) {
         int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
         int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
-        String tripChatId = settingsService.findTripChannelId();
-        boolean tripChat = tripChatId != null && tripChatId.equals(chatId);
-        List<ChatMessageDto> messages = logService.findByChatId(chatId, currentPage, cnt, tripChat);
+        Long focusLogId = parseNumeric(message);
+        Log focus = focusLogId == null ? null : logService.findLogById(focusLogId);
+        if (focus != null && chatId.equals(focus.getChatId()) && focus.getDateTime() != null) {
+            long newer = logService.countNewerMessages(chatId, focus.getDateTime(), focus.getId());
+            currentPage = (int) (newer / cnt);
+            model.addAttribute("focusLogId", focus.getId());
+        }
+        List<ChatMessageDto> messages = logService.findByChatId(chatId, currentPage, cnt);
         model.addAttribute("messages", messages);
         model.addAttribute("edits", logService.findEdits(messages.stream()
                 .map(ChatMessageDto::getId)
@@ -386,6 +393,7 @@ public class MiniAppController {
         model.addAttribute("from", selectedFrom);
         model.addAttribute("to", selectedTo);
         model.addAttribute("hideSeekers", hide);
+        model.addAttribute("tripChatId", settingsService.findTripChannelId());
         List<String> points = tripPoints();
         model.addAttribute("fromPoints", points);
         model.addAttribute("toPoints", points);

@@ -330,9 +330,55 @@
         .trip-meta .date-text {
             font-weight: 500;
         }
+        .trip-meta-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .message-link {
+            margin-left: auto;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .message-link:hover {
+            text-decoration: underline;
+        }
 
         /* Текст публикации — «сообщение» пользователя: мягкая заливка в тон акцента
            и скруглённый уголок, чтобы отличалось от блока отзывов ниже. */
+        .trip-spoiler {
+            margin: 0;
+        }
+        .trip-spoiler summary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            list-style: none;
+            cursor: pointer;
+            padding: 8px 0;
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 600;
+            user-select: none;
+        }
+        .trip-spoiler summary::-webkit-details-marker {
+            display: none;
+        }
+        .trip-spoiler summary::before {
+            content: "▸";
+            font-size: 12px;
+            transition: transform var(--transition);
+        }
+        .trip-spoiler[open] summary::before {
+            transform: rotate(90deg);
+        }
+        .trip-spoiler .message-text {
+            margin-top: 4px;
+        }
         .message-text {
             background: var(--soft);
             background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -868,14 +914,24 @@
                 </span>
                 <span class="chip trip-time-badge" th:if="${trip.tripTime != null}"
                       th:text="'🕒 ' + ${#temporals.format(trip.tripTime, 'd MMMM, HH:mm', ruLocale)}">🕒 22 октября, 18:30</span>
+                <span class="chip" th:if="${trip.tripSeats != null}"
+                      th:text="'👥 Свободно: ' + ${trip.tripSeats}">👥 Свободно: 3</span>
             </div>
-            <span class="date-text"
-                  th:text="${trip.dateTime != null ? #temporals.format(trip.dateTime, 'd MMMM yyyy, HH:mm', ruLocale) : ''}">15 октября 2026, 14:30</span>
+            <div class="trip-meta-bottom">
+                <span class="date-text"
+                      th:text="${trip.dateTime != null ? #temporals.format(trip.dateTime, 'd MMMM yyyy, HH:mm', ruLocale) : ''}">15 октября 2026, 14:30</span>
+                <a class="message-link" th:if="${tripChatId != null and trip.logId != null}"
+                   th:href="@{/app/chat/{chatId}(chatId=${tripChatId}, message=${trip.logId})}"
+                   title="Открыть сообщение в истории чата">К сообщению →</a>
+            </div>
         </div>
 
-        <div class="message-text" th:text="${trip.text}">
-            Текст сообщения о поездке, впечатления, маршрут.
-        </div>
+        <details class="trip-spoiler">
+            <summary>Текст сообщения</summary>
+            <div class="message-text" th:text="${trip.text}">
+                Текст сообщения о поездке, впечатления, маршрут.
+            </div>
+        </details>
 
         <div class="msg-flags" th:if="${trip.editedAt != null or (trip.deleted != null and trip.deleted)}">
             <span class="flag flag-deleted" th:if="${trip.deleted != null and trip.deleted}">🗑 удалено</span>

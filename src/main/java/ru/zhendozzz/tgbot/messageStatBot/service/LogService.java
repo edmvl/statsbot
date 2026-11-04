@@ -33,22 +33,24 @@ public class LogService implements NeedProcessMessage {
     private final LogEditRepo logEditRepo;
     private final SettingsService settingsService;
     private final TripMessageParser tripMessageParser;
+    private final TripDuplicateService tripDuplicateService;
 
     private volatile boolean tripChatLoaded;
     private volatile long tripChatLoadedAt;
     private volatile String cachedTripChatId;
 
     public LogService(LogRepo logRepo, LogEditRepo logEditRepo,
-                      SettingsService settingsService, TripMessageParser tripMessageParser) {
+                      SettingsService settingsService, TripMessageParser tripMessageParser,
+                      TripDuplicateService tripDuplicateService) {
         this.logRepo = logRepo;
         this.logEditRepo = logEditRepo;
         this.settingsService = settingsService;
         this.tripMessageParser = tripMessageParser;
+        this.tripDuplicateService = tripDuplicateService;
     }
 
-    public List<ChatMessageDto> findByChatId(String chatId, int page, int size, boolean tripChat) {
-        return logRepo.getMessagesByChatId(chatId, tripChat, LocalDateTime.now(),
-                PageRequest.of(page, size)).getContent();
+    public List<ChatMessageDto> findByChatId(String chatId, int page, int size) {
+        return logRepo.getMessagesByChatId(chatId, PageRequest.of(page, size)).getContent();
     }
 
     public List<String> findTripFromPoints() {
@@ -61,6 +63,14 @@ public class LogService implements NeedProcessMessage {
 
     public String findChatName(String chatId) {
         return logRepo.findChatNameByChatId(chatId);
+    }
+
+    public Log findLogById(Long id) {
+        return Objects.isNull(id) ? null : logRepo.findById(id).orElse(null);
+    }
+
+    public long countNewerMessages(String chatId, LocalDateTime dateTime, Long id) {
+        return logRepo.countNewerMessages(chatId, dateTime, id);
     }
 
     public List<ChatViewDto> getAllChats() {
@@ -88,7 +98,8 @@ public class LogService implements NeedProcessMessage {
         log.setDeleted(false);
         log.setLoggerType(messageDTO.isServiceMessage() ? "service" : "chatbot");
         applyContent(log, messageDTO);
-        logRepo.save(log);
+        Log saved = logRepo.save(log);
+        tripDuplicateService.regroup(saved);
     }
 
     /**
@@ -130,7 +141,8 @@ public class LogService implements NeedProcessMessage {
 
         applyContent(existing, messageDTO);
         existing.setEditedAt(editedAt);
-        logRepo.save(existing);
+        Log saved = logRepo.save(existing);
+        tripDuplicateService.regroup(saved);
     }
 
     /** Помечает сообщение удалённым (бот удалил его сам, например по фильтру слов). */
@@ -170,6 +182,7 @@ public class LogService implements NeedProcessMessage {
             log.setTripTo(null);
             log.setTripTime(null);
             log.setTripSeekingCar(false);
+            log.setTripSeats(null);
             return;
         }
         TripMessageInfo info = tripMessageParser.parse(messageDTO.getUserText(), messageDTO.getDateTime());
@@ -177,6 +190,7 @@ public class LogService implements NeedProcessMessage {
         log.setTripTo(info.to());
         log.setTripTime(info.tripTime());
         log.setTripSeekingCar(info.seekingCar());
+        log.setTripSeats(info.seats());
     }
 
     private String tripChatId() {

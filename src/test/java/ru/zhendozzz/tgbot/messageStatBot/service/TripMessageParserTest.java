@@ -134,6 +134,36 @@ class TripMessageParserTest {
     }
 
     @Test
+    void parsesFreeSeats() {
+        TripMessageInfo info = parser.parse("Чебоксары → Урмары в 18:00, есть 3 свободных места", sentAt);
+
+        assertThat(info.seats()).isEqualTo(3);
+        assertThat(info.seekingCar()).isFalse();
+    }
+
+    @Test
+    void parsesSeatsAfterWord() {
+        TripMessageInfo info = parser.parse("Урмары-Чебоксары в 7:30, свободно 2 места", sentAt);
+
+        assertThat(info.seats()).isEqualTo(2);
+    }
+
+    @Test
+    void leavesSeatsEmptyWhenNotSpecified() {
+        TripMessageInfo info = parser.parse("Чебоксары-Урмары в 18:00", sentAt);
+
+        assertThat(info.seats()).isNull();
+    }
+
+    @Test
+    void doesNotCountPassengerRequestAsFreeSeats() {
+        TripMessageInfo info = parser.parse("Ищу машину, нужно 3 места, Урмары → Чебоксары", sentAt);
+
+        assertThat(info.seekingCar()).isTrue();
+        assertThat(info.seats()).isNull();
+    }
+
+    @Test
     void doesNotGuessPointWithoutPreposition() {
         TripMessageInfo info = parser.parse("Чебоксары 8:00", sentAt);
 

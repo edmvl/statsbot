@@ -45,29 +45,6 @@
             font-size: 13px;
         }
 
-        .msg-trip-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin: 4px 0 6px;
-        }
-
-        .msg-trip-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 3px 9px;
-            border-radius: var(--radius-pill);
-            background: var(--soft);
-            color: var(--text);
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .msg-trip-badge.time {
-            color: var(--accent);
-            font-weight: 700;
-        }
-
         .count-badge {
             flex: 0 0 auto;
             display: inline-flex;
@@ -91,6 +68,11 @@
             border-radius: var(--radius-md);
             padding: 12px 14px;
             margin-bottom: 10px;
+        }
+
+        .msg-focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
 
         .msg-avatar {
@@ -303,7 +285,7 @@
         }
     </style>
 </head>
-<body>
+<body th:attr="data-focus-message=${focusLogId}">
 <header class="page-header">
     <div>
         <h1 th:text="${chatName != null and !#strings.isEmpty(chatName) ? chatName : 'История чата'}">История чата</h1>
@@ -315,7 +297,7 @@
 <div th:if="${#lists.isEmpty(messages)}" class="empty">Сообщений нет</div>
 
 <div class="messages">
-    <article class="msg" th:each="m : ${messages}"
+    <article class="msg" th:id="'msg-' + ${m.id}" th:each="m : ${messages}"
              th:classappend="${m.deleted != null and m.deleted} ? ' is-deleted'">
         <img class="msg-avatar" th:if="${!#strings.isEmpty(m.avatarPath)}"
              th:src="@{/avatar/{id}(id=${m.userId})}" alt=""/>
@@ -340,16 +322,6 @@
                     <input type="hidden" name="page" th:value="${currentPage}"/>
                     <button type="submit" class="ban-btn" title="Заблокировать в чате">🚫</button>
                 </form>
-            </div>
-            <div class="msg-trip-badges"
-                 th:if="${m.tripFrom != null or m.tripTo != null or m.tripTime != null}">
-                <span class="msg-trip-badge" th:if="${m.tripFrom != null or m.tripTo != null}">
-                    <span th:if="${m.tripFrom != null}" th:text="'от ' + ${m.tripFrom}"></span>
-                    <span th:if="${m.tripFrom != null and m.tripTo != null}">→</span>
-                    <span th:if="${m.tripTo != null}" th:text="'до ' + ${m.tripTo}"></span>
-                </span>
-                <span class="msg-trip-badge time" th:if="${m.tripTime != null}"
-                      th:text="'🕒 ' + ${#temporals.format(m.tripTime, 'dd.MM.yyyy HH:mm')}">🕒 05.11.2026 08:30</span>
             </div>
             <div class="msg-text" th:text="${m.text}"></div>
 
@@ -402,6 +374,22 @@
         box.hidden = !opening;
         button.setAttribute('aria-expanded', opening ? 'true' : 'false');
     });
+
+    // Переход по ссылке «К сообщению»: подсветить и прокрутить к нужному сообщению.
+    (function () {
+        var id = document.body.getAttribute('data-focus-message');
+        if (!id) {
+            return;
+        }
+        var message = document.getElementById('msg-' + id);
+        if (!message) {
+            return;
+        }
+        message.classList.add('msg-focus');
+        setTimeout(function () {
+            message.scrollIntoView({block: 'center', behavior: 'smooth'});
+        }, 100);
+    })();
 </script>
 </body>
 </html>

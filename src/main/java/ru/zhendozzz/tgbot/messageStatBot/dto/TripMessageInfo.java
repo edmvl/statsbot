@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
  * @param to         точка прибытия или {@code null}
  * @param tripTime   время поездки или {@code null}, если время не указано
  * @param seekingCar автор ищет машину/попутку (а не предлагает поездку)
+ * @param seats      количество свободных мест или {@code null}, если не указано
  */
-public record TripMessageInfo(String from, String to, LocalDateTime tripTime, boolean seekingCar) {
+public record TripMessageInfo(String from, String to, LocalDateTime tripTime,
+                              boolean seekingCar, Integer seats) {
 }
