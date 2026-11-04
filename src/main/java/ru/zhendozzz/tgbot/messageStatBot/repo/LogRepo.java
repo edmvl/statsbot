@@ -149,4 +149,6 @@ public interface LogRepo extends JpaRepository<Log, Long> {
     @Query(value = "select distinct trip_to from log "
             + "where trip_to is not null and trip_to <> '' order by trip_to", nativeQuery = true)
     List<String> findDistinctTripTo();
+
+    List<Log> findTop500ByChatIdAndTripParsedFalseOrderByIdAsc(String chatId);
 }

@@ -155,6 +155,7 @@ public class LogService implements NeedProcessMessage {
             log.setFile(file.getFileId());
         }
         applyTripRecognition(log, messageDTO);
+        log.setTripParsed(true);
     }
 
     /**

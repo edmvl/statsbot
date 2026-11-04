@@ -41,6 +41,7 @@ class LogServiceTest {
         assertThat(saved.getText()).isEqualTo("новый текст");
         assertThat(saved.getDeleted()).isFalse();
         assertThat(saved.getEditedAt()).isNull();
+        assertThat(saved.getTripParsed()).isTrue();
         verify(logEditRepo, never()).save(any(LogEdit.class));
     }
 

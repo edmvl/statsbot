@@ -68,4 +68,8 @@ public class Log {
     @Column(name = "trip_time")
     LocalDateTime tripTime;
 
+    /** Сообщение уже проверено распознаванием (в т.ч. если ничего не нашли). */
+    @Column(name = "trip_parsed")
+    Boolean tripParsed;
+
 }
