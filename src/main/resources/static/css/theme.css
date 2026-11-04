@@ -55,3 +55,14 @@
 [hidden] {
     display: none !important;
 }
+
+/* Кликабельное имя пользователя: ведёт на его страницу. */
+.user-link {
+    color: var(--link);
+    text-decoration: none;
+}
+
+.user-link:hover,
+.user-link:focus-visible {
+    text-decoration: underline;
+}

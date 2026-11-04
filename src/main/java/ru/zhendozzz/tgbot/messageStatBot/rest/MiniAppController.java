@@ -286,6 +286,40 @@ public class MiniAppController {
         return "my-subscriptions";
     }
 
+    /** Добавление подписки на пользователя из канала поездок. */
+    @PostMapping("/my-subscriptions/add")
+    public String addSubscription(
+            @RequestParam("interestId") String interestId,
+            HttpServletRequest request,
+            HttpServletResponse httpServletResponse,
+            RedirectAttributes redirectAttributes
+    ) throws IOException {
+        String userId = currentUserService.idAsString(request);
+        if (userId == null) {
+            httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "Откройте приложение через Telegram");
+            return null;
+        }
+        String targetUserId = interestId == null ? "" : interestId.trim();
+        if (targetUserId.isEmpty() || !userRepo.existsById(targetUserId)) {
+            redirectAttributes.addFlashAttribute("subscriptionError", "Пользователь не найден.");
+            return "redirect:/app/my-subscriptions";
+        }
+        if (targetUserId.equals(userId)) {
+            redirectAttributes.addFlashAttribute("subscriptionError", "Нельзя подписаться на себя.");
+            return "redirect:/app/my-subscriptions";
+        }
+        String chatId = settingsService.findTripChannelId();
+        if (chatId == null) {
+            redirectAttributes.addFlashAttribute("subscriptionError",
+                    "Не настроен канал поездок — подписка недоступна.");
+            return "redirect:/app/my-subscriptions";
+        }
+        interestedService.subscribe(userId, chatId, targetUserId);
+        redirectAttributes.addFlashAttribute("subscriptionSuccess", "Подписка добавлена.");
+        return "redirect:/app/my-subscriptions";
+    }
+
     @GetMapping("/chats")
     public String chatsView(HttpServletRequest request, Model model) {
         boolean superAdmin = currentUserService.isSuperAdmin(request);

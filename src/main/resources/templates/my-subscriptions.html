@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Мои подписки</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
@@ -122,11 +122,170 @@
             border-radius: var(--radius-md);
             padding: 14px;
         }
+
+        .notice {
+            padding: 11px 14px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .notice.success {
+            background: rgba(46, 158, 91, 0.14);
+            border: 1px solid rgba(46, 158, 91, 0.35);
+            color: var(--good);
+        }
+
+        .notice.error {
+            background: rgba(229, 72, 77, 0.12);
+            border: 1px solid rgba(229, 72, 77, 0.35);
+            color: var(--danger);
+        }
+
+        .add-card {
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        .add-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .search-wrap {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 11px 42px 11px 13px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+            background: var(--inner-bg);
+            color: var(--text);
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--soft);
+        }
+
+        .clear-btn {
+            position: absolute;
+            top: 50%;
+            right: 6px;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .search-results {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .search-result {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-sm);
+            background: var(--inner-bg);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .search-result:hover {
+            background: var(--soft);
+        }
+
+        .search-result .avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+        }
+
+        .search-result-info {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .search-result-name {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .search-result-id {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .add-form {
+            margin-top: 10px;
+        }
+
+        .selected-user {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            color: var(--on-accent);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .add-btn:active {
+            transform: scale(0.99);
+        }
+
+        .add-hint {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.4;
+        }
     </style>
 </head>
-<body>
+<body th:attr="data-current-user-id=${currentUserId}">
 <h1>Мои подписки</h1>
-<div class="subtitle">Здесь видно, на кого вы подписаны, и можно отписаться.</div>
+<div class="subtitle">Здесь видно, на кого вы подписаны, и можно отписаться или добавить новую подписку.</div>
+
+<div class="notice success" th:if="${subscriptionSuccess}" th:text="${subscriptionSuccess}"></div>
+<div class="notice error" th:if="${subscriptionError}" th:text="${subscriptionError}"></div>
 
 <div class="hint" th:if="${#strings.isEmpty(currentUserId)}">
     Откройте страницу через Telegram — тогда мы покажем ваши подписки.
@@ -134,9 +293,26 @@
     переключателем «Подписаться».
 </div>
 
+<section class="add-card" th:if="${!#strings.isEmpty(currentUserId)}">
+    <div class="add-title">Добавить подписку</div>
+    <div class="search-wrap">
+        <input class="search-input" id="userSearch" type="search" autocomplete="off"
+               placeholder="Имя, @ник или ID" aria-label="Поиск пользователя"/>
+        <button type="button" class="clear-btn" id="searchClear" aria-label="Очистить" hidden>×</button>
+    </div>
+    <div class="search-results" id="searchResults" hidden></div>
+    <form class="add-form" id="addForm" method="post"
+          th:action="@{/app/my-subscriptions/add}" hidden>
+        <input type="hidden" name="interestId" id="newInterestId"/>
+        <div class="selected-user" id="selectedUser"></div>
+        <button type="submit" class="add-btn">Добавить в подписки</button>
+    </form>
+    <div class="add-hint" id="searchHint">Поиск по участникам канала поездок: имя, @ник или ID (минимум 2 символа).</div>
+</section>
+
 <div class="empty" th:if="${!#strings.isEmpty(currentUserId) and #lists.isEmpty(subscriptions)}">
-    Вы пока ни на кого не подписаны. Подписаться можно на странице
-    «Отзывы и рейтинги» — переключателем «Подписаться».
+    Вы пока ни на кого не подписаны. Найдите пользователя выше и добавьте подписку
+    или подпишитесь на странице «Отзывы и рейтинги».
 </div>
 
 <form method="post" th:action="@{/app/my-subscriptions}" class="row" th:each="sub : ${subscriptions}">
@@ -169,7 +345,161 @@
         if (tg) {
             tg.expand();
         }
+
+        var search = document.getElementById('userSearch');
+        if (!search) {
+            return;
+        }
+        var currentUserId = document.body.getAttribute('data-current-user-id') || '';
+        var clearButton = document.getElementById('searchClear');
+        var results = document.getElementById('searchResults');
+        var addForm = document.getElementById('addForm');
+        var interestInput = document.getElementById('newInterestId');
+        var selectedUser = document.getElementById('selectedUser');
+        var hint = document.getElementById('searchHint');
+        var timer = null;
+        var defaultHint = 'Поиск по участникам канала поездок: имя, @ник или ID (минимум 2 символа).';
+
+        function headers() {
+            var value = {};
+            if (tg && tg.initData) {
+                // Подпись передаём заголовком — работает и без cookie.
+                value['X-Telegram-Init-Data'] = tg.initData;
+            }
+            return value;
+        }
+
+        function label(user) {
+            return user.userName ? user.name + ' (@' + user.userName + ')' : user.name;
+        }
+
+        function hideSelection() {
+            interestInput.value = '';
+            selectedUser.textContent = '';
+            addForm.hidden = true;
+        }
+
+        function clearAll() {
+            search.value = '';
+            results.innerHTML = '';
+            results.hidden = true;
+            clearButton.hidden = true;
+            hideSelection();
+            hint.textContent = defaultHint;
+        }
+
+        function choose(user) {
+            interestInput.value = user.id;
+            selectedUser.textContent = 'Выбран: ' + label(user);
+            addForm.hidden = false;
+            results.hidden = true;
+            search.value = user.name || ('ID ' + user.id);
+            clearButton.hidden = false;
+            hint.textContent = 'Проверьте выбор и нажмите «Добавить в подписки».';
+        }
+
+        function render(users) {
+            results.innerHTML = '';
+            if (users) {
+                users = users.filter(function (user) {
+                    return String(user.id) !== String(currentUserId);
+                });
+            }
+            if (!users || !users.length) {
+                results.hidden = true;
+                hint.textContent = 'Ничего не найдено.';
+                return;
+            }
+            users.forEach(function (user) {
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'search-result';
+
+                if (user.avatarPath) {
+                    var image = document.createElement('img');
+                    image.className = 'avatar';
+                    image.src = '/avatar/' + encodeURIComponent(user.id);
+                    image.alt = '';
+                    item.appendChild(image);
+                } else {
+                    var placeholder = document.createElement('span');
+                    placeholder.className = 'avatar avatar-placeholder';
+                    placeholder.textContent = (user.name || '?').charAt(0);
+                    item.appendChild(placeholder);
+                }
+
+                var info = document.createElement('span');
+                info.className = 'search-result-info';
+                var name = document.createElement('span');
+                name.className = 'search-result-name';
+                name.textContent = label(user);
+                var id = document.createElement('span');
+                id.className = 'search-result-id';
+                id.textContent = 'ID ' + user.id;
+                info.appendChild(name);
+                info.appendChild(id);
+                item.appendChild(info);
+
+                item.addEventListener('click', function () {
+                    choose(user);
+                });
+                results.appendChild(item);
+            });
+            results.hidden = false;
+            hint.textContent = 'Выберите пользователя из списка.';
+        }
+
+        function searchUsers(query) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/feedback/users?q=' + encodeURIComponent(query), true);
+            var requestHeaders = headers();
+            Object.keys(requestHeaders).forEach(function (name) {
+                xhr.setRequestHeader(name, requestHeaders[name]);
+            });
+            xhr.onload = function () {
+                if (xhr.status < 200 || xhr.status >= 300) {
+                    results.hidden = true;
+                    hint.textContent = 'Не удалось найти пользователей.';
+                    return;
+                }
+                try {
+                    render(JSON.parse(xhr.responseText));
+                } catch (e) {
+                    results.hidden = true;
+                    hint.textContent = 'Не удалось найти пользователей.';
+                }
+            };
+            xhr.onerror = function () {
+                results.hidden = true;
+                hint.textContent = 'Не удалось найти пользователей.';
+            };
+            xhr.send();
+        }
+
+        search.addEventListener('input', function () {
+            var query = search.value.trim();
+            hideSelection();
+            results.innerHTML = '';
+            results.hidden = true;
+            clearButton.hidden = query.length === 0;
+
+            clearTimeout(timer);
+            if (query.length < 2) {
+                hint.textContent = defaultHint;
+                return;
+            }
+            hint.textContent = 'Ищем…';
+            timer = setTimeout(function () {
+                searchUsers(query);
+            }, 300);
+        });
+
+        clearButton.addEventListener('click', function () {
+            clearAll();
+            search.focus();
+        });
     })();
 </script>
+
 </body>
 </html>

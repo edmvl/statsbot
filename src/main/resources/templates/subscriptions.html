@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Подписки</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         * {
@@ -168,13 +168,14 @@
              th:src="@{/avatar/{id}(id=${group.userId})}" alt=""/>
         <span class="avatar avatar-placeholder" th:unless="${!#strings.isEmpty(group.avatarPath)}"
               th:text="${!#strings.isEmpty(group.firstName) ? #strings.substring(group.firstName,0,1) : '👤'}">👤</span>
-        <div class="who" th:title="${group.userId}">
+        <a class="who user-link" th:href="@{/app/reviews/{id}(id=${group.userId})}"
+           th:title="${group.userId}">
             <div class="name"
                  th:text="${!#strings.isEmpty(group.firstName)
                          ? (group.firstName + ' ' + (group.lastName != null ? group.lastName : ''))
                          : (!#strings.isEmpty(group.userName) ? '@' + group.userName : 'ID ' + group.userId)}">Имя</div>
             <div class="username" th:if="${!#strings.isEmpty(group.userName)}" th:text="'ID ' + ${group.userId}"></div>
-        </div>
+        </a>
         <div class="count" th:text="'подписок: ' + ${#lists.size(group.interests)}">подписок: 1</div>
     </div>
 

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app" defer></script>
     <style>
         * {
             box-sizing: border-box;
@@ -169,14 +169,16 @@
             </td>
             <td th:text="${feedback.dateTime != null ? #temporals.format(feedback.dateTime, 'dd.MM.yyyy HH:mm') : '—'}">—</td>
             <td class="who">
-                <div th:text="${feedback.userName != null and !#strings.isEmpty(feedback.userName) ? feedback.userName : feedback.userId}">Пользователь</div>
+                <a class="user-link" th:href="@{/app/reviews/{id}(id=${feedback.userId})}"
+                   th:text="${feedback.userName != null and !#strings.isEmpty(feedback.userName) ? feedback.userName : feedback.userId}">Пользователь</a>
                 <div class="muted" th:text="'ID ' + ${feedback.userId}"></div>
             </td>
             <td class="who">
-                <div th:if="${feedback.targetUserId != null}"
-                     th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
-                             ? feedback.targetUserName
-                             : feedback.targetUserId}">Иван</div>
+                <a th:if="${feedback.targetUserId != null}"
+                   th:href="@{/app/reviews/{id}(id=${feedback.targetUserId})}"
+                   th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
+                           ? feedback.targetUserName
+                           : feedback.targetUserId}">Иван</a>
                 <div class="muted" th:if="${feedback.targetUserId != null}" th:text="'ID ' + ${feedback.targetUserId}"></div>
                 <span class="muted" th:if="${feedback.targetUserId == null}">не указан</span>
             </td>

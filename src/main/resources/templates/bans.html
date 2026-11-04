@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app/feedback" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app/feedback" defer></script>
     <style>
         * {
             box-sizing: border-box;
@@ -138,12 +138,18 @@
         <tbody>
         <tr th:each="ban : ${bans}">
             <td>
-                <div class="user-name"
-                     th:text="${ban.userName != null and !#strings.isEmpty(ban.userName) ? ban.userName : ban.userId}">Имя</div>
+                <a class="user-name user-link"
+                   th:href="@{/app/reviews/{id}(id=${ban.userId})}"
+                   th:text="${ban.userName != null and !#strings.isEmpty(ban.userName) ? ban.userName : ban.userId}">Имя</a>
                 <div class="user-id" th:text="'ID ' + ${ban.userId}"></div>
             </td>
             <td th:text="${ban.bannedAt != null ? #temporals.format(ban.bannedAt, 'dd.MM.yyyy HH:mm') : ''}"></td>
-            <td th:text="${ban.bannedBy != null and !#strings.isEmpty(ban.bannedBy) ? ban.bannedBy : '—'}"></td>
+            <td>
+                <a th:if="${ban.bannedBy != null and !#strings.isEmpty(ban.bannedBy)}"
+                   th:href="@{/app/reviews/{id}(id=${ban.bannedBy})}"
+                   th:text="${ban.bannedBy}">ID</a>
+                <span class="muted" th:unless="${ban.bannedBy != null and !#strings.isEmpty(ban.bannedBy)}">—</span>
+            </td>
             <td>
                 <a th:if="${ban.feedbackId != null}"
                    th:href="@{/app/feedback-chat/{id}(id=${ban.feedbackId})}"

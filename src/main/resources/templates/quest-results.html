@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app/quests" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app/quests" defer></script>
     <style>
         * {
             box-sizing: border-box;
@@ -165,10 +165,11 @@
         <span class="avatar-placeholder" th:unless="${p.avatarPath != null and !#strings.isEmpty(p.avatarPath)}"
               th:text="${p.firstName != null and !#strings.isEmpty(p.firstName) ? #strings.substring(p.firstName,0,1) : '👤'}">👤</span>
         <div class="person-main">
-            <div class="person-name"
-                 th:text="${p.firstName != null and !#strings.isEmpty(p.firstName)
-                          ? (p.firstName + ' ' + (p.lastName != null ? p.lastName : ''))
-                          : (!#strings.isEmpty(p.userName) ? '@' + p.userName : 'ID ' + p.userId)}">Имя</div>
+            <a class="person-name user-link"
+               th:href="@{/app/reviews/{id}(id=${p.userId})}"
+               th:text="${p.firstName != null and !#strings.isEmpty(p.firstName)
+                        ? (p.firstName + ' ' + (p.lastName != null ? p.lastName : ''))
+                        : (!#strings.isEmpty(p.userName) ? '@' + p.userName : 'ID ' + p.userId)}">Имя</a>
             <div class="person-meta" th:text="'ID ' + ${p.userId}"></div>
             <div class="person-meta"
                  th:text="${p.startedAt != null ? 'старт: ' + #temporals.format(p.startedAt, 'dd.MM.yyyy HH:mm') : ''}"></div>
@@ -188,10 +189,11 @@
         <span class="avatar-placeholder" th:unless="${p.avatarPath != null and !#strings.isEmpty(p.avatarPath)}"
               th:text="${p.firstName != null and !#strings.isEmpty(p.firstName) ? #strings.substring(p.firstName,0,1) : '👤'}">👤</span>
         <div class="person-main">
-            <div class="person-name"
-                 th:text="${p.firstName != null and !#strings.isEmpty(p.firstName)
-                          ? (p.firstName + ' ' + (p.lastName != null ? p.lastName : ''))
-                          : (!#strings.isEmpty(p.userName) ? '@' + p.userName : 'ID ' + p.userId)}">Имя</div>
+            <a class="person-name user-link"
+               th:href="@{/app/reviews/{id}(id=${p.userId})}"
+               th:text="${p.firstName != null and !#strings.isEmpty(p.firstName)
+                        ? (p.firstName + ' ' + (p.lastName != null ? p.lastName : ''))
+                        : (!#strings.isEmpty(p.userName) ? '@' + p.userName : 'ID ' + p.userId)}">Имя</a>
             <div class="person-meta" th:text="'ID ' + ${p.userId}"></div>
             <div class="person-meta"
                  th:text="${p.finishedAt != null ? 'финиш: ' + #temporals.format(p.finishedAt, 'dd.MM.yyyy HH:mm') : ''}"></div>

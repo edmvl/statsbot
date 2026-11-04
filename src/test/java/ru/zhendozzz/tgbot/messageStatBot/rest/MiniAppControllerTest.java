@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.ui.ExtendedModelMap;
+import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 import ru.zhendozzz.tgbot.messageStatBot.config.AdminAuthGuard;
 import ru.zhendozzz.tgbot.messageStatBot.entity.FeedBack;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
@@ -39,9 +40,10 @@ class MiniAppControllerTest {
     private final MessageExecutor messageExecutor = mock(MessageExecutor.class);
     private final FeedbackService feedbackService = mock(FeedbackService.class);
     private final AdminAuthGuard adminAuthGuard = mock(AdminAuthGuard.class);
+    private final InterestedService interestedService = mock(InterestedService.class);
     private final MiniAppController controller = new MiniAppController(
             mock(TripService.class), feedbackService, mock(FileLoaderService.class),
-            mock(LogService.class), mock(InterestedService.class), settingsService,
+            mock(LogService.class), interestedService, settingsService,
             mock(RatingRepo.class), userRepo, mock(UserNameHistoryRepo.class),
             currentUserService, adminAuthGuard, messageExecutor);
 
@@ -115,6 +117,50 @@ class MiniAppControllerTest {
 
         verify(messageExecutor, never()).banUser(any(Long.class), any(Long.class));
         assertThat(response.getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    void addSubscriptionSubscribesToTripChannel() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/app/my-subscriptions/add");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        RedirectAttributesModelMap attributes = new RedirectAttributesModelMap();
+        when(currentUserService.idAsString(request)).thenReturn("42");
+        when(userRepo.existsById("777")).thenReturn(true);
+        when(settingsService.findTripChannelId()).thenReturn("-100500");
+
+        String view = controller.addSubscription("777", request, response, attributes);
+
+        assertThat(view).isEqualTo("redirect:/app/my-subscriptions");
+        verify(interestedService).subscribe("42", "-100500", "777");
+        assertThat(attributes.getFlashAttributes()).containsKey("subscriptionSuccess");
+    }
+
+    @Test
+    void addSubscriptionRejectsSelf() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/app/my-subscriptions/add");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        RedirectAttributesModelMap attributes = new RedirectAttributesModelMap();
+        when(currentUserService.idAsString(request)).thenReturn("42");
+        when(userRepo.existsById("42")).thenReturn(true);
+
+        controller.addSubscription("42", request, response, attributes);
+
+        verify(interestedService, never()).subscribe(any(), any(), any());
+        assertThat(attributes.getFlashAttributes()).containsKey("subscriptionError");
+    }
+
+    @Test
+    void addSubscriptionRejectsUnknownUser() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/app/my-subscriptions/add");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        RedirectAttributesModelMap attributes = new RedirectAttributesModelMap();
+        when(currentUserService.idAsString(request)).thenReturn("42");
+        when(userRepo.existsById("777")).thenReturn(false);
+
+        controller.addSubscription("777", request, response, attributes);
+
+        verify(interestedService, never()).subscribe(any(), any(), any());
+        assertThat(attributes.getFlashAttributes()).containsKey("subscriptionError");
     }
 
     @Test

@@ -8,7 +8,7 @@
     <script th:src="@{/webjars/jquery/3.6.1/jquery.min.js}"></script>
     <script th:src="@{/webjars/jquery-ui/1.13.3/jquery-ui.min.js}"></script>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app/chats" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app/chats" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         body {
@@ -230,7 +230,9 @@
                 <span class="member-avatar member-avatar-placeholder" th:unless="${!#strings.isEmpty(member.avatarPath)}"
                       th:text="${!#strings.isEmpty(member.userName) ? #strings.substring(member.userName,0,1) : '👤'}">👤</span>
                 <div>
-                    <div class="setting-label" th:text="${member.userName}">Пользователь</div>
+                    <a class="setting-label user-link"
+                       th:href="@{/app/reviews/{id}(id=${member.userId})}"
+                       th:text="${member.userName}">Пользователь</a>
                     <div class="setting-name" th:text="${member.userId}">user_id</div>
                 </div>
             </div>

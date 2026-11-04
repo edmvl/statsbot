@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app/chats" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app/chats" defer></script>
     <style>
         * {
             box-sizing: border-box;
@@ -305,8 +305,9 @@
                    th:text="${!#strings.isEmpty(m.firstName)
                            ? (m.firstName + ' ' + (m.lastName != null ? m.lastName : ''))
                            : (!#strings.isEmpty(m.userName) ? '@' + m.userName : 'ID ' + m.userId)}">Имя</a>
-                <span class="msg-nick" th:if="${!#strings.isEmpty(m.userName) and !#strings.isEmpty(m.firstName)}"
-                      th:text="'@' + ${m.userName}"></span>
+                <a class="msg-nick user-link" th:if="${!#strings.isEmpty(m.userName) and !#strings.isEmpty(m.firstName)}"
+                   th:href="@{/app/reviews/{id}(id=${m.userId})}"
+                   th:text="'@' + ${m.userName}"></a>
                 <time class="msg-time"
                       th:text="${m.dateTime != null ? #temporals.format(m.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></time>
                 <form class="ban-form" method="post"

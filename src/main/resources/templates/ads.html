@@ -612,7 +612,7 @@
 <script src="/webjars/jquery/3.6.1/jquery.min.js"></script>
 <script src="/webjars/jquery-ui/1.13.3/jquery-ui.min.js"></script>
 <script src="/js/telegram-web-app.js" defer></script>
-<script src="/js/app-back.js?v=12" data-back="/app" defer></script>
+<script src="/js/app-back.js?v=13" data-back="/app" defer></script>
 
 <script th:inline="javascript">
     const STARS_PER_DAY = /*[[${starsPerDay}]]*/ 100;
@@ -736,7 +736,7 @@
                     ? `<div class="status-line status-${status}">${statusLabel(status)}</div>`
                     : '';
                 const proposalMeta = ad.userId
-                    ? `<div class="period"><i class="fas fa-user"></i> ${escapeHtml(ad.userId)} · ${ad.days || 0} дн. · ${priceOf(ad)} ⭐</div>`
+                    ? `<div class="period"><i class="fas fa-user"></i> <a class="user-link" href="/app/reviews/${encodeURIComponent(ad.userId)}">${escapeHtml(ad.userId)}</a> · ${ad.days || 0} дн. · ${priceOf(ad)} ⭐</div>`
                     : '';
                 const actions = status === 'PENDING'
                     ? `<div class="actions">

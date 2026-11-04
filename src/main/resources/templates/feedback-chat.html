@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}"
+    <script th:src="@{/js/app-back.js(v=13)}"
             th:attr="data-back=${authenticated != null and authenticated ? '/app/feedback' : null}" defer></script>
     <style>
         * {
@@ -480,13 +480,19 @@
               th:classappend="${feedback.finished != null and feedback.finished} ? 'status-closed' : 'status-open'"
               th:text="${feedback.finished != null and feedback.finished ? 'Закрыта' : 'Открыта'}">Открыта</span>
     </h1>
-    <p class="sub" th:text="'От: ' + ${feedback.userName}">От: Пользователь</p>
+    <p class="sub">От:
+        <a class="user-link"
+           th:href="@{/app/reviews/{id}(id=${feedback.userId})}"
+           th:text="${feedback.userName != null and !#strings.isEmpty(feedback.userName) ? feedback.userName : feedback.userId}">Пользователь</a>
+    </p>
     <p class="target"
        th:if="${feedback.targetUserId != null and (canEditTarget == null or canEditTarget == false)}">
         На пользователя:
-        <b th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
-                     ? feedback.targetUserName
-                     : feedback.targetUserId}">Иван</b>
+        <a class="user-link"
+           th:href="@{/app/reviews/{id}(id=${feedback.targetUserId})}"
+           th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
+                    ? feedback.targetUserName
+                    : feedback.targetUserId}">Иван</a>
         <span class="muted" th:text="'ID ' + ${feedback.targetUserId}"></span>
     </p>
     <p class="target muted"
@@ -559,7 +565,9 @@
 
 <div class="reply" th:each="reply : ${feedBackChatList}">
     <div class="reply-head">
-        <span class="reply-author" th:text="${reply.userName}">Админ</span>
+        <a class="reply-author user-link"
+           th:href="@{/app/reviews/{id}(id=${reply.userId})}"
+           th:text="${reply.userName != null and !#strings.isEmpty(reply.userName) ? reply.userName : reply.userId}">Админ</a>
         <time th:text="${reply.dateTime != null ? #temporals.format(reply.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></time>
     </div>
     <div class="reply-text" th:text="${reply.description}">Ответ</div>

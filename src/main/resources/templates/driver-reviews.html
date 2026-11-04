@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Отзывы о пользователе</title>
     <script th:src="@{/js/telegram-web-app.js}" defer></script>
-    <script th:src="@{/js/app-back.js(v=12)}" data-back="/app/trips" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app/trips" defer></script>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
     <style>
         body {
@@ -176,13 +176,15 @@
     <span class="avatar-placeholder" th:if="${driver == null or #strings.isEmpty(driver.avatarPath)}"
           th:text="${(driver != null and !#strings.isEmpty(driver.firstName)) ? #strings.substring(driver.firstName,0,1) : '👤'}">👤</span>
     <div>
-        <div class="driver-name"
-             th:text="${driver != null and !#strings.isEmpty(driver.firstName)
-                     ? (driver.firstName + ' ' + (driver.lastName != null ? driver.lastName : ''))
-                     : 'Пользователь'}">Имя</div>
+        <a class="driver-name user-link"
+           th:href="@{/app/reviews/{id}(id=${driverId})}"
+           th:text="${driver != null and !#strings.isEmpty(driver.firstName)
+                   ? (driver.firstName + ' ' + (driver.lastName != null ? driver.lastName : ''))
+                   : 'Пользователь'}">Имя</a>
         <div class="driver-meta">
-            <span class="username" th:if="${driver != null and !#strings.isEmpty(driver.userName)}"
-                  th:text="'@' + ${driver.userName}"></span>
+            <a class="username user-link" th:if="${driver != null and !#strings.isEmpty(driver.userName)}"
+               th:href="@{/app/reviews/{id}(id=${driverId})}"
+               th:text="'@' + ${driver.userName}"></a>
             <span class="user-id" th:text="'ID ' + ${driverId}">ID 123456</span>
         </div>
     </div>
@@ -194,13 +196,15 @@
     <div class="history-row" th:each="entry : ${history}">
         <span class="history-date"
               th:text="${entry.changedAt != null ? #temporals.format(entry.changedAt, 'dd.MM.yyyy HH:mm') : '—'}">01.01.2026 12:00</span>
-        <span class="history-name"
-              th:text="${!#strings.isEmpty(entry.firstName)
-                      ? (entry.firstName + ' ' + (entry.lastName != null ? entry.lastName : ''))
-                      : (!#strings.isEmpty(entry.userName) ? '@' + entry.userName : '—')}">Имя</span>
-        <span class="history-username"
-              th:if="${!#strings.isEmpty(entry.userName) and !#strings.isEmpty(entry.firstName)}"
-              th:text="'@' + ${entry.userName}"></span>
+        <a class="history-name user-link"
+           th:href="@{/app/reviews/{id}(id=${driverId})}"
+           th:text="${!#strings.isEmpty(entry.firstName)
+                   ? (entry.firstName + ' ' + (entry.lastName != null ? entry.lastName : ''))
+                   : (!#strings.isEmpty(entry.userName) ? '@' + entry.userName : '—')}">Имя</a>
+        <a class="history-username user-link"
+           th:if="${!#strings.isEmpty(entry.userName) and !#strings.isEmpty(entry.firstName)}"
+           th:href="@{/app/reviews/{id}(id=${driverId})}"
+           th:text="'@' + ${entry.userName}"></a>
     </div>
 </div>
 
@@ -212,11 +216,12 @@
              th:src="@{/avatar/{id}(id=${review.reviewUserId})}" alt=""/>
         <span class="avatar-placeholder" th:unless="${review.avatarPath}"
               th:text="${#strings.isEmpty(review.firstName) ? '👤' : #strings.substring(review.firstName,0,1)}">👤</span>
-        <div>
+        <a class="review-author user-link"
+           th:href="@{/app/reviews/{id}(id=${review.reviewUserId})}">
             <div class="review-author-name"
                  th:text="${(review.firstName != null ? review.firstName : '') + ' ' + (review.lastName != null ? review.lastName : '')}">Имя</div>
             <div class="username" th:if="${review.userName}" th:text="'@' + ${review.userName}"></div>
-        </div>
+        </a>
         <div class="review-stars" th:text="'★ ' + ${review.stars}">★ 5</div>
     </div>
     <div class="review-comment" th:if="${review.comment}" th:text="${review.comment}">Комментарий</div>

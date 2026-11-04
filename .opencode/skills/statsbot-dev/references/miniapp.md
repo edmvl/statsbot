@@ -84,11 +84,12 @@ API: `/app/access` (JSON прав для меню), `/api/feedback/users?q=` (п
 - спиннер на внутренних переходах;
 - установка/обновление cookie `initData` + один reload;
 - раскрытие админ-пунктов по `initData` (id супер-админа) и `/app/access`;
+- просмотр аватарки по клику (оверлей `#app-avatar-viewer`, клик по картинке не уводит по ссылке);
 - `color-scheme` для темы.
 
 Скрипт подключается тегом:
-`<script th:src="@{/js/app-back.js(v=12)}" data-back="/app" defer></script>`
-(`v=12` — версия для сброса кеша; меняй при правках JS).
+`<script th:src="@{/js/app-back.js(v=13)}" data-back="/app" defer></script>`
+(`v=13` — версия для сброса кеша; меняй при правках JS).
 
 ## Конвенции страниц
 
@@ -101,6 +102,8 @@ API: `/app/access` (JSON прав для меню), `/api/feedback/users?q=` (п
   моделью — любое `attr.method()` без проверки на null уронит тест.
 - Списки: `th:if="${attr != null and !#lists.isEmpty(attr)}"` — `#lists.size(null)`
   кидает исключение.
+- Имена пользователей — ссылка на `/app/reviews/{id}` (класс `user-link`), аватарки
+  открываются на просмотр оверлеем `#app-avatar-viewer` из `app-back.js`.
 
 ## Публичный просмотр жалоб (осознанное решение)
 

@@ -62,7 +62,21 @@
             + '#app-spinner .app-spinner-ring{width:44px!important;height:44px!important;'
             + 'border-radius:50%!important;border:4px solid rgba(127,127,127,.35)!important;'
             + 'border-top-color:#1f6feb!important;animation:app-spin .8s linear infinite!important}'
-            + '@keyframes app-spin{to{transform:rotate(360deg)}}';
+            + '@keyframes app-spin{to{transform:rotate(360deg)}}'
+            + 'img.avatar,img.trip-avatar,img.msg-avatar,img.member-avatar,img.chip-avatar,'
+            + 'img.user-result-avatar,img.quest-avatar{cursor:zoom-in!important}'
+            + '#app-avatar-viewer{position:fixed!important;inset:0!important;z-index:2147483000!important;'
+            + 'display:none;align-items:center!important;justify-content:center!important;padding:20px!important;'
+            + 'background:rgba(0,0,0,.86)!important;cursor:zoom-out!important}'
+            + '#app-avatar-viewer.app-avatar-viewer-visible{display:flex!important}'
+            + '#app-avatar-viewer img{max-width:92vw!important;max-height:88vh!important;width:auto!important;'
+            + 'height:auto!important;border-radius:14px!important;object-fit:contain!important;'
+            + 'box-shadow:0 20px 60px rgba(0,0,0,.5)!important;background:#fff!important}'
+            + '#app-avatar-viewer .app-avatar-viewer-close{position:absolute!important;top:12px!important;'
+            + 'right:12px!important;width:44px!important;height:44px!important;padding:0!important;'
+            + 'border:0!important;border-radius:50%!important;background:rgba(255,255,255,.2)!important;'
+            + 'color:#fff!important;font-size:28px!important;line-height:44px!important;text-align:center!important;'
+            + 'cursor:pointer!important}';
         (document.head || document.documentElement).appendChild(style);
     }
 
@@ -105,6 +119,71 @@
         if (overlay) {
             overlay.classList.remove('app-spinner-visible');
         }
+    }
+
+    // === Просмотр аватарки ===
+    // Клик по аватарке открывает её поверх страницы. Аватарки часто лежат внутри
+    // ссылки на профиль — в этом случае клик по картинке не должен уводить со страницы.
+    var AVATAR_SELECTOR = 'img.avatar,img.trip-avatar,img.msg-avatar,img.member-avatar,'
+        + 'img.chip-avatar,img.user-result-avatar,img.quest-avatar';
+
+    function injectAvatarViewer() {
+        if (!document.body || document.getElementById('app-avatar-viewer')) {
+            return;
+        }
+        var overlay = document.createElement('div');
+        overlay.id = 'app-avatar-viewer';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'Просмотр аватарки');
+
+        var image = document.createElement('img');
+        image.alt = 'Аватар';
+        overlay.appendChild(image);
+
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'app-avatar-viewer-close';
+        close.setAttribute('aria-label', 'Закрыть');
+        close.textContent = '\u00d7';
+        overlay.appendChild(close);
+
+        overlay.addEventListener('click', closeAvatar);
+        document.body.appendChild(overlay);
+    }
+
+    function openAvatar(src) {
+        if (!src) {
+            return;
+        }
+        injectAvatarViewer();
+        var overlay = document.getElementById('app-avatar-viewer');
+        overlay.querySelector('img').src = src;
+        overlay.classList.add('app-avatar-viewer-visible');
+    }
+
+    function closeAvatar() {
+        var overlay = document.getElementById('app-avatar-viewer');
+        if (overlay) {
+            overlay.classList.remove('app-avatar-viewer-visible');
+        }
+    }
+
+    function setupAvatarViewer() {
+        document.addEventListener('click', function (event) {
+            var target = event.target;
+            if (!target || target.tagName !== 'IMG' || !target.matches(AVATAR_SELECTOR)) {
+                return;
+            }
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            openAvatar(target.currentSrc || target.src);
+        }, true);
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeAvatar();
+            }
+        });
     }
 
     // Спиннер на время перехода на другую страницу.
@@ -409,6 +488,7 @@
             injectBackButton();
         }
         injectSpinner();
+        setupAvatarViewer();
         setupNavigationSpinner();
         watchSuperAdminElements();
 
