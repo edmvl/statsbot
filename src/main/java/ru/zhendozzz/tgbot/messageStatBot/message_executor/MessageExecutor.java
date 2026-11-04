@@ -47,6 +47,11 @@ public interface MessageExecutor {
 
     void banUser(String chatId, String userId);
 
+    /**
+     * Снимает бан в чате. Возвращает {@code true}, если Telegram подтвердил операцию.
+     */
+    boolean unbanUser(Long chatId, Long userId);
+
     void restrictChatMember(Long chatId, Long userId);
 
     String getUserStatusInChat(Long chatId, Long userId);

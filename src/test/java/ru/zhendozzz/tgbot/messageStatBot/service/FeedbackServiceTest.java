@@ -98,6 +98,36 @@ class FeedbackServiceTest {
     }
 
     @Test
+    void unbanRemovesRecordAfterTelegramSuccess() {
+        BannedUser ban = new BannedUser();
+        ban.setId(1L);
+        ban.setUserId("777");
+        ban.setChatId("-100");
+        when(bannedUserRepo.findById(1L)).thenReturn(Optional.of(ban));
+        when(messageExecutor.unbanUser(-100L, 777L)).thenReturn(true);
+
+        service.unban(1L);
+
+        verify(messageExecutor).unbanUser(-100L, 777L);
+        verify(bannedUserRepo).delete(ban);
+    }
+
+    @Test
+    void unbanKeepsRecordWhenTelegramFails() {
+        BannedUser ban = new BannedUser();
+        ban.setId(1L);
+        ban.setUserId("777");
+        ban.setChatId("-100");
+        when(bannedUserRepo.findById(1L)).thenReturn(Optional.of(ban));
+        when(messageExecutor.unbanUser(-100L, 777L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.unban(1L))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(bannedUserRepo, never()).delete(any(BannedUser.class));
+    }
+
+    @Test
     void banWithoutTargetUserIsRejected() {
         when(feedBackRepo.findById(7L)).thenReturn(Optional.of(feedback(7L, null)));
 

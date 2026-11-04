@@ -700,6 +700,26 @@ public class MiniAppController {
         return "bans";
     }
 
+    /** Снятие бана администратором группы попутчиков или супер-админом. */
+    @PostMapping("/bans/{id}/unban")
+    public String unban(
+            @PathVariable("id") Long banId,
+            HttpServletRequest request,
+            HttpServletResponse httpServletResponse,
+            RedirectAttributes redirectAttributes
+    ) throws IOException {
+        if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
+            return null;
+        }
+        try {
+            feedbackService.unban(banId);
+            redirectAttributes.addFlashAttribute("unbanSuccess", "Бан снят.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("unbanError", e.getMessage());
+        }
+        return "redirect:/app/bans";
+    }
+
     @PostMapping("/feedback-chat")
     public String feedbackChatReply(
             @RequestParam("id") Long feedbackId,

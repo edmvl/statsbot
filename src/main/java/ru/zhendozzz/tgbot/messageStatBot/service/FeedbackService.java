@@ -263,6 +263,35 @@ public class FeedbackService implements CommandExecutable {
         return bannedUserRepo.findAllByOrderByBannedAtDesc();
     }
 
+    /**
+     * Снимает бан: сначала в Telegram, затем удаляет запись из списка заблокированных.
+     * Если Telegram не подтвердил операцию, запись остаётся — чтобы не потерять бан.
+     */
+    public void unban(Long banId) {
+        BannedUser ban = bannedUserRepo.findById(banId)
+                .orElseThrow(() -> new IllegalArgumentException("Запись о блокировке не найдена"));
+        Long chatId = parseNumeric(ban.getChatId());
+        Long userId = parseNumeric(ban.getUserId());
+        if (Objects.isNull(chatId) || Objects.isNull(userId)) {
+            throw new IllegalStateException("В записи о блокировке некорректный chat_id или user_id");
+        }
+        if (!messageExecutor.unbanUser(chatId, userId)) {
+            throw new IllegalStateException("Не удалось снять бан в Telegram");
+        }
+        bannedUserRepo.delete(ban);
+    }
+
+    private Long parseNumeric(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     /** Все жалобы, свежие сверху. */
     public List<FeedBack> findAllFeedbacks() {
         return feedBackRepo.findAllByOrderByIdDesc();

@@ -115,6 +115,42 @@
             color: var(--muted);
             padding: 36px 12px;
         }
+
+        .notice {
+            padding: 11px 14px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .notice.success {
+            background: rgba(46, 158, 91, 0.14);
+            border: 1px solid rgba(46, 158, 91, 0.35);
+            color: var(--good);
+        }
+
+        .notice.error {
+            background: rgba(229, 72, 77, 0.12);
+            border: 1px solid rgba(229, 72, 77, 0.35);
+            color: var(--danger);
+        }
+
+        .unban-btn {
+            padding: 7px 12px;
+            border: 1px solid var(--good);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--good);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .unban-btn:hover {
+            background: rgba(46, 158, 91, 0.12);
+        }
     </style>
 </head>
 <body>
@@ -122,6 +158,9 @@
     <h1>🚫 Заблокированные</h1>
     <span class="count-badge" th:text="${#lists.size(bans)}">0</span>
 </header>
+
+<div class="notice success" th:if="${unbanSuccess}" th:text="${unbanSuccess}"></div>
+<div class="notice error" th:if="${unbanError}" th:text="${unbanError}"></div>
 
 <div th:if="${#lists.isEmpty(bans)}" class="empty">Пока никого не блокировали</div>
 
@@ -133,6 +172,7 @@
             <th>Заблокирован</th>
             <th>Кем</th>
             <th>Жалоба</th>
+            <th>Действия</th>
         </tr>
         </thead>
         <tbody>
@@ -155,6 +195,12 @@
                    th:href="@{/app/feedback-chat/{id}(id=${ban.feedbackId})}"
                    th:text="'#' + ${ban.feedbackId}">#1</a>
                 <span class="muted" th:unless="${ban.feedbackId != null}">—</span>
+            </td>
+            <td>
+                <form method="post" th:action="@{/app/bans/{id}/unban(id=${ban.id})}"
+                      onsubmit="return confirm('Снять бан с пользователя?');">
+                    <button type="submit" class="unban-btn">Разблокировать</button>
+                </form>
             </td>
         </tr>
         </tbody>

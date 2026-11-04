@@ -3,6 +3,7 @@ package ru.zhendozzz.tgbot.messageStatBot.message_executor;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.BanChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.RestrictChatMember;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.UnbanChatMember;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.invoices.CreateInvoiceLink;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
@@ -226,6 +227,24 @@ public class MessageExecutorImpl implements MessageExecutor {
     }
     public void banUser(String chatId, String userId) {
         banUser(Long.valueOf(chatId), Long.valueOf(userId));
+    }
+
+    @Override
+    public boolean unbanUser(Long chatId, Long userId) {
+        if (Objects.isNull(chatId) || Objects.isNull(userId)) {
+            return false;
+        }
+        UnbanChatMember unbanChatMember = new UnbanChatMember();
+        unbanChatMember.setChatId(String.valueOf(chatId));
+        unbanChatMember.setUserId(userId);
+        // Не трогаем обычных участников: снимаем только действующий бан.
+        unbanChatMember.setOnlyIfBanned(true);
+        try {
+            return Boolean.TRUE.equals(tgBot.execute(unbanChatMember));
+        } catch (TelegramApiException e) {
+            log.error("Не удалось снять бан с {} в чате {}: {}", userId, chatId, e.getMessage());
+            return false;
+        }
     }
 
     public void restrictChatMember(Long chatId, Long userId) {
