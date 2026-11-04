@@ -56,9 +56,13 @@ public class Log {
     @Column(name = "deleted")
     Boolean deleted;
 
-    /** Распознанное направление поездки (только для канала попутчиков). */
-    @Column(name = "trip_direction")
-    String tripDirection;
+    /** Распознанная точка отправления (только для канала попутчиков). */
+    @Column(name = "trip_from")
+    String tripFrom;
+
+    /** Распознанная точка прибытия (только для канала попутчиков). */
+    @Column(name = "trip_to")
+    String tripTo;
 
     /** Распознанное время поездки (только для канала попутчиков). */
     @Column(name = "trip_time")

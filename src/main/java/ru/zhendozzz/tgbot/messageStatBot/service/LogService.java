@@ -46,13 +46,17 @@ public class LogService implements NeedProcessMessage {
         this.tripMessageParser = tripMessageParser;
     }
 
-    public List<ChatMessageDto> findByChatId(String chatId, int page, int size, String direction) {
-        return logRepo.getMessagesByChatId(chatId, blankToEmpty(direction), LocalDateTime.now(),
+    public List<ChatMessageDto> findByChatId(String chatId, int page, int size, boolean tripChat) {
+        return logRepo.getMessagesByChatId(chatId, tripChat, LocalDateTime.now(),
                 PageRequest.of(page, size)).getContent();
     }
 
-    private String blankToEmpty(String value) {
-        return Objects.isNull(value) ? "" : value.trim();
+    public List<String> findTripFromPoints() {
+        return logRepo.findDistinctTripFrom();
+    }
+
+    public List<String> findTripToPoints() {
+        return logRepo.findDistinctTripTo();
     }
 
     public String findChatName(String chatId) {
@@ -161,12 +165,14 @@ public class LogService implements NeedProcessMessage {
         String tripChatId = tripChatId();
         if (messageDTO.isServiceMessage() || tripChatId == null
                 || !tripChatId.equals(String.valueOf(messageDTO.getChatId()))) {
-            log.setTripDirection(null);
+            log.setTripFrom(null);
+            log.setTripTo(null);
             log.setTripTime(null);
             return;
         }
         TripMessageInfo info = tripMessageParser.parse(messageDTO.getUserText(), messageDTO.getDateTime());
-        log.setTripDirection(Objects.isNull(info.direction()) ? null : info.direction().name());
+        log.setTripFrom(info.from());
+        log.setTripTo(info.to());
         log.setTripTime(info.tripTime());
     }
 

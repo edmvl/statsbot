@@ -25,7 +25,7 @@ import ru.zhendozzz.tgbot.messageStatBot.service.TripService;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.AdStatus;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
-import ru.zhendozzz.tgbot.messageStatBot.util.enums.TripDirection;
+import ru.zhendozzz.tgbot.messageStatBot.util.enums.TripPoint;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,8 +44,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -144,15 +146,13 @@ public class MiniAppController {
             @PathVariable String chatId,
             @QueryParam("page") String page,
             @QueryParam("count") String count,
-            @QueryParam("direction") String direction,
             Model model
     ) {
         int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
         int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
         String tripChatId = settingsService.findTripChannelId();
         boolean tripChat = tripChatId != null && tripChatId.equals(chatId);
-        String tab = tripChat ? normalizeTripDirection(direction) : "";
-        List<ChatMessageDto> messages = logService.findByChatId(chatId, currentPage, cnt, tab);
+        List<ChatMessageDto> messages = logService.findByChatId(chatId, currentPage, cnt, tripChat);
         model.addAttribute("messages", messages);
         model.addAttribute("edits", logService.findEdits(messages.stream()
                 .map(ChatMessageDto::getId)
@@ -160,8 +160,6 @@ public class MiniAppController {
                 .toList()));
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("count", cnt);
-        model.addAttribute("direction", tab);
-        model.addAttribute("tripChat", tripChat);
         model.addAttribute("chatId", chatId);
         model.addAttribute("chatName", logService.findChatName(chatId));
         model.addAttribute("nextPage", currentPage + 1);
@@ -355,7 +353,8 @@ public class MiniAppController {
             @QueryParam("count") String count,
             @QueryParam("dateFrom") String dateFrom,
             @QueryParam("dateTo") String dateTo,
-            @QueryParam("direction") String direction,
+            @QueryParam("from") String from,
+            @QueryParam("to") String to,
             @QueryParam("author") String author,
             @QueryParam("text") String text,
             HttpServletRequest request,
@@ -363,13 +362,15 @@ public class MiniAppController {
     ) {
         int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
         int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
-        String tab = normalizeTripDirection(direction);
+        String selectedFrom = defaultValue(from).trim();
+        String selectedTo = defaultValue(to).trim();
         List<TripViewDto> tripList = tripService.getTripList(
                 currentPage * cnt,
                 cnt,
                 parseDateStart(dateFrom),
                 parseDateEnd(dateTo),
-                tab,
+                selectedFrom,
+                selectedTo,
                 author,
                 text
         );
@@ -378,7 +379,11 @@ public class MiniAppController {
         model.addAttribute("nextPage", currentPage + 1);
         model.addAttribute("prevPage", Math.max(currentPage - 1, 0));
         model.addAttribute("tripList", tripList);
-        model.addAttribute("direction", tab);
+        model.addAttribute("from", selectedFrom);
+        model.addAttribute("to", selectedTo);
+        List<String> points = tripPoints();
+        model.addAttribute("fromPoints", points);
+        model.addAttribute("toPoints", points);
         model.addAttribute("edits", logService.findEdits(tripList.stream()
                 .map(TripViewDto::getLogId)
                 .filter(Objects::nonNull)
@@ -392,17 +397,11 @@ public class MiniAppController {
         return "trips";
     }
 
-    private String normalizeTripDirection(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return TripDirection.CHEBOKSARY_URMARY.name();
-        }
-        String normalized = value.trim().toUpperCase(Locale.ROOT);
-        if ("OTHER".equals(normalized)) {
-            return normalized;
-        }
-        return TripDirection.fromDb(normalized) != null
-                ? normalized
-                : TripDirection.CHEBOKSARY_URMARY.name();
+    private List<String> tripPoints() {
+        Set<String> points = new LinkedHashSet<>(TripPoint.defaultLabels());
+        points.addAll(logService.findTripFromPoints());
+        points.addAll(logService.findTripToPoints());
+        return new ArrayList<>(points);
     }
 
     private LocalDateTime parseDateStart(String value) {

@@ -40,7 +40,8 @@ public class TripService implements CommandExecutable {
             int size,
             LocalDateTime dateFrom,
             LocalDateTime dateTo,
-            String direction,
+            String tripFrom,
+            String tripTo,
             String author,
             String text
     ) {
@@ -49,7 +50,8 @@ public class TripService implements CommandExecutable {
                 size,
                 dateFrom == null ? MIN_DATE : dateFrom,
                 dateTo == null ? MAX_DATE : dateTo,
-                blankToEmpty(direction),
+                blankToEmpty(tripFrom),
+                blankToEmpty(tripTo),
                 normalizeAuthor(author),
                 blankToEmpty(text),
                 LocalDateTime.now());

@@ -50,38 +50,6 @@
             border-radius: var(--radius-pill);
         }
 
-        /* ----- Вкладки направления ----- */
-        .direction-tabs {
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            padding-bottom: 2px;
-            margin-bottom: 12px;
-            -webkit-overflow-scrolling: touch;
-        }
-        .direction-tab {
-            flex: 0 0 auto;
-            padding: 8px 14px;
-            border: 1px solid var(--line-soft);
-            border-radius: var(--radius-pill);
-            background: var(--card-bg);
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: background var(--transition), color var(--transition), border-color var(--transition);
-        }
-        .direction-tab.active {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: var(--on-accent);
-        }
-        .direction-tab:not(.active):hover {
-            background: var(--soft);
-            color: var(--text);
-        }
-
         /* ----- Поиск ----- */
         .search-panel {
             display: flex;
@@ -102,6 +70,9 @@
             flex: 1 1 110px;
             min-width: 0;
         }
+        .search-field-wide {
+            flex: 1 1 165px;
+        }
         .search-field label {
             font-size: 12px;
             font-weight: 600;
@@ -109,7 +80,8 @@
             flex: 0 0 auto;
             white-space: nowrap;
         }
-        .search-field input {
+        .search-field input,
+        .search-field select {
             flex: 1 1 auto;
             min-width: 0;
             width: 100%;
@@ -123,7 +95,8 @@
             border-radius: 9px;
             transition: border-color var(--transition), box-shadow var(--transition);
         }
-        .search-field input:focus {
+        .search-field input:focus,
+        .search-field select:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px var(--soft);
@@ -727,28 +700,12 @@
     <span class="trip-count" th:text="'Найдено: ' + ${#lists.size(tripList)}">Найдено: 0</span>
 </div>
 
-<nav class="direction-tabs" aria-label="Направление поездки">
-    <a class="direction-tab" th:classappend="${direction == 'CHEBOKSARY_URMARY'} ? ' active'"
-       th:href="@{/app/trips(direction='CHEBOKSARY_URMARY', page=0, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}">
-        Чебоксары-Урмары
-    </a>
-    <a class="direction-tab" th:classappend="${direction == 'URMARY_CHEBOKSARY'} ? ' active'"
-       th:href="@{/app/trips(direction='URMARY_CHEBOKSARY', page=0, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}">
-        Урмары-Чебоксары
-    </a>
-    <a class="direction-tab" th:classappend="${direction == 'OTHER'} ? ' active'"
-       th:href="@{/app/trips(direction='OTHER', page=0, count=${count}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}">
-        Остальное
-    </a>
-</nav>
-
 <div class="alert-error" th:if="${reviewError}" th:text="${reviewError}"></div>
 
 <!-- Поиск -->
 <form class="search-panel" method="get" th:action="@{/app/trips}">
     <input type="hidden" name="page" value="0"/>
     <input type="hidden" name="count" th:value="${count}"/>
-    <input type="hidden" name="direction" th:value="${direction}"/>
 
     <div class="search-field">
         <label for="dateFrom">С</label>
@@ -757,6 +714,22 @@
     <div class="search-field">
         <label for="dateTo">По</label>
         <input type="date" id="dateTo" name="dateTo" th:value="${dateTo}"/>
+    </div>
+    <div class="search-field search-field-wide">
+        <label for="tripFrom">От</label>
+        <select id="tripFrom" name="from">
+            <option value="" th:selected="${#strings.isEmpty(from)}">Любой</option>
+            <option th:each="point : ${fromPoints}" th:value="${point}" th:text="${point}"
+                    th:selected="${point == from}"></option>
+        </select>
+    </div>
+    <div class="search-field search-field-wide">
+        <label for="tripTo">До</label>
+        <select id="tripTo" name="to">
+            <option value="" th:selected="${#strings.isEmpty(to)}">Любой</option>
+            <option th:each="point : ${toPoints}" th:value="${point}" th:text="${point}"
+                    th:selected="${point == to}"></option>
+        </select>
     </div>
     <div class="search-field">
         <input type="text" id="author" name="author" th:value="${author}"
@@ -812,9 +785,12 @@
     <div class="trip-body">
         <div class="trip-meta">
             <div class="trip-meta-badges"
-                 th:if="${trip.tripDirectionLabel != null or trip.tripTime != null}">
-                <span class="chip" th:if="${trip.tripDirectionLabel != null}"
-                      th:text="${trip.tripDirectionLabel}">Чебоксары → Урмары</span>
+                 th:if="${trip.tripFrom != null or trip.tripTo != null or trip.tripTime != null}">
+                <span class="chip" th:if="${trip.tripFrom != null or trip.tripTo != null}">
+                    <span th:if="${trip.tripFrom != null}" th:text="'от ' + ${trip.tripFrom}"></span>
+                    <span th:if="${trip.tripFrom != null and trip.tripTo != null}">→</span>
+                    <span th:if="${trip.tripTo != null}" th:text="'до ' + ${trip.tripTo}"></span>
+                </span>
                 <span class="chip trip-time-badge" th:if="${trip.tripTime != null}"
                       th:text="'🕒 ' + ${#temporals.format(trip.tripTime, 'd MMMM, HH:mm', ruLocale)}">🕒 22 октября, 18:30</span>
             </div>
@@ -886,9 +862,9 @@
 
 <!-- Пагинация -->
 <div class="pagination">
-    <a th:href="@{/app/trips(page=${prevPage}, count=${count}, direction=${direction}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'‹ Назад'" th:unless="${prevPage == null}">‹ Назад</a>
+    <a th:href="@{/app/trips(page=${prevPage}, count=${count}, from=${from}, to=${to}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'‹ Назад'" th:unless="${prevPage == null}">‹ Назад</a>
     <span class="current-page" th:text="${currentPage}">1</span>
-    <a th:href="@{/app/trips(page=${nextPage}, count=${count}, direction=${direction}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'Вперед ›'" th:unless="${nextPage == null}">Вперед ›</a>
+    <a th:href="@{/app/trips(page=${nextPage}, count=${count}, from=${from}, to=${to}, dateFrom=${dateFrom}, dateTo=${dateTo}, author=${author}, text=${text})}" th:text="'Вперед ›'" th:unless="${nextPage == null}">Вперед ›</a>
 </div>
 
 <!-- ====== Модальное окно ====== -->

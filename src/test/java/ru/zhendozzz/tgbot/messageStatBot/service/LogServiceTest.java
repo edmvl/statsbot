@@ -62,7 +62,8 @@ class LogServiceTest {
         ArgumentCaptor<Log> captor = ArgumentCaptor.forClass(Log.class);
         verify(logRepo).save(captor.capture());
         Log saved = captor.getValue();
-        assertThat(saved.getTripDirection()).isEqualTo("URMARY_CHEBOKSARY");
+        assertThat(saved.getTripFrom()).isEqualTo("Урмары");
+        assertThat(saved.getTripTo()).isEqualTo("Чебоксары");
         assertThat(saved.getTripTime()).isEqualTo(LocalDateTime.of(2026, 10, 23, 18, 0));
     }
 
@@ -73,7 +74,8 @@ class LogServiceTest {
 
         ArgumentCaptor<Log> captor = ArgumentCaptor.forClass(Log.class);
         verify(logRepo).save(captor.capture());
-        assertThat(captor.getValue().getTripDirection()).isNull();
+        assertThat(captor.getValue().getTripFrom()).isNull();
+        assertThat(captor.getValue().getTripTo()).isNull();
         assertThat(captor.getValue().getTripTime()).isNull();
     }
 

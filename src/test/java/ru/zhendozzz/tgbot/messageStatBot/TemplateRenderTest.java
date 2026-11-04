@@ -80,7 +80,10 @@ class TemplateRenderTest {
         context.setVariable("groups", Collections.emptyList());
         context.setVariable("currentUserId", "123");
         context.setVariable("ruLocale", Locale.forLanguageTag("ru"));
-        context.setVariable("direction", "CHEBOKSARY_URMARY");
+        context.setVariable("from", "");
+        context.setVariable("to", "");
+        context.setVariable("fromPoints", List.of("Урмары", "Чебоксары", "Новочебоксарск"));
+        context.setVariable("toPoints", List.of("Урмары", "Чебоксары", "Новочебоксарск"));
         context.setVariable("driverId", "123");
         context.setVariable("chatId", "123");
         context.setVariable("chatName", "Чат");
@@ -319,7 +322,8 @@ class TemplateRenderTest {
         when(trip.getCnt()).thenReturn("5");
         when(trip.getComments()).thenReturn("Отличный попутчик");
         when(trip.getAvatarPath()).thenReturn(null);
-        when(trip.getTripDirectionLabel()).thenReturn("Чебоксары → Урмары");
+        when(trip.getTripFrom()).thenReturn("Чебоксары");
+        when(trip.getTripTo()).thenReturn("Урмары");
         when(trip.getTripTime()).thenReturn(LocalDateTime.of(2026, 10, 23, 8, 30));
         when(trip.getLogId()).thenReturn(9L);
         when(trip.getEditedAt()).thenReturn(LocalDateTime.of(2026, 10, 15, 15, 0));
@@ -346,7 +350,8 @@ class TemplateRenderTest {
         when(message.getMessageId()).thenReturn(10);
         when(message.getEditedAt()).thenReturn(LocalDateTime.of(2026, 10, 15, 15, 30));
         when(message.getDeleted()).thenReturn(true);
-        when(message.getTripDirectionLabel()).thenReturn("Чебоксары → Урмары");
+        when(message.getTripFrom()).thenReturn("Чебоксары");
+        when(message.getTripTo()).thenReturn("Урмары");
         when(message.getTripTime()).thenReturn(LocalDateTime.of(2026, 10, 23, 8, 30));
 
         TgUser driver = new TgUser();
@@ -361,7 +366,6 @@ class TemplateRenderTest {
         context.setVariable("tripList", List.of(trip));
         context.setVariable("reviews", List.of(review));
         context.setVariable("messages", List.of(message));
-        context.setVariable("tripChat", true);
 
         LogEdit tripEdit = new LogEdit();
         tripEdit.setLogId(9L);

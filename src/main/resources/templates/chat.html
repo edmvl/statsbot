@@ -45,40 +45,6 @@
             font-size: 13px;
         }
 
-        .direction-tabs {
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            padding-bottom: 2px;
-            margin-bottom: 12px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .direction-tab {
-            flex: 0 0 auto;
-            padding: 8px 14px;
-            border: 1px solid var(--line-soft);
-            border-radius: var(--radius-pill);
-            background: var(--card-bg);
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: background var(--transition), color var(--transition), border-color var(--transition);
-        }
-
-        .direction-tab.active {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: var(--on-accent);
-        }
-
-        .direction-tab:not(.active):hover {
-            background: var(--soft);
-            color: var(--text);
-        }
-
         .msg-trip-badges {
             display: flex;
             flex-wrap: wrap;
@@ -346,21 +312,6 @@
     <span class="count-badge" th:text="${messages != null ? #lists.size(messages) : 0}">0</span>
 </header>
 
-<nav class="direction-tabs" th:if="${tripChat}" aria-label="Направление поездки">
-    <a class="direction-tab" th:classappend="${direction == 'CHEBOKSARY_URMARY'} ? ' active'"
-       th:href="@{/app/chat/{chatId}(chatId=${chatId}, direction='CHEBOKSARY_URMARY', page=0, count=${count})}">
-        Чебоксары-Урмары
-    </a>
-    <a class="direction-tab" th:classappend="${direction == 'URMARY_CHEBOKSARY'} ? ' active'"
-       th:href="@{/app/chat/{chatId}(chatId=${chatId}, direction='URMARY_CHEBOKSARY', page=0, count=${count})}">
-        Урмары-Чебоксары
-    </a>
-    <a class="direction-tab" th:classappend="${direction == 'OTHER'} ? ' active'"
-       th:href="@{/app/chat/{chatId}(chatId=${chatId}, direction='OTHER', page=0, count=${count})}">
-        Остальное
-    </a>
-</nav>
-
 <div th:if="${#lists.isEmpty(messages)}" class="empty">Сообщений нет</div>
 
 <div class="messages">
@@ -391,9 +342,12 @@
                 </form>
             </div>
             <div class="msg-trip-badges"
-                 th:if="${tripChat and (m.tripDirectionLabel != null or m.tripTime != null)}">
-                <span class="msg-trip-badge" th:if="${m.tripDirectionLabel != null}"
-                      th:text="${m.tripDirectionLabel}">Чебоксары → Урмары</span>
+                 th:if="${m.tripFrom != null or m.tripTo != null or m.tripTime != null}">
+                <span class="msg-trip-badge" th:if="${m.tripFrom != null or m.tripTo != null}">
+                    <span th:if="${m.tripFrom != null}" th:text="'от ' + ${m.tripFrom}"></span>
+                    <span th:if="${m.tripFrom != null and m.tripTo != null}">→</span>
+                    <span th:if="${m.tripTo != null}" th:text="'до ' + ${m.tripTo}"></span>
+                </span>
                 <span class="msg-trip-badge time" th:if="${m.tripTime != null}"
                       th:text="'🕒 ' + ${#temporals.format(m.tripTime, 'dd.MM.yyyy HH:mm')}">🕒 05.11.2026 08:30</span>
             </div>
@@ -426,10 +380,10 @@
 
 <div class="pager">
     <a th:if="${currentPage > 0}"
-       th:href="@{/app/chat/{chatId}(chatId=${chatId}, page=${prevPage}, count=${count}, direction=${direction})}">‹ Назад</a>
+       th:href="@{/app/chat/{chatId}(chatId=${chatId}, page=${prevPage}, count=${count})}">‹ Назад</a>
     <span class="current" th:text="'Стр. ' + (${currentPage} + 1)">Стр. 1</span>
     <a th:if="${messages != null and #lists.size(messages) >= count}"
-       th:href="@{/app/chat/{chatId}(chatId=${chatId}, page=${nextPage}, count=${count}, direction=${direction})}">Вперёд ›</a>
+       th:href="@{/app/chat/{chatId}(chatId=${chatId}, page=${nextPage}, count=${count})}">Вперёд ›</a>
 </div>
 
 <script>
