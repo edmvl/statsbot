@@ -56,14 +56,18 @@ public class UserService implements NeedProcessMessage {
         String lastName = messageDTO.getUserLastName();
         String userName = messageDTO.getUserName();
 
+        // Сравниваем по «отображаемому имени», а не по сырым колонкам: Telegram иногда
+        // присылает имя то целиком в first_name, то раздельно first_name+last_name —
+        // иначе в истории появляются «качающиеся» дубли.
+        String newDisplayName = displayName(firstName, lastName);
+        String currentDisplayName = displayName(user.getFirstName(), user.getLastName());
         boolean nameChanged = isNew
-                || !Objects.equals(user.getFirstName(), firstName)
-                || !Objects.equals(user.getLastName(), lastName)
-                || !Objects.equals(user.getUserName(), userName);
+                || !newDisplayName.equals(currentDisplayName)
+                || !normalize(userName).equals(normalize(user.getUserName()));
 
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setUserName(userName);
+        user.setFirstName(normalizeOrNull(firstName));
+        user.setLastName(normalizeOrNull(lastName));
+        user.setUserName(normalizeOrNull(userName));
         user.setUpdatedAt(LocalDateTime.now());
 
         // Аватар проверяем по сообщениям, но не чаще заданного интервала; скачиваем только при смене.
@@ -83,12 +87,26 @@ public class UserService implements NeedProcessMessage {
         if (nameChanged) {
             UserNameHistory history = new UserNameHistory();
             history.setUserId(userId);
-            history.setFirstName(firstName);
-            history.setLastName(lastName);
-            history.setUserName(userName);
+            history.setFirstName(normalizeOrNull(firstName));
+            history.setLastName(normalizeOrNull(lastName));
+            history.setUserName(normalizeOrNull(userName));
             history.setChangedAt(LocalDateTime.now());
             userNameHistoryRepo.save(history);
         }
+    }
+
+    /** «Имя Фамилия» из отдельных полей — для сравнения без учёта перекладки полей. */
+    private String displayName(String firstName, String lastName) {
+        return (normalize(firstName) + " " + normalize(lastName)).trim();
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String normalizeOrNull(String value) {
+        String normalized = normalize(value);
+        return normalized.isEmpty() ? null : normalized;
     }
 
     private boolean shouldCheckAvatar(Long userId) {
