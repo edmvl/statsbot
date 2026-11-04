@@ -12,6 +12,7 @@ import ru.zhendozzz.tgbot.messageStatBot.repo.RatingRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserNameHistoryRepo;
 import ru.zhendozzz.tgbot.messageStatBot.repo.UserRepo;
 import ru.zhendozzz.tgbot.messageStatBot.service.CurrentUserService;
+import ru.zhendozzz.tgbot.messageStatBot.service.ChatInviteService;
 import ru.zhendozzz.tgbot.messageStatBot.service.FeedbackService;
 import ru.zhendozzz.tgbot.messageStatBot.service.FileLoaderService;
 import ru.zhendozzz.tgbot.messageStatBot.service.InterestedService;
@@ -45,7 +46,7 @@ class MiniAppControllerTest {
             mock(TripService.class), feedbackService, mock(FileLoaderService.class),
             mock(LogService.class), interestedService, settingsService,
             mock(RatingRepo.class), userRepo, mock(UserNameHistoryRepo.class),
-            currentUserService, adminAuthGuard, messageExecutor);
+            currentUserService, adminAuthGuard, messageExecutor, mock(ChatInviteService.class));
 
     @Test
     void accessReportsChatAdmin() {

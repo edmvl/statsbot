@@ -15,6 +15,7 @@ import ru.zhendozzz.tgbot.messageStatBot.repo.UserRepo;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.service.FeedbackService;
 import ru.zhendozzz.tgbot.messageStatBot.service.AdsService;
+import ru.zhendozzz.tgbot.messageStatBot.service.ChatInviteService;
 import ru.zhendozzz.tgbot.messageStatBot.service.CurrentUserService;
 import ru.zhendozzz.tgbot.messageStatBot.service.FileLoaderService;
 import ru.zhendozzz.tgbot.messageStatBot.service.InterestedService;
@@ -69,6 +70,7 @@ public class MiniAppController {
     private final CurrentUserService currentUserService;
     private final AdminAuthGuard adminAuthGuard;
     private final MessageExecutor messageExecutor;
+    private final ChatInviteService chatInviteService;
 
     public MiniAppController(
             TripService tripService,
@@ -77,7 +79,7 @@ public class MiniAppController {
             SettingsService settingsService, RatingRepo ratingRepo, UserRepo userRepo,
             UserNameHistoryRepo userNameHistoryRepo,
             CurrentUserService currentUserService, AdminAuthGuard adminAuthGuard,
-            MessageExecutor messageExecutor
+            MessageExecutor messageExecutor, ChatInviteService chatInviteService
     ) {
         this.tripService = tripService;
         this.feedbackService = feedbackService;
@@ -91,6 +93,7 @@ public class MiniAppController {
         this.currentUserService = currentUserService;
         this.adminAuthGuard = adminAuthGuard;
         this.messageExecutor = messageExecutor;
+        this.chatInviteService = chatInviteService;
     }
 
     @GetMapping("")
@@ -242,6 +245,9 @@ public class MiniAppController {
         model.addAttribute("driverId", userId);
         model.addAttribute("reviews", ratingRepo.findDriverReviews(userId));
         model.addAttribute("history", userNameHistoryRepo.findByUserIdOrderByChangedAtDesc(userId));
+        String tripChatId = settingsService.findTripChannelId();
+        model.addAttribute("inviter", chatInviteService.findInviter(tripChatId, userId));
+        model.addAttribute("invited", chatInviteService.findInvitees(tripChatId, userId));
         return "driver-reviews";
     }
 

@@ -76,6 +76,62 @@
             font-variant-numeric: tabular-nums;
         }
 
+        .invite-card {
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin-bottom: 20px;
+        }
+
+        .invite-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .invite-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .invite-person {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .invite-person .avatar,
+        .invite-person .avatar-placeholder {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+        }
+
+        .invite-main {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .invite-name {
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        .invite-nick {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .invite-date {
+            color: var(--muted);
+            font-size: 12px;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
         .review {
             background: var(--card-bg);
             border: 1px solid var(--line-soft);
@@ -187,6 +243,54 @@
                th:text="'@' + ${driver.userName}"></a>
             <span class="user-id" th:text="'ID ' + ${driverId}">ID 123456</span>
         </div>
+    </div>
+</div>
+
+<!-- Кто добавил этого пользователя в чат попутчиков -->
+<div class="invite-card" th:if="${inviter != null}">
+    <div class="invite-title">👤 Добавил(а) в чат</div>
+    <a class="invite-person user-link"
+       th:href="@{/app/reviews/{id}(id=${inviter.userId})}">
+        <img class="avatar" th:if="${!#strings.isEmpty(inviter.avatarPath)}"
+             th:src="@{/avatar/{id}(id=${inviter.userId})}" alt=""/>
+        <span class="avatar-placeholder" th:unless="${!#strings.isEmpty(inviter.avatarPath)}"
+              th:text="${!#strings.isEmpty(inviter.name) ? #strings.substring(inviter.name,0,1) : '👤'}">👤</span>
+        <span class="invite-main">
+            <span class="invite-name"
+                  th:text="${!#strings.isEmpty(inviter.name)
+                          ? inviter.name
+                          : (!#strings.isEmpty(inviter.userName) ? '@' + inviter.userName : 'ID ' + inviter.userId)}">Имя</span>
+            <span class="invite-nick"
+                  th:if="${!#strings.isEmpty(inviter.userName) and !#strings.isEmpty(inviter.name)}"
+                  th:text="'@' + ${inviter.userName}"></span>
+        </span>
+        <time class="invite-date" th:if="${inviter.invitedAt != null}"
+              th:text="${#temporals.format(inviter.invitedAt, 'dd.MM.yyyy')}"></time>
+    </a>
+</div>
+
+<!-- Кого этот пользователь добавил в чат попутчиков -->
+<div class="invite-card" th:if="${invited != null and !#lists.isEmpty(invited)}">
+    <div class="invite-title">➕ Кого добавил(а) в чат</div>
+    <div class="invite-list">
+        <a class="invite-person user-link" th:each="person : ${invited}"
+           th:href="@{/app/reviews/{id}(id=${person.userId})}">
+            <img class="avatar" th:if="${!#strings.isEmpty(person.avatarPath)}"
+                 th:src="@{/avatar/{id}(id=${person.userId})}" alt=""/>
+            <span class="avatar-placeholder" th:unless="${!#strings.isEmpty(person.avatarPath)}"
+                  th:text="${!#strings.isEmpty(person.name) ? #strings.substring(person.name,0,1) : '👤'}">👤</span>
+            <span class="invite-main">
+                <span class="invite-name"
+                      th:text="${!#strings.isEmpty(person.name)
+                              ? person.name
+                              : (!#strings.isEmpty(person.userName) ? '@' + person.userName : 'ID ' + person.userId)}">Имя</span>
+                <span class="invite-nick"
+                      th:if="${!#strings.isEmpty(person.userName) and !#strings.isEmpty(person.name)}"
+                      th:text="'@' + ${person.userName}"></span>
+            </span>
+            <time class="invite-date" th:if="${person.invitedAt != null}"
+                  th:text="${#temporals.format(person.invitedAt, 'dd.MM.yyyy')}"></time>
+        </a>
     </div>
 </div>
 

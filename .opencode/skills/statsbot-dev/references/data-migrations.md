@@ -47,6 +47,7 @@ docker compose down -v        # снести вместе с данными
 | `chat_member` | участники и активность |
 | `rating` | отзывы (звёзды + комментарий) о пользователях |
 | `interested` | подписки на авторов |
+| `chat_invite` | кто кого добавил в чат (`chat_id`, `inviter_id`, `invitee_id`, `invited_at`) |
 | `ads`, `ads_files` | реклама и вложения (статусы `ACTIVE/PENDING/APPROVED/REJECTED`) |
 | `feedback` | жалобы (`target_user_id`, `close_reason`, `closed_at`, `finished`) |
 | `feedback_chat` | переписка по жалобе |

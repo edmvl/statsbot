@@ -12,6 +12,7 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.web.servlet.JavaxServletWebApplication;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ChatMessageDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ChatViewDto;
+import ru.zhendozzz.tgbot.messageStatBot.dto.ChatInviteViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.DriverReviewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.InterestedViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.SubscriptionGroupDto;
@@ -72,6 +73,8 @@ class TemplateRenderTest {
         context.setVariable("messages", Collections.emptyList());
         context.setVariable("reviews", Collections.emptyList());
         context.setVariable("history", Collections.emptyList());
+        context.setVariable("inviter", null);
+        context.setVariable("invited", Collections.emptyList());
         context.setVariable("tripList", Collections.emptyList());
         context.setVariable("subscriptions", Collections.emptyList());
         context.setVariable("groups", Collections.emptyList());
@@ -370,6 +373,22 @@ class TemplateRenderTest {
                 history("Иван", "Петров", "ivan", LocalDateTime.now()),
                 history(null, null, "old_nick", LocalDateTime.now().minusDays(3))
         ));
+
+        ChatInviteViewDto inviter = mock(ChatInviteViewDto.class);
+        when(inviter.getUserId()).thenReturn("150");
+        when(inviter.getName()).thenReturn("Ольга Смирнова");
+        when(inviter.getUserName()).thenReturn("olga");
+        when(inviter.getAvatarPath()).thenReturn("avatars/150.jpg");
+        when(inviter.getInvitedAt()).thenReturn(LocalDateTime.now().minusDays(10));
+        context.setVariable("inviter", inviter);
+
+        ChatInviteViewDto invited = mock(ChatInviteViewDto.class);
+        when(invited.getUserId()).thenReturn("160");
+        when(invited.getName()).thenReturn("Сергей Иванов");
+        when(invited.getUserName()).thenReturn(null);
+        when(invited.getAvatarPath()).thenReturn(null);
+        when(invited.getInvitedAt()).thenReturn(LocalDateTime.now().minusDays(5));
+        context.setVariable("invited", List.of(invited));
 
         ChatViewDto chat = mock(ChatViewDto.class);
         when(chat.getChatId()).thenReturn("-100123");
