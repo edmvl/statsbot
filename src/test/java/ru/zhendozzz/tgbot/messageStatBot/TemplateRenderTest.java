@@ -86,6 +86,7 @@ class TemplateRenderTest {
         context.setVariable("toPoints", List.of("Урмары", "Чебоксары", "Новочебоксарск"));
         context.setVariable("hideSeekers", false);
         context.setVariable("tripChatId", "-100");
+        context.setVariable("tripTelegramChatId", "123");
         context.setVariable("driverId", "123");
         context.setVariable("chatId", "123");
         context.setVariable("chatName", "Чат");
@@ -327,6 +328,7 @@ class TemplateRenderTest {
         when(trip.getTripFrom()).thenReturn("Чебоксары");
         when(trip.getTripTo()).thenReturn("Урмары");
         when(trip.getTripSeats()).thenReturn(3);
+        when(trip.getMessageId()).thenReturn(55);
         when(trip.getTripTime()).thenReturn(LocalDateTime.of(2026, 10, 23, 8, 30));
         when(trip.getLogId()).thenReturn(9L);
         when(trip.getEditedAt()).thenReturn(LocalDateTime.of(2026, 10, 15, 15, 0));

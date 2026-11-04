@@ -27,4 +27,6 @@ public interface TripViewDto {
     LocalDateTime getTripTime();
     /** Количество свободных мест или {@code null}. */
     Integer getTripSeats();
+    /** id сообщения в Telegram (для ссылки на сообщение). */
+    Integer getMessageId();
 }

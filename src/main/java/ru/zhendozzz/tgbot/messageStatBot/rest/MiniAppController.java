@@ -393,7 +393,9 @@ public class MiniAppController {
         model.addAttribute("from", selectedFrom);
         model.addAttribute("to", selectedTo);
         model.addAttribute("hideSeekers", hide);
-        model.addAttribute("tripChatId", settingsService.findTripChannelId());
+        String tripChatId = settingsService.findTripChannelId();
+        model.addAttribute("tripChatId", tripChatId);
+        model.addAttribute("tripTelegramChatId", telegramChatId(tripChatId));
         List<String> points = tripPoints();
         model.addAttribute("fromPoints", points);
         model.addAttribute("toPoints", points);
@@ -415,6 +417,15 @@ public class MiniAppController {
         points.addAll(logService.findTripFromPoints());
         points.addAll(logService.findTripToPoints());
         return new ArrayList<>(points);
+    }
+
+    /** Внутренний id супергруппы для ссылки t.me/c/{id}/{messageId}. */
+    private String telegramChatId(String chatId) {
+        if (chatId == null) {
+            return null;
+        }
+        String value = chatId.trim();
+        return value.startsWith("-100") && value.length() > 4 ? value.substring(4) : null;
     }
 
     private LocalDateTime parseDateStart(String value) {

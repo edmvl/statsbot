@@ -920,9 +920,11 @@
             <div class="trip-meta-bottom">
                 <span class="date-text"
                       th:text="${trip.dateTime != null ? #temporals.format(trip.dateTime, 'd MMMM yyyy, HH:mm', ruLocale) : ''}">15 октября 2026, 14:30</span>
-                <a class="message-link" th:if="${tripChatId != null and trip.logId != null}"
-                   th:href="@{/app/chat/{chatId}(chatId=${tripChatId}, message=${trip.logId})}"
-                   title="Открыть сообщение в истории чата">К сообщению →</a>
+                <a class="message-link"
+                   th:if="${tripTelegramChatId != null and trip.messageId != null}"
+                   th:href="${'https://t.me/c/' + tripTelegramChatId + '/' + trip.messageId}"
+                   target="_blank" rel="noopener"
+                   title="Открыть сообщение в Telegram">К сообщению в Telegram →</a>
             </div>
         </div>
 
@@ -931,29 +933,29 @@
             <div class="message-text" th:text="${trip.text}">
                 Текст сообщения о поездке, впечатления, маршрут.
             </div>
-        </details>
 
-        <div class="msg-flags" th:if="${trip.editedAt != null or (trip.deleted != null and trip.deleted)}">
-            <span class="flag flag-deleted" th:if="${trip.deleted != null and trip.deleted}">🗑 удалено</span>
-            <span class="flag flag-edited" th:if="${trip.editedAt != null}">✏️ изменено</span>
-            <button type="button" class="flag flag-button"
-                    th:if="${trip.editedAt != null and edits != null and edits[trip.logId] != null
-                             and !#lists.isEmpty(edits[trip.logId])}"
-                    th:attr="data-edits-toggle='edits-' + ${trip.logId}, aria-expanded='false'"
-                    th:text="'История изменений (' + ${#lists.size(edits[trip.logId])} + ')'">История изменений</button>
-        </div>
-
-        <div class="msg-edits" th:id="'edits-' + ${trip.logId}" hidden
-             th:if="${edits != null and edits[trip.logId] != null and !#lists.isEmpty(edits[trip.logId])}">
-            <div class="msg-edit" th:each="e : ${edits[trip.logId]}">
-                <div class="msg-edit-time"
-                     th:text="${e.editedAt != null
-                              ? 'Версия до ' + #temporals.format(e.editedAt, 'dd.MM.yyyy HH:mm')
-                              : 'Предыдущая версия'}">Версия до 01.01.2026 12:00</div>
-                <div class="msg-edit-text"
-                     th:text="${e.text != null and !#strings.isEmpty(e.text) ? e.text : '— без текста —'}"></div>
+            <div class="msg-flags" th:if="${trip.editedAt != null or (trip.deleted != null and trip.deleted)}">
+                <span class="flag flag-deleted" th:if="${trip.deleted != null and trip.deleted}">🗑 удалено</span>
+                <span class="flag flag-edited" th:if="${trip.editedAt != null}">✏️ изменено</span>
+                <button type="button" class="flag flag-button"
+                        th:if="${trip.editedAt != null and edits != null and edits[trip.logId] != null
+                                 and !#lists.isEmpty(edits[trip.logId])}"
+                        th:attr="data-edits-toggle='edits-' + ${trip.logId}, aria-expanded='false'"
+                        th:text="'История изменений (' + ${#lists.size(edits[trip.logId])} + ')'">История изменений</button>
             </div>
-        </div>
+
+            <div class="msg-edits" th:id="'edits-' + ${trip.logId}" hidden
+                 th:if="${edits != null and edits[trip.logId] != null and !#lists.isEmpty(edits[trip.logId])}">
+                <div class="msg-edit" th:each="e : ${edits[trip.logId]}">
+                    <div class="msg-edit-time"
+                         th:text="${e.editedAt != null
+                                  ? 'Версия до ' + #temporals.format(e.editedAt, 'dd.MM.yyyy HH:mm')
+                                  : 'Предыдущая версия'}">Версия до 01.01.2026 12:00</div>
+                    <div class="msg-edit-text"
+                         th:text="${e.text != null and !#strings.isEmpty(e.text) ? e.text : '— без текста —'}"></div>
+                </div>
+            </div>
+        </details>
 
         <!-- Комментарии / отзывы -->
         <div class="comments-section">
