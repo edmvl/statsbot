@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Если пишет заблокированный пользователь — сообщаем ему об этом и даём ссылку
- * на жалобу, по которой его заблокировали. Не чаще одного раза в час на пользователя,
+ * на обращение, по которому его заблокировали. Не чаще одного раза в час на пользователя,
  * чтобы не спамить.
  */
 @Slf4j
@@ -63,7 +63,7 @@ public class BanNotificationService implements NeedProcessMessage {
         }
         text.append('.');
         if (Objects.nonNull(ban.getFeedbackId())) {
-            text.append("\nПричина — жалоба: ").append(FeedbackService.FEEDBACK_URL).append(ban.getFeedbackId());
+            text.append("\nПричина — обращение: ").append(FeedbackService.FEEDBACK_URL).append(ban.getFeedbackId());
         }
         messageExecutor.sendMessage(String.valueOf(userId), text.toString());
     }

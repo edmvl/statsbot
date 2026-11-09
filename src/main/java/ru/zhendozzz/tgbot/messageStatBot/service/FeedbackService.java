@@ -3,6 +3,7 @@ package ru.zhendozzz.tgbot.messageStatBot.service;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import lombok.extern.slf4j.Slf4j;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ChatMemberViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
 import ru.zhendozzz.tgbot.messageStatBot.entity.BannedUser;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@Slf4j
 public class FeedbackService implements CommandExecutable {
 
     /** Ссылка на обращение: её получают админы и забаненные пользователи. */
@@ -74,7 +76,7 @@ public class FeedbackService implements CommandExecutable {
 
         StringBuilder text = new StringBuilder();
         text.append(Objects.isNull(userName) || userName.isEmpty() ? "Пользователь" : userName)
-                .append(" отправил жалобу");
+                .append(" отправил обращение");
         if (targetName != null && !targetName.isEmpty()) {
             text.append(" на ").append(targetName);
         }
@@ -87,6 +89,30 @@ public class FeedbackService implements CommandExecutable {
                 FEEDBACK_URL + savedFeedback.getId(),
                 admin)));
         return String.valueOf(savedFeedback.getId());
+    }
+
+    /**
+     * Создаёт обращение по команде {@code .бан}: текст — «За сообщение в чате»,
+     * текст исходного сообщения сохраняется скриншотом, затем сразу бан и закрытие.
+     */
+    public String banByReply(String adminId, String targetUserId, String messageText) {
+        FeedBack feedback = new FeedBack();
+        feedback.setUserId(adminId);
+        feedback.setUserName(userName(adminId));
+        feedback.setTargetUserId(targetUserId);
+        feedback.setTargetUserName(userName(targetUserId));
+        feedback.setDescription("За сообщение в чате");
+        feedback.setDateTime(LocalDateTime.now());
+        FeedBack saved = feedBackRepo.save(feedback);
+
+        try {
+            fileLoaderService.saveMessageScreenshot(saved.getId(), messageText);
+        } catch (Exception e) {
+            log.error("Не удалось сохранить скриншот сообщения для обращения {}: {}",
+                    saved.getId(), e.getMessage());
+        }
+        banForFeedback(saved.getId(), adminId);
+        return String.valueOf(saved.getId());
     }
 
     /** Обращение по id или {@code null}, если такого нет (без ленивого прокси, который падает в шаблоне). */
@@ -117,7 +143,7 @@ public class FeedbackService implements CommandExecutable {
 
         boolean fromAuthor = Objects.nonNull(feedback.getUserId()) && feedback.getUserId().equals(userId);
         if (fromAuthor) {
-            notifyAdmins(feedback, "Пользователь добавил комментарий к жалобе");
+            notifyAdmins(feedback, "Пользователь добавил комментарий к обращению");
         } else {
             messageExecutor.sendMessage(KeyboardUtils.getKeyboardMessage(
                     "Посмотреть",
@@ -137,20 +163,20 @@ public class FeedbackService implements CommandExecutable {
     }
 
     /**
-     * Указать (или изменить) пользователя, на которого жалоба.
+     * Указать (или изменить) пользователя, на которого обращение.
      *
-     * <p>Менять может автор обращения или администратор, и только пока по жалобе
-     * никого не заблокировали — иначе список заблокированных разойдётся с жалобой.</p>
+     * <p>Менять может автор обращения или администратор, и только пока по обращению
+     * никого не заблокировали — иначе список заблокированных разойдётся с обращением.</p>
      */
     public void updateTargetUser(Long feedbackId, String targetUserId, String actorId, boolean admin) {
         FeedBack feedback = feedBackRepo.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("Обращение не найдено"));
         boolean owner = Objects.nonNull(actorId) && actorId.equals(feedback.getUserId());
         if (!admin && !owner) {
-            throw new IllegalStateException("Менять пользователя может только автор жалобы или администратор");
+            throw new IllegalStateException("Менять пользователя может только автор обращения или администратор");
         }
         if (bannedUserRepo.existsByFeedbackId(feedbackId)) {
-            throw new IllegalStateException("По жалобе уже заблокирован пользователь");
+            throw new IllegalStateException("По обращению уже заблокирован пользователь");
         }
 
         String target = isBlank(targetUserId) ? null : targetUserId.trim();
@@ -161,13 +187,13 @@ public class FeedbackService implements CommandExecutable {
         feedback.setTargetUserName(isBlank(target) ? null : userName(target));
         feedBackRepo.save(feedback);
 
-        // Автор пометил, на кого жалуется — админам это важно знать, чтобы проверить и забанить.
+        // Автор пометил, на кого обращение — админам это важно знать, чтобы проверить и забанить.
         if (owner && !admin) {
-            notifyAdmins(feedback, "Пользователь указал, на кого жалоба");
+            notifyAdmins(feedback, "Пользователь указал, на кого обращение");
         }
     }
 
-    /** Закрыть жалобу с причиной отказа — автору уходит сообщение. */
+    /** Закрыть обращение с причиной отказа — автору уходит сообщение. */
     public void closeFeedback(Long feedbackId, String reason, String adminId) {
         FeedBack feedback = feedBackRepo.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("Обращение не найдено"));
@@ -181,23 +207,23 @@ public class FeedbackService implements CommandExecutable {
 
         messageExecutor.sendMessage(KeyboardUtils.getKeyboardMessage(
                 "Открыть",
-                "Ваша жалоба #" + feedbackId + " отклонена.\nПричина: " + reason.trim(),
+                "Ваше обращение #" + feedbackId + " отклонено.\nПричина: " + reason.trim(),
                 FEEDBACK_URL + feedbackId,
                 feedback.getUserId()));
     }
 
-    /** Переоткрыть жалобу может её автор (например, если есть что добавить). */
+    /** Переоткрыть обращение может её автор (например, если есть что добавить). */
     public void reopenFeedback(Long feedbackId, String userId) {
         FeedBack feedback = feedBackRepo.findById(feedbackId)
                 .orElseThrow(() -> new IllegalArgumentException("Обращение не найдено"));
         if (!Objects.equals(feedback.getUserId(), userId)) {
-            throw new IllegalStateException("Это не ваша жалоба");
+            throw new IllegalStateException("Это не ваше обращение");
         }
         feedback.setFinished(false);
         feedback.setCloseReason(null);
         feedback.setClosedAt(null);
         feedBackRepo.save(feedback);
-        notifyAdmins(feedback, "Пользователь переоткрыл жалобу");
+        notifyAdmins(feedback, "Пользователь переоткрыл обращение");
     }
 
     private void notifyAdmins(FeedBack feedback, String headline) {
@@ -208,7 +234,7 @@ public class FeedbackService implements CommandExecutable {
                 KeyboardUtils.getKeyboardMessage("Посмотреть", text, FEEDBACK_URL + feedback.getId(), admin)));
     }
 
-    /** Пользователи канала поездок, на которых можно пожаловаться. */
+    /** Пользователи канала поездок, на которых можно оставить обращение. */
     public List<ChatMemberViewDto> findComplainableUsers(String query) {
         String chatId = settingsService.findTripChannelId();
         if (isBlank(chatId)) {
@@ -218,8 +244,8 @@ public class FeedbackService implements CommandExecutable {
     }
 
     /**
-     * Блокирует пользователя из жалобы: бан в канале поездок, запись в список
-     * заблокированных и сообщение в канал со ссылкой на жалобу.
+     * Блокирует пользователя по обращению: бан в канале поездок, запись в список
+     * заблокированных и сообщение в канал со ссылкой на обращение.
      */
     public void banForFeedback(Long feedbackId, String adminId) {
         FeedBack feedback = feedBackRepo.findById(feedbackId)
@@ -251,12 +277,12 @@ public class FeedbackService implements CommandExecutable {
         }
 
         feedback.setFinished(true);
-        feedback.setCloseReason("Жалоба рассмотрена: пользователь заблокирован.");
+        feedback.setCloseReason("Обращение рассмотрено: пользователь заблокирован.");
         feedback.setClosedAt(LocalDateTime.now());
         feedBackRepo.save(feedback);
 
         messageExecutor.sendMessage(chatId,
-                "🚫 Пользователь " + label + " заблокирован по жалобе.\n" + FEEDBACK_URL + feedbackId);
+                "🚫 Пользователь " + label + " заблокирован по обращению.\n" + FEEDBACK_URL + feedbackId);
     }
 
     public List<BannedUser> findAllBans() {
@@ -292,7 +318,7 @@ public class FeedbackService implements CommandExecutable {
         }
     }
 
-    /** Все жалобы, свежие сверху. */
+    /** Все обращения, свежие сверху. */
     public List<FeedBack> findAllFeedbacks() {
         return feedBackRepo.findAllByOrderByIdDesc();
     }
@@ -318,7 +344,7 @@ public class FeedbackService implements CommandExecutable {
             messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
             messageExecutor.sendMessage(KeyboardUtils.getKeyboardMessage(
                     "Связаться с администратором",
-                    "Пожаловаться на пользователя или сообщить о проблеме",
+                    "Сообщить о проблеме или нарушении",
                     "https://api.zhendozzz.ru/app/feedback",
                     messageDTO.getChatId()));
         }

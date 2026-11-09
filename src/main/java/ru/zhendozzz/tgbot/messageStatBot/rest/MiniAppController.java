@@ -112,7 +112,7 @@ public class MiniAppController {
         return "index";
     }
 
-    /** Супер-админ или администратор канала поездок (там живут жалобы и баны). */
+    /** Супер-админ или администратор канала поездок (там живут обращения и баны). */
     private boolean isTripAdmin(Long userId) {
         if (userId == null) {
             return false;
@@ -615,7 +615,7 @@ public class MiniAppController {
         model.addAttribute("isOwner", owner);
         model.addAttribute("isTarget", target);
         model.addAttribute("canReply", admin || owner);
-        // Указать, на кого жалоба, могут автор и админ; после блокировки — уже нет.
+        // Указать, на кого обращение, могут автор и админ; после блокировки — уже нет.
         model.addAttribute("canEditTarget", (admin || owner) && !banned);
         return "feedback-chat";
     }
@@ -626,7 +626,7 @@ public class MiniAppController {
         return files;
     }
 
-    /** Указать, на кого жалоба: автор обращения или администратор. */
+    /** Указать, на кого обращение: автор обращения или администратор. */
     @PostMapping("/feedback-chat/{id}/target")
     public String updateFeedbackTarget(
             @PathVariable("id") Long feedbackId,
@@ -654,7 +654,7 @@ public class MiniAppController {
         return null;
     }
 
-    /** Закрыть жалобу с причиной (отказ) — автору уходит сообщение. */
+    /** Закрыть обращение с причиной (отказ) — автору уходит сообщение. */
     @PostMapping("/feedback-chat/{id}/close")
     public String closeFeedback(
             @PathVariable("id") Long feedbackId,
@@ -681,7 +681,7 @@ public class MiniAppController {
         return null;
     }
 
-    /** Переоткрыть жалобу может её автор. */
+    /** Переоткрыть обращение может её автор. */
     @PostMapping("/feedback-chat/{id}/reopen")
     public String reopenFeedback(
             @PathVariable("id") Long feedbackId,
@@ -733,7 +733,7 @@ public class MiniAppController {
         return null;
     }
 
-    /** Список жалоб (супер-админ и админы канала поездок). */
+    /** Список обращений (супер-админ и админы канала поездок). */
     @GetMapping("/feedback-list")
     public String feedbackList(HttpServletRequest request, HttpServletResponse httpServletResponse, Model model) throws IOException {
         if (!adminAuthGuard.allow(request, httpServletResponse, true)) {
@@ -743,7 +743,7 @@ public class MiniAppController {
         return "feedback-list";
     }
 
-    /** Список заблокированных с ссылками на жалобы. */
+    /** Список заблокированных с ссылками на обращения. */
     @GetMapping("/bans")
     public String bans(HttpServletRequest request, HttpServletResponse httpServletResponse, Model model) throws IOException {
         if (!adminAuthGuard.allow(request, httpServletResponse, true)) {

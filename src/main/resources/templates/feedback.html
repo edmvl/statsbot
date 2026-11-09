@@ -336,7 +336,7 @@
         </div>
 
         <div class="form-group">
-            <label for="targetSearch">На кого жалоба</label>
+            <label for="targetSearch">На кого обращение</label>
             <div class="user-picker">
                 <input type="text" id="targetSearch" placeholder="Имя, @ник или ID" autocomplete="off"/>
                 <button type="button" class="user-clear" id="targetClear">✕</button>
@@ -397,7 +397,7 @@
 
         let attachedFiles = [];
 
-        // ===== Выбор пользователя, на которого жалоба =====
+        // ===== Выбор пользователя, на которого обращение =====
         const $targetSearch = $('#targetSearch');
         const $userResults = $('#userResults');
         const $selectedUser = $('#selectedUser');
@@ -413,7 +413,7 @@
         $targetClear.hide();
 
         function selectedTargetLabel(user) {
-            return 'Жалоба на: ' + (user.userName ? user.name + ' (@' + user.userName + ')' : user.name);
+            return 'Обращение на: ' + (user.userName ? user.name + ' (@' + user.userName + ')' : user.name);
         }
 
         function clearTarget() {

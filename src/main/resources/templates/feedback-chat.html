@@ -497,13 +497,13 @@
     </p>
     <p class="target muted"
        th:if="${feedback.targetUserId == null and canEditTarget != null and canEditTarget}">
-        Пользователь, на которого жалоба, не указан
+        Пользователь, на которого обращение, не указан
     </p>
-    <p class="target muted" th:if="${isTarget != null and isTarget}">Вы указаны в этой жалобе</p>
+    <p class="target muted" th:if="${isTarget != null and isTarget}">Вы указаны в этом обращении</p>
 </header>
 
 <section class="card">
-    <p class="description" th:text="${feedback.description}">Текст жалобы</p>
+    <p class="description" th:text="${feedback.description}">Текст обращения</p>
     <div class="gallery" th:if="${!#lists.isEmpty(files)}">
         <div class="gallery-item" th:each="file : ${files}">
             <img th:src="@{/images(name=${file}, id=${feedback.id})}" alt=""/>
@@ -511,9 +511,9 @@
     </div>
 </section>
 
-<!-- На кого жалоба: менять могут автор жалобы и админ, остальным — только просмотр -->
+<!-- На кого обращение: менять могут автор обращения и админ, остальным — только просмотр -->
 <section class="card target-editor" th:if="${canEditTarget != null and canEditTarget}">
-    <label class="field-label" for="targetSearch">На кого жалоба</label>
+    <label class="field-label" for="targetSearch">На кого обращение</label>
     <div class="user-picker">
         <input type="text" id="targetSearch" placeholder="Имя, @ник или ID" autocomplete="off"
                th:value="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
@@ -524,7 +524,7 @@
     <div class="field-hint">Необязательно. Чтобы убрать пользователя — нажмите ✕ и сохраните.</div>
     <div class="user-results" id="userResults" hidden></div>
     <div class="selected-user" id="selectedUser" hidden>
-        Жалоба на: <span th:if="${feedback.targetUserId != null}"
+        Обращение на: <span th:if="${feedback.targetUserId != null}"
                           th:text="${feedback.targetUserName != null and !#strings.isEmpty(feedback.targetUserName)
                                    ? feedback.targetUserName
                                    : feedback.targetUserId}">Иван</span>
@@ -536,17 +536,17 @@
     </form>
 </section>
 
-<!-- Жалоба закрыта: причина и возможность переоткрыть (автору) -->
+<!-- Обращение закрыто: причина и возможность переоткрыть (автору) -->
 <div class="closed-box" th:if="${feedback.finished != null and feedback.finished}">
-    <div class="closed-title">Жалоба закрыта</div>
+    <div class="closed-title">Обращение закрыто</div>
     <div class="closed-reason"
          th:text="${feedback.closeReason != null and !#strings.isEmpty(feedback.closeReason)
                   ? feedback.closeReason
                   : 'Причина не указана'}">Причина</div>
     <form method="post" th:if="${isOwner != null and isOwner}"
           th:action="@{/app/feedback-chat/{id}/reopen(id=${feedback.id})}"
-          onsubmit="return confirm('Переоткрыть жалобу?');">
-        <button type="submit" class="reopen-btn">Переоткрыть жалобу</button>
+          onsubmit="return confirm('Переоткрыть обращение?');">
+        <button type="submit" class="reopen-btn">Переоткрыть обращение</button>
     </form>
 </div>
 
@@ -579,7 +579,7 @@
 </div>
 <p class="muted" th:if="${#lists.isEmpty(feedBackChatList)}">Комментариев пока нет</p>
 
-<!-- Комментарий (админ отвечает, автор дополняет жалобу) -->
+<!-- Комментарий (админ отвечает, автор дополняет обращение) -->
 <form class="reply-form" method="post" enctype="multipart/form-data" th:action="@{/app/feedback-chat}"
       th:if="${canReply != null and canReply}">
     <input type="hidden" name="id" th:value="${feedback.id}">
@@ -597,15 +597,15 @@
 <!-- Закрыть с причиной отказа (только админ и только открытую) -->
 <form class="close-form" th:if="${isAdmin != null and isAdmin and (feedback.finished == null or !feedback.finished)}"
       method="post" th:action="@{/app/feedback-chat/{id}/close(id=${feedback.id})}"
-      onsubmit="return confirm('Закрыть жалобу с отказом? Автору уйдёт сообщение с причиной.');">
-    <label for="closeReason">Отклонить жалобу — причина</label>
+      onsubmit="return confirm('Закрыть обращение с отказом? Автору уйдёт сообщение с причиной.');">
+    <label for="closeReason">Отклонить обращение — причина</label>
     <textarea id="closeReason" name="reason" required
               placeholder="Например: недостаточно доказательств"></textarea>
-    <button type="submit" class="close-btn">Закрыть жалобу</button>
+    <button type="submit" class="close-btn">Закрыть обращение</button>
 </form>
 
 <div class="links" th:if="${isAdmin != null and isAdmin}">
-    <a class="link" th:href="@{/app/feedback-list}">Все жалобы →</a>
+    <a class="link" th:href="@{/app/feedback-list}">Все обращения →</a>
     <a class="link" th:href="@{/app/bans}">Все заблокированные →</a>
 </div>
 
@@ -619,7 +619,7 @@
     }
 </script>
 
-<!-- Выбор пользователя, на которого жалоба (только автор и админ) -->
+<!-- Выбор пользователя, на которого обращение (только автор и админ) -->
 <script>
     (function () {
         var search = document.getElementById('targetSearch');
@@ -646,7 +646,7 @@
             if (user.userName) {
                 name += ' (@' + user.userName + ')';
             }
-            return 'Жалоба на: ' + name;
+            return 'Обращение на: ' + name;
         }
 
         function clearTarget() {

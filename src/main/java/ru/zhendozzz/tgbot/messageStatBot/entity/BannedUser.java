@@ -11,7 +11,7 @@ import javax.persistence.Table;
 import java.time.LocalDateTime;
 
 /**
- * Заблокированный пользователь. {@code feedbackId} — жалоба, по которой заблокировали.
+ * Заблокированный пользователь. {@code feedbackId} — обращение, по которому заблокировали.
  */
 @Entity
 @Data

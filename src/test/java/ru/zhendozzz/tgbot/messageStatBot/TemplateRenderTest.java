@@ -151,7 +151,7 @@ class TemplateRenderTest {
                 // Элемент для подписи выбранного пользователя должен быть в DOM всегда,
                 // иначе JS падал на selected.textContent и не включал кнопку «Сохранить».
                 .contains("id=\"selectedUser\"")
-                .contains("Пользователь, на которого жалоба, не указан");
+                .contains("Пользователь, на которого обращение, не указан");
 
         // Остальные (в том числе тот, на кого жалуются) — смотрят, но сделать ничего не могут.
         feedback.setTargetUserId("777");
@@ -173,7 +173,7 @@ class TemplateRenderTest {
                 .doesNotContain("data-back=")
                 .contains("<h2>Переписка</h2>")
                 .contains("Иван Петров (@ivan)")
-                .contains("Вы указаны в этой жалобе");
+                .contains("Вы указаны в этом обращении");
     }
 
     @Test
@@ -215,7 +215,7 @@ class TemplateRenderTest {
         engine.process("feedback", context);
         engine.process("feedback-chat", context);
 
-        // Жалоба с указанным пользователем: кнопка «Заблокировать», затем состояние «заблокирован».
+        // Обращение с указанным пользователем: кнопка «Заблокировать», затем состояние «заблокирован».
         feedback.setTargetUserId("777");
         feedback.setTargetUserName("Иван Петров (@ivan)");
         context.setVariable("banned", false);
@@ -223,7 +223,7 @@ class TemplateRenderTest {
         context.setVariable("banned", true);
         engine.process("feedback-chat", context);
 
-        // Закрытая жалоба глазами автора: причина отказа и кнопка «Переоткрыть».
+        // Закрытое обращение глазами автора: причина отказа и кнопка «Переоткрыть».
         feedback.setFinished(true);
         feedback.setCloseReason("Недостаточно доказательств");
         context.setVariable("isAdmin", false);

@@ -26,7 +26,7 @@ public class FeedbackController {
         this.currentUserService = currentUserService;
     }
 
-    /** Поиск пользователя, на которого отправляется жалоба. */
+    /** Поиск пользователя, на которого отправляется обращение. */
     @GetMapping("/users")
     public ResponseEntity<?> findUsers(@RequestParam(value = "q", required = false) String query,
                                        HttpServletRequest request) {

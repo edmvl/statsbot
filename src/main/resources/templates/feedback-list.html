@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Жалобы</title>
+    <title>Обращения</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" th:href="@{/css/theme.css}">
@@ -144,11 +144,11 @@
 </head>
 <body>
 <header class="page-header">
-    <h1>📨 Жалобы</h1>
+    <h1>📨 Обращения</h1>
     <span class="count-badge" th:text="${#lists.size(feedbacks)}">0</span>
 </header>
 
-<div th:if="${#lists.isEmpty(feedbacks)}" class="empty">Жалоб пока нет</div>
+<div th:if="${#lists.isEmpty(feedbacks)}" class="empty">Обращений пока нет</div>
 
 <div class="table-wrap" th:if="${!#lists.isEmpty(feedbacks)}">
     <table>

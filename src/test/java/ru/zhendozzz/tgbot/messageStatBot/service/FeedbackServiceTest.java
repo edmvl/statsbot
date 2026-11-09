@@ -57,7 +57,7 @@ class FeedbackServiceTest {
         });
         when(feedBackRepo.getTripGroupAdmins()).thenReturn(List.of());
 
-        service.processFeedback("текст жалобы", "42", "777", List.of());
+        service.processFeedback("текст обращения", "42", "777", List.of());
 
         ArgumentCaptor<FeedBack> captor = ArgumentCaptor.forClass(FeedBack.class);
         verify(feedBackRepo).save(captor.capture());
@@ -81,9 +81,31 @@ class FeedbackServiceTest {
         assertThat(captor.getValue().getFeedbackId()).isEqualTo(7L);
         assertThat(captor.getValue().getBannedBy()).isEqualTo("42");
 
-        verify(messageExecutor).sendMessage(eq("-100"), contains("заблокирован по жалобе"));
+        verify(messageExecutor).sendMessage(eq("-100"), contains("заблокирован по обращению"));
         assertThat(feedback.getFinished()).isTrue();
         verify(feedBackRepo).save(feedback);
+    }
+
+    @Test
+    void banByReplyCreatesClosedFeedbackWithScreenshot() {
+        java.util.concurrent.atomic.AtomicReference<FeedBack> saved = new java.util.concurrent.atomic.AtomicReference<>();
+        when(feedBackRepo.save(any(FeedBack.class))).thenAnswer(invocation -> {
+            FeedBack feedback = invocation.getArgument(0);
+            feedback.setId(12L);
+            saved.set(feedback);
+            return feedback;
+        });
+        when(feedBackRepo.findById(12L)).thenAnswer(invocation -> Optional.of(saved.get()));
+        when(bannedUserRepo.existsByUserIdAndChatId("777", "-100")).thenReturn(false);
+
+        service.banByReply("42", "777", "Текст нарушения");
+
+        verify(fileLoaderService).saveMessageScreenshot(12L, "Текст нарушения");
+        verify(messageExecutor).banUser("-100", "777");
+        verify(messageExecutor).sendMessage(eq("-100"), contains("по обращению"));
+        assertThat(saved.get().getDescription()).isEqualTo("За сообщение в чате");
+        assertThat(saved.get().getTargetUserId()).isEqualTo("777");
+        assertThat(saved.get().getFinished()).isTrue();
     }
 
     @Test
@@ -264,7 +286,7 @@ class FeedbackServiceTest {
         feedback.setId(id);
         feedback.setUserId("42");
         feedback.setTargetUserId(targetUserId);
-        feedback.setDescription("жалоба");
+        feedback.setDescription("обращение");
         return feedback;
     }
 }
