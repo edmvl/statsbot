@@ -42,6 +42,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MessageExecutorImpl implements MessageExecutor {
 
+    private static final int MAX_CAPTION_LENGTH = 1024;
+    private static final int MAX_TEXT_CHUNK_LENGTH = 4000;
+
     private MyTelegramBot tgBot;
 
     @Value("${file.upload-dir}")
@@ -77,6 +80,11 @@ public class MessageExecutorImpl implements MessageExecutor {
         try {
             boolean allPhotos = files.stream().allMatch(this::isImage);
             List<Integer> messageIds = new ArrayList<>();
+            // Telegram разрешает подпись к медиа не длиннее 1024 символов.
+            // Длинный текст отправляем отдельным сообщением, чтобы не терять его.
+            String mediaCaption = captionForMedia(caption);
+            boolean sendTextSeparately = Objects.nonNull(caption) && !caption.isBlank()
+                    && Objects.isNull(mediaCaption);
 
             if (files.size() == 1) {
                 File file = files.get(0);
@@ -85,13 +93,17 @@ public class MessageExecutorImpl implements MessageExecutor {
                     SendPhoto photo = new SendPhoto();
                     photo.setChatId(chatId);
                     photo.setPhoto(new InputFile(file));
-                    photo.setCaption(caption);
+                    if (Objects.nonNull(mediaCaption) && !mediaCaption.isBlank()) {
+                        photo.setCaption(mediaCaption);
+                    }
                     sent = tgBot.execute(photo);
                 } else {
                     SendDocument document = new SendDocument();
                     document.setChatId(chatId);
                     document.setDocument(new InputFile(file));
-                    document.setCaption(caption);
+                    if (Objects.nonNull(mediaCaption) && !mediaCaption.isBlank()) {
+                        document.setCaption(mediaCaption);
+                    }
                     sent = tgBot.execute(document);
                 }
                 if (Objects.nonNull(sent)) {
@@ -105,10 +117,10 @@ public class MessageExecutorImpl implements MessageExecutor {
                 for (File file : files) {
                     InputMedia media = allPhotos ? new InputMediaPhoto() : new InputMediaDocument();
                     media.setMedia(file, file.getName());
-                    if (first) {
-                        media.setCaption(caption);
-                        first = false;
+                    if (first && Objects.nonNull(mediaCaption) && !mediaCaption.isBlank()) {
+                        media.setCaption(mediaCaption);
                     }
+                    first = false;
                     medias.add(media);
                 }
                 group.setMedias(medias);
@@ -117,6 +129,15 @@ public class MessageExecutorImpl implements MessageExecutor {
                     messages.stream()
                             .map(Message::getMessageId)
                             .forEach(messageIds::add);
+                }
+            }
+
+            if (sendTextSeparately) {
+                for (String part : splitText(caption)) {
+                    Integer id = sendMessageWithoutPreview(chatId, part);
+                    if (Objects.nonNull(id)) {
+                        messageIds.add(id);
+                    }
                 }
             }
 
@@ -130,6 +151,32 @@ public class MessageExecutorImpl implements MessageExecutor {
             log.error("Не удалось отправить вложения рекламы в чат {}: {}", chatId, e.getMessage());
             return null;
         }
+    }
+
+    /** Подпись к медиа не должна превышать лимит Telegram. */
+    String captionForMedia(String caption) {
+        return Objects.nonNull(caption) && caption.length() > MAX_CAPTION_LENGTH ? null : caption;
+    }
+
+    /** Делит длинный текст на части, не разрывая слова и по возможности строки. */
+    List<String> splitText(String text) {
+        List<String> parts = new ArrayList<>();
+        int start = 0;
+        while (start < text.length()) {
+            int end = Math.min(text.length(), start + MAX_TEXT_CHUNK_LENGTH);
+            if (end < text.length()) {
+                int breakAt = text.lastIndexOf('\n', end);
+                if (breakAt <= start) {
+                    breakAt = text.lastIndexOf(' ', end);
+                }
+                if (breakAt > start) {
+                    end = breakAt + 1;
+                }
+            }
+            parts.add(text.substring(start, end));
+            start = end;
+        }
+        return parts;
     }
 
     private boolean isImage(File file) {
