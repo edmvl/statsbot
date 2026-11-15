@@ -136,6 +136,36 @@ Pull request’ы и коммиты — как обычно, `git push` уход
 Не делать: не возвращать `ufw limit OpenSSH`, не включать парольный вход в sshd, не
 отключать fail2ban — деплой идёт с ключа, а перебор идёт постоянно.
 
+## Память и JVM
+
+Бот запускается юнитом `tgbot` (`java -jar /home/messageStatBot-0.0.1-SNAPSHOT.jar`), флаги
+JVM живут в drop-in на сервере, в репозитории их нет:
+
+`/etc/systemd/system/tgbot.service.d/memory.conf`
+```ini
+[Service]
+Environment="JAVA_TOOL_OPTIONS=-Xms128m -Xmx512m -XX:MaxMetaspaceSize=192m -XX:+ExitOnOutOfMemoryError -Xlog:gc*:file=/var/log/tgbot-gc.log:time,uptime,level,tags:filecount=3,filesize=10M"
+```
+
+Почему так: без `-Xmx` JVM брала 25 % RAM (~976 МБ на 3.9 ГБ) и Serial GC раздувал кучу
+до пикового рабочего набора, не возвращая её ОС — RSS рос до исторического максимума,
+и «лечилось» только рестартом. Живой набор бота — ~30 МБ (Tenured после GC), 512 МБ с запасом.
+На 1 vCPU JVM по эргономике выбирает Serial GC (`Using Serial` в логе) — это ожидаемо;
+`-XX:+ExitOnOutOfMemoryError` + `Restart=always` в юните дают автоперезапуск вместо зависания.
+
+Диагностика (только чтение, через `statsbot-root`):
+```bash
+grep "Using " /var/log/tgbot-gc.log            # какой GC
+grep "Tenured:" /var/log/tgbot-gc.log | tail   # живой набор после сборки
+ps -o rss= -p $(systemctl show tgbot -p MainPID --value)   # RSS
+```
+`jcmd`/`jmap` на сервере нет — стоит только `openjdk-17-jre-headless`; для heap dump нужен
+`openjdk-17-jdk-headless` (ставить только с разрешения пользователя).
+
+Правило: не убирать `-Xmx` и не отключать GC-лог «чтобы не мешал» — это единственный
+источник фактов о памяти. Рост RSS при живом наборе в десятки МБ — это не утечка, а
+коммит кучи; проверять по `Tenured` и `Pause Full`, а не по RSS.
+
 ## Перед ответом пользователю
 
 1. `mvn -o test` — зелёный.
