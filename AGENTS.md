@@ -20,8 +20,8 @@ $mvn="C:\Program Files\JetBrains\IntelliJIdea2026.2\plugins\maven-plugin\lib\mav
 & $mvn -o test "-Dtest=LogServiceTest,ProcessorTest"  # только классы (через запятую!)
 ```
 
-Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их 185
-(`mvn -o test` → `Tests run: 185, Failures: 0`).
+Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их 186
+(`mvn -o test` → `Tests run: 186, Failures: 0`).
 
 Запуск приложения (локально, без сети до Telegram):
 
@@ -58,6 +58,10 @@ scripts/test-migration.sh $(ls src/main/resources/db/migration/V{18,19,20,21,22,
 - **Права проверяются на сервере**: супер-админ `115965184`; админы канала поездок —
   `settingsService.isUserAdmin(tripChannelId, userId)`, канал берётся из
   `chat_settings` (`trip_channel=true`), не из константы.
+- **У бина Spring — ровно один конструктор** (либо один помечен `@Autowired`).
+  Моки в тестах такого не ловят, а прод падает на старте с `NoSuchMethodException`
+  (инцидент `dbd251c`, 15.11.2026: сервис не поднимался 5 минут). Страховка —
+  `SpringBeanConstructorTest`, он в общем наборе.
 - **Схема БД только через Flyway** (`src/main/resources/db/migration/V{n}__*.sql`),
   идемпотентно (`if not exists`), с проверкой на локальном Postgres в Docker
   (`scripts/test-migration.sh`) — **на проде SQL не экспериментировать**.
