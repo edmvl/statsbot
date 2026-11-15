@@ -62,6 +62,12 @@ public class MiniAppController {
     /** Даты на странице поездок показываем по-русски («15 октября 2026, 14:30»). */
     private static final Locale RU_LOCALE = Locale.forLanguageTag("ru");
 
+    /** Размер страницы по умолчанию и предел, который нельзя превысить параметром {@code count}. */
+    private static final int DEFAULT_PAGE_SIZE = 30;
+    private static final int MAX_PAGE_SIZE = 100;
+    /** Предел номера страницы: не даёт offset'у выйти за int и обойти limit запроса. */
+    private static final int MAX_PAGE = 100_000;
+
     private final TripService tripService;
     private final FeedbackService feedbackService;
     private final FileLoaderService fileLoaderService;
@@ -150,8 +156,8 @@ public class MiniAppController {
             @QueryParam("message") String message,
             Model model
     ) {
-        int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
-        int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
+        int currentPage = parsePage(page);
+        int cnt = parseCount(count);
         Long focusLogId = parseNumeric(message);
         Log focus = focusLogId == null ? null : logService.findLogById(focusLogId);
         if (focus != null && chatId.equals(focus.getChatId()) && focus.getDateTime() != null) {
@@ -224,6 +230,38 @@ public class MiniAppController {
         }
         try {
             return Long.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Размер страницы Mini App ограничен сверху: {@code ?count=50000} поднимал из базы
+     * десятки тысяч строк с текстами и раздувал кучу на один запрос.
+     */
+    static int parseCount(String value) {
+        Integer parsed = parseInt(value);
+        if (Objects.isNull(parsed) || parsed <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(parsed, MAX_PAGE_SIZE);
+    }
+
+    /** Номер страницы не может быть отрицательным или настолько большим, чтобы offset переполнился. */
+    static int parsePage(String value) {
+        Integer parsed = parseInt(value);
+        if (Objects.isNull(parsed) || parsed < 0) {
+            return 0;
+        }
+        return Math.min(parsed, MAX_PAGE);
+    }
+
+    private static Integer parseInt(String value) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(value.trim());
         } catch (NumberFormatException e) {
             return null;
         }
@@ -368,8 +406,8 @@ public class MiniAppController {
             HttpServletRequest request,
             Model model
     ) {
-        int currentPage = Integer.parseInt(Objects.nonNull(page) ? page : "0");
-        int cnt = Integer.parseInt(Objects.nonNull(count) ? count : "30");
+        int currentPage = parsePage(page);
+        int cnt = parseCount(count);
         String selectedFrom = defaultValue(from).trim();
         String selectedTo = defaultValue(to).trim();
         boolean hide = "true".equalsIgnoreCase(defaultValue(hideSeekers))

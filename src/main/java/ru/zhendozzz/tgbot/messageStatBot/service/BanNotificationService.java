@@ -26,6 +26,9 @@ public class BanNotificationService implements NeedProcessMessage {
 
     private static final Duration THROTTLE = Duration.ofHours(1);
 
+    /** Порог, после которого карта троттлинга чистится от записей старше окна {@link #THROTTLE}. */
+    private static final int LAST_NOTIFIED_SIZE_THRESHOLD = 1_000;
+
     private final BannedUserRepo bannedUserRepo;
     private final MessageExecutor messageExecutor;
     private final LogRepo logRepo;
@@ -55,6 +58,7 @@ public class BanNotificationService implements NeedProcessMessage {
             return;
         }
         lastNotified.put(userId, now);
+        evictStaleNotifications(now);
 
         StringBuilder text = new StringBuilder("🚫 Вы заблокированы");
         String chatName = Objects.isNull(ban.getChatId()) ? null : logRepo.findChatNameByChatId(ban.getChatId());
@@ -66,5 +70,17 @@ public class BanNotificationService implements NeedProcessMessage {
             text.append("\nПричина — обращение: ").append(FeedbackService.FEEDBACK_URL).append(ban.getFeedbackId());
         }
         messageExecutor.sendMessage(String.valueOf(userId), text.toString());
+    }
+
+    /**
+     * Записи старше окна троттлинга ничего не ограничивают (пользователю можно писать снова),
+     * поэтому их можно удалять — иначе карта растёт вместе с числом заблокированных.
+     */
+    private void evictStaleNotifications(Instant now) {
+        if (lastNotified.size() < LAST_NOTIFIED_SIZE_THRESHOLD) {
+            return;
+        }
+        Instant oldestUseful = now.minus(THROTTLE);
+        lastNotified.entrySet().removeIf(entry -> entry.getValue().isBefore(oldestUseful));
     }
 }

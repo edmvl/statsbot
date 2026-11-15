@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -117,6 +118,51 @@ class WordsFilterServiceTest {
         service.deleteByFilter(dto, update);
 
         verify(messageExecutor, never()).deleteMessage(any(), any());
+    }
+
+    /** Список стоп-слов кэшируется: findAll() на каждое сообщение — лишний запрос и мусор в куче. */
+    @Test
+    void loadsWordsOnceForSeveralMessages() {
+        WordsFilter banned = new WordsFilter();
+        banned.setWord("мат");
+        when(wordsFilterRepo.findAll()).thenReturn(List.of(banned));
+
+        service.processMessage(messageWithText(10, 777L, "тут мат"), plainUpdate());
+        service.processMessage(messageWithText(11, 777L, "и снова мат"), plainUpdate());
+
+        verify(wordsFilterRepo, times(1)).findAll();
+        verify(messageExecutor).deleteMessage(-100L, 10);
+        verify(messageExecutor).deleteMessage(-100L, 11);
+    }
+
+    /** Новое слово должно сразу попадать в фильтр — иначе кэш держит устаревший список. */
+    @Test
+    void addingWordDropsCachedList() {
+        when(wordsFilterRepo.findAll()).thenReturn(List.of());
+        // обычный пользователь → админ в addWord → снова обычный
+        when(settingsService.isUserAdmin(anyLong(), anyLong())).thenReturn(false, true, false);
+
+        service.processMessage(messageWithText(12, 777L, "текст"), plainUpdate());
+        service.addWord("новое", 777L, -100L, 13);
+        service.processMessage(messageWithText(14, 777L, "текст"), plainUpdate());
+
+        verify(wordsFilterRepo, times(2)).findAll();
+        verify(wordsFilterRepo).save(any(WordsFilter.class));
+    }
+
+    private MessageDTO messageWithText(Integer messageId, Long userId, String text) {
+        return MessageDTO.builder()
+                .chatId(-100L)
+                .messageId(messageId)
+                .userId(userId)
+                .userText(text)
+                .build();
+    }
+
+    private Update plainUpdate() {
+        Update update = new Update();
+        update.setMessage(new Message());
+        return update;
     }
 
     private MessageDTO message(Long userId) {

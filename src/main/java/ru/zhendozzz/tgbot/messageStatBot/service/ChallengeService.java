@@ -110,8 +110,9 @@ public class ChallengeService implements CommandExecutable {
     }
 
     public void finishAll() {
-        List<String> strings = challengeRepo.findAll().stream().map(Challenge::getChatId).distinct().toList();
-        strings.forEach(this::finish);
+        // Только чаты с незавершёнными челленджами: findAll() раз в минуту тянул всю таблицу,
+        // которая растёт вместе с историей челленджей.
+        challengeRepo.findDistinctChatIdsByFinishedFalse().forEach(this::finish);
     }
 
     @Override

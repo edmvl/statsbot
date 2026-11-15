@@ -14,6 +14,7 @@ import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 @Service
@@ -25,6 +26,15 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
      * в таком сообщении не виден, поэтому считаем его админом.
      */
     private static final long GROUP_ANONYMOUS_BOT_ID = 1087968824L;
+
+    /**
+     * Список стоп-слов кэшируется: {@code findAll()} на каждое сообщение — лишний запрос
+     * на самом горячем пути и постоянный мусор в куче. Инвалидация — при добавлении слова.
+     */
+    private static final long WORDS_CACHE_TTL_MS = 60_000;
+
+    private volatile List<String> cachedWords = List.of();
+    private volatile long cachedWordsAt = 0;
 
     private final MessageExecutor messageExecutor;
 
@@ -50,9 +60,11 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
         if (isPrivileged(messageDTO, update)) {
             return;
         }
-        List<String> words = Arrays.stream(messageDTO.getUserText().split(" ")).map(String::toLowerCase).toList();
-        List<String> wordsToFilter = wordsFilterRepo.findAll().stream().map(WordsFilter::getWord).map(String::toLowerCase).toList();
-        if (wordsToFilter.stream().anyMatch(s -> words.stream().anyMatch(s.toLowerCase()::equals))) {
+        List<String> words = Arrays.stream(messageDTO.getUserText().split(" "))
+                .map(word -> word.toLowerCase(Locale.ROOT))
+                .toList();
+        List<String> wordsToFilter = wordsToFilter();
+        if (wordsToFilter.stream().anyMatch(words::contains)) {
             messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
             logService.markDeleted(messageDTO.getChatId(), messageDTO.getMessageId());
         }
@@ -94,7 +106,23 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
             WordsFilter wordsFilter = new WordsFilter();
             wordsFilter.setWord(word);
             wordsFilterRepo.save(wordsFilter);
+            cachedWordsAt = 0;
         }
+    }
+
+    private List<String> wordsToFilter() {
+        long now = System.currentTimeMillis();
+        if (cachedWordsAt != 0 && now - cachedWordsAt < WORDS_CACHE_TTL_MS) {
+            return cachedWords;
+        }
+        List<String> loaded = wordsFilterRepo.findAll().stream()
+                .map(WordsFilter::getWord)
+                .filter(Objects::nonNull)
+                .map(word -> word.toLowerCase(Locale.ROOT))
+                .toList();
+        cachedWords = loaded;
+        cachedWordsAt = now;
+        return loaded;
     }
 
     @Override

@@ -38,6 +38,12 @@ import java.util.stream.Collectors;
 @Service
 public class FileLoaderService implements NeedProcessMessage {
 
+    /**
+     * Максимум строк текста на скриншоте. Сообщение в 10 000 символов — это ~400 строк,
+     * то есть картинка 720×10 400 (≈30 МБ в куче под TYPE_INT_RGB) на один {@code .бан}.
+     */
+    private static final int MAX_SCREENSHOT_LINES = 60;
+
     @Value("${file.upload-dir}")
     private String uploadDir;
     @Value("${telegram.bot.token}")
@@ -126,6 +132,12 @@ public class FileLoaderService implements NeedProcessMessage {
             probeGraphics.setFont(bodyFont);
             List<String> lines = wrapText(content, probeGraphics.getFontMetrics(bodyFont), width - padding * 2);
             probeGraphics.dispose();
+
+            if (lines.size() > MAX_SCREENSHOT_LINES) {
+                List<String> truncated = new ArrayList<>(lines.subList(0, MAX_SCREENSHOT_LINES));
+                truncated.add("(сообщение обрезано)");
+                lines = truncated;
+            }
 
             int height = padding * 2 + headerHeight + Math.max(1, lines.size()) * lineHeight;
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);

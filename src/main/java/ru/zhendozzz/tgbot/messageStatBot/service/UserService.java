@@ -26,6 +26,12 @@ public class UserService implements NeedProcessMessage {
     /** Как часто (не чаще) проверять смену аватара по сообщениям пользователя. */
     private static final long AVATAR_REFRESH_INTERVAL_MS = Duration.ofMinutes(30).toMillis();
 
+    /**
+     * После стольких записей карта проверок чистится от устаревших. Без чистки она растёт
+     * вместе с базой пользователей и не освобождает память до рестарта.
+     */
+    private static final int AVATAR_CHECKS_SIZE_THRESHOLD = 10_000;
+
     private final UserRepo userRepo;
     private final UserNameHistoryRepo userNameHistoryRepo;
     private final MessageExecutor messageExecutor;
@@ -114,8 +120,21 @@ public class UserService implements NeedProcessMessage {
         Long last = avatarChecks.get(userId);
         if (Objects.isNull(last) || now - last >= AVATAR_REFRESH_INTERVAL_MS) {
             avatarChecks.put(userId, now);
+            evictStaleAvatarChecks(now);
             return true;
         }
         return false;
+    }
+
+    /**
+     * Отметка старше интервала проверки равносильна отсутствию: {@code shouldCheckAvatar}
+     * всё равно считает такой пользователя «пора проверить». Поэтому старые записи удаляем.
+     */
+    private void evictStaleAvatarChecks(long now) {
+        if (avatarChecks.size() < AVATAR_CHECKS_SIZE_THRESHOLD) {
+            return;
+        }
+        long oldestUseful = now - AVATAR_REFRESH_INTERVAL_MS;
+        avatarChecks.entrySet().removeIf(entry -> entry.getValue() < oldestUseful);
     }
 }
