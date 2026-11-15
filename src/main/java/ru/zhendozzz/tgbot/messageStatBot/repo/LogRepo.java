@@ -53,6 +53,11 @@ public interface LogRepo extends JpaRepository<Log, Long> {
     @Query(value = "select distinct l.user_id from log l where l.chat_id = ?1", nativeQuery = true)
     List<String> findDistinctUserIdByChatId(String chatId);
 
+    /** То же самое, но только те, кто писал в чат начиная с указанного момента. */
+    @Query(value = "select distinct l.user_id from log l " +
+            "where l.chat_id = ?1 and l.date_time >= ?2", nativeQuery = true)
+    List<String> findDistinctUserIdByChatIdSince(String chatId, LocalDateTime since);
+
     /**
      * Участники чата (distinct user_id по логу) с именем из {@code users}.
      * Поддерживает серверный поиск по имени/нику/id и ограничение количества.

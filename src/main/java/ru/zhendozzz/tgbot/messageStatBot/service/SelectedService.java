@@ -12,12 +12,22 @@ import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.User;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
 @Service
 @Slf4j
 public class SelectedService {
+
+    /** Сколько последних дней считаем активностью: в розыгрыше участвуют только те, кто писал в чат за этот срок. */
+    private static final int ACTIVE_DAYS = 30;
+
+    /** Сколько раз пробуем отправить сообщение в Telegram (ответ {@code null} = отправка не удалась). */
+    private static final int SEND_ATTEMPTS = 3;
+
+    /** Базовая пауза перед повтором, растёт линейно: 500 мс, затем 1000 мс. */
+    private static final long SEND_RETRY_DELAY_MS = 500L;
 
     private final SelectedRepo stinkyRepo;
     private final LogRepo logRepo;
@@ -46,9 +56,16 @@ public class SelectedService {
     }
 
     public String getStinky(String chatId) {
-        List<String> distinctUserIdByChatId = logRepo.findDistinctUserIdByChatId(chatId);
-        int i = (int) (Math.random() * distinctUserIdByChatId.size());
-        return distinctUserIdByChatId.get(i);
+        List<String> candidates = logRepo.findDistinctUserIdByChatIdSince(chatId, LocalDateTime.now().minusDays(ACTIVE_DAYS));
+        if (candidates.isEmpty()) {
+            // В затихшем чате активных нет — разыгрываем среди всех участников, как раньше.
+            candidates = logRepo.findDistinctUserIdByChatId(chatId);
+        }
+        if (candidates.isEmpty()) {
+            throw new IllegalStateException("В чате " + chatId + " нет участников для розыгрыша");
+        }
+        int i = (int) (Math.random() * candidates.size());
+        return candidates.get(i);
     }
 
     public void sendSelected(Long chatId, Integer messageId) {
@@ -72,34 +89,64 @@ public class SelectedService {
 
     public void sendSelected(Long chatId) {
         Selected existedSelected = findByMessage(chatId.toString(), LocalDate.now());
-        SendMessage sendMessage = new SendMessage();
-        String text;
-        User user;
-        String stinkyUserId;
-        if (Objects.nonNull(existedSelected)) {
-            text = "Сегодня нам проставляется:\n";
-            stinkyUserId = existedSelected.getUserId();
-            String userNames = String.join(",", logRepo.findUserNameByUserId(stinkyUserId));
-            user = new User(Long.valueOf(stinkyUserId), userNames, false);
-        } else {
-            text = "Поиск спонсора нашей пьянки... Сегодня нам проставляется:\n";
-            stinkyUserId = getStinky(chatId.toString());
-            String userNames = String.join(",", logRepo.findUserNameByUserId(stinkyUserId));
-            user = new User(Long.valueOf(stinkyUserId), userNames, false);
+        boolean isNew = Objects.isNull(existedSelected);
+        String stinkyUserId = isNew ? getStinky(chatId.toString()) : existedSelected.getUserId();
+
+        SendMessage sendMessage = buildSelectedMessage(chatId, stinkyUserId, isNew);
+        if (!sendWithRetry(sendMessage)) {
+            // Не отправили — не фиксируем выбор: вечером разыграем заново.
+            log.error("Сообщение о проставляющемся в чат {} не доставлено, розыгрыш не сохранён", chatId);
+            return;
+        }
+        if (isNew) {
             save(chatId.toString(), stinkyUserId, LocalDate.now());
         }
-        String firstName = user.getFirstName();
-        String lastName = user.getLastName();
+    }
+
+    private SendMessage buildSelectedMessage(Long chatId, String stinkyUserId, boolean isNew) {
+        String text = isNew
+                ? "Поиск спонсора нашей пьянки... Сегодня нам проставляется:\n"
+                : "Сегодня нам проставляется:\n";
+        String userNames = String.join(",", logRepo.findUserNameByUserId(stinkyUserId));
+        User user = new User(Long.valueOf(stinkyUserId), userNames, false);
         MessageEntity messageEntity = new MessageEntity();
         messageEntity.setUser(user);
         messageEntity.setOffset(text.length());
-        String userIdentityText = firstName + " " + (Objects.nonNull(lastName) ? lastName : "") + "\n";
+        String userIdentityText = user.getFirstName() + " " + (Objects.nonNull(user.getLastName()) ? user.getLastName() : "") + "\n";
         text += userIdentityText;
         messageEntity.setLength(userIdentityText.length());
         messageEntity.setType("text_mention");
+        SendMessage sendMessage = new SendMessage();
         sendMessage.setEntities(List.of(messageEntity));
         sendMessage.setText(text);
         sendMessage.setChatId(chatId);
-        messageExecutor.sendMessage(sendMessage);
+        return sendMessage;
+    }
+
+    /** Отправляет сообщение с повторами: {@code MessageExecutor} возвращает {@code null}, если Telegram отклонил запрос. */
+    private boolean sendWithRetry(SendMessage sendMessage) {
+        for (int attempt = 1; attempt <= SEND_ATTEMPTS; attempt++) {
+            try {
+                if (Objects.nonNull(messageExecutor.sendMessage(sendMessage))) {
+                    return true;
+                }
+                log.warn("Отправка в чат {} не удалась (попытка {}/{})", sendMessage.getChatId(), attempt, SEND_ATTEMPTS);
+            } catch (RuntimeException e) {
+                log.warn("Отправка в чат {} упала: {} (попытка {}/{})",
+                        sendMessage.getChatId(), e.getMessage(), attempt, SEND_ATTEMPTS);
+            }
+            if (attempt < SEND_ATTEMPTS) {
+                sleepBeforeRetry(attempt);
+            }
+        }
+        return false;
+    }
+
+    private void sleepBeforeRetry(int attempt) {
+        try {
+            Thread.sleep(SEND_RETRY_DELAY_MS * attempt);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
