@@ -155,8 +155,8 @@ public interface LogRepo extends JpaRepository<Log, Long> {
 
     @Query(value = "select * from log "
             + "where chat_id = :chatId and user_id = :userId "
-            + "and coalesce(trip_from, '') = coalesce(:tripFrom, '') "
-            + "and coalesce(trip_to, '') = coalesce(:tripTo, '') "
+            + "and coalesce(trip_from, '') = coalesce(cast(:tripFrom as varchar), '') "
+            + "and coalesce(trip_to, '') = coalesce(cast(:tripTo as varchar), '') "
             + "and trip_time >= :start and trip_time < :end "
             + "and (trip_from is not null or trip_to is not null) "
             + "order by trip_time, id", nativeQuery = true)
