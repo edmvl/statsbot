@@ -62,6 +62,25 @@ java -jar target/messageStatBot-0.0.1-SNAPSHOT.jar --telegram.bot.token=1:fake `
 | Миграции | `src/main/resources/db/migration/` |
 | Тесты | `src/test/java/...` (рендер шаблонов — `TemplateRenderTest`) |
 
+## Прод и логи
+
+Деплой — GitHub Actions по пушу в `main` (`.github/workflows/deploy.yml`, systemd-сервис `tgbot`).
+Руками не деплоить, сервис не перезапускать, на сервере ничего не менять.
+
+Логи (только чтение):
+
+```bash
+ssh statsbot 'systemctl status tgbot --no-pager'
+ssh statsbot 'journalctl -u tgbot -n 300 --no-pager'
+ssh statsbot 'journalctl -u tgbot -p err --since "1 hour ago" --no-pager'
+ssh statsbot 'ls -la /opt/tgbot/ /var/log/ 2>/dev/null'   # уточнить пути при первом заходе
+```
+
+Alias `statsbot` = `root@api.zhendozzz.ru`, ключ `~/.ssh/pi_logs`, беспарольный.
+Если `ssh` просит пароль или `yes/no` — ключ не установлен: сказать пользователю,
+не пытаться вводить пароль. Pull request’ы и коммиты — как обычно, `git push`
+уходит через credential helper без интерактива.
+
 ## Перед ответом пользователю
 
 1. `mvn -o test` — зелёный.
