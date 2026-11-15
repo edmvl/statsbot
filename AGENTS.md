@@ -73,13 +73,21 @@ java -jar target/messageStatBot-0.0.1-SNAPSHOT.jar --telegram.bot.token=1:fake `
 ssh statsbot 'systemctl status tgbot --no-pager'
 ssh statsbot 'journalctl -u tgbot -n 300 --no-pager'
 ssh statsbot 'journalctl -u tgbot -p err --since "1 hour ago" --no-pager'
-ssh statsbot 'ls -la /opt/tgbot/ /var/log/ 2>/dev/null'   # уточнить пути при первом заходе
 ```
 
-Alias `statsbot` = `root@api.zhendozzz.ru`, ключ `~/.ssh/pi_logs`, беспарольный.
+Alias `statsbot` = `deploylogs@api.zhendozzz.ru`, ключ `~/.ssh/pi_logs` (в `authorized_keys`
+с опцией `restrict`: без pty, forwarding, agent и X11), беспарольный. Пользователь
+`deploylogs` состоит в группе `systemd-journal`, sudo нет — только чтение логов.
+Перезапуск/правка файлов на проде из этой сессии невозможны: изменения — через пуш в `main`.
+
+Админский alias `statsbot-root` (`root@…`, ключ `~/.ssh/moba_root` — тот же, что импортируется
+в MobaXterm пользователя) использовать только с явного разрешения пользователя.
+
 Если `ssh` просит пароль или `yes/no` — ключ не установлен: сказать пользователю,
-не пытаться вводить пароль. Pull request’ы и коммиты — как обычно, `git push`
-уходит через credential helper без интерактива.
+не пытаться вводить пароль. Частые подряд `ssh` упираются в `ufw limit OpenSSH`
+(6 коннектов / 30 с, таймаут соединения) — делать паузу 40–60 с и не паниковать.
+Pull request’ы и коммиты — как обычно, `git push` уходит через credential helper
+без интерактива.
 
 ## Перед ответом пользователю
 
