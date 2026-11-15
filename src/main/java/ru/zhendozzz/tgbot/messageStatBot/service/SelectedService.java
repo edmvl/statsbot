@@ -40,7 +40,8 @@ public class SelectedService {
     /** Сколько кандидатов максимум проверяем через getChatMember, чтобы не упереться в лимиты Bot API. */
     private static final int MEMBERSHIP_CHECKS = 10;
 
-    private final Random random;
+    /** Генератор для перемешивания кандидатов; в тестах подменяется на seed-вариант. */
+    Random random = new Random();
 
     private final SelectedRepo stinkyRepo;
     private final LogRepo logRepo;
@@ -49,17 +50,11 @@ public class SelectedService {
     private final MessageExecutor messageExecutor;
 
     public SelectedService(SelectedRepo stinkyRepo, LogRepo logRepo, StatsService statsService, SettingsService settingsService, MessageExecutor messageExecutor) {
-        this(stinkyRepo, logRepo, statsService, settingsService, messageExecutor, new Random());
-    }
-
-    SelectedService(SelectedRepo stinkyRepo, LogRepo logRepo, StatsService statsService, SettingsService settingsService,
-                    MessageExecutor messageExecutor, Random random) {
         this.stinkyRepo = stinkyRepo;
         this.logRepo = logRepo;
         this.statsService = statsService;
         this.settingsService = settingsService;
         this.messageExecutor = messageExecutor;
-        this.random = random;
     }
 
     public Selected findByMessage(String chatId, LocalDate date) {

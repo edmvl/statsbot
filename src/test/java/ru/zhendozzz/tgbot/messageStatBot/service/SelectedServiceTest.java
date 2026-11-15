@@ -38,8 +38,14 @@ class SelectedServiceTest {
     private final SettingsService settingsService = mock(SettingsService.class);
     private final MessageExecutor messageExecutor = mock(MessageExecutor.class);
 
-    private final SelectedService service =
-            new SelectedService(selectedRepo, logRepo, statsService, settingsService, messageExecutor, new Random(7));
+    private final SelectedService service = newService();
+
+    private SelectedService newService() {
+        SelectedService created =
+                new SelectedService(selectedRepo, logRepo, statsService, settingsService, messageExecutor);
+        created.random = new Random(7);
+        return created;
+    }
 
     private void givenNoSelectionToday() {
         when(selectedRepo.findByChatIdAndDate(eq(CHAT_ID), any(LocalDate.class))).thenReturn(null);
