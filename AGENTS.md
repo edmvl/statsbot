@@ -84,10 +84,30 @@ Alias `statsbot` = `deploylogs@api.zhendozzz.ru`, ключ `~/.ssh/pi_logs` (в 
 в MobaXterm пользователя) использовать только с явного разрешения пользователя.
 
 Если `ssh` просит пароль или `yes/no` — ключ не установлен: сказать пользователю,
-не пытаться вводить пароль. Частые подряд `ssh` упираются в `ufw limit OpenSSH`
-(6 коннектов / 30 с, таймаут соединения) — делать паузу 40–60 с и не паниковать.
+не пытаться вводить пароль. Частые подряд `ssh` упираются в лимит соединений — делать
+паузу 40–60 с и не паниковать.
 Pull request’ы и коммиты — как обычно, `git push` уходит через credential helper
 без интерактива.
+
+## Безопасность сервера
+
+Сделано (15.11.2026):
+- `fail2ban` (jail `sshd`, `maxretry=5`, `findtime=30m`, `bantime` с инкрементом до 4 недель)
+  — основная защита от перебора паролей; `ufw limit` для 22 порта снят, потому что
+  GitHub Actions открывает 6+ соединений подряд и деплой падал.
+- `ufw`: `deny incoming` по умолчанию, открыты только 22/80/443; 8081 и 5432 снаружи закрыты.
+- sshd: `/etc/ssh/sshd_config.d/10-hardening.conf` — `MaxAuthTries 4`, `LoginGraceTime 20`,
+  без X11/agent forwarding. `PasswordAuthentication` пока ВКЛЮЧЁН: пользователь ещё не
+  подтвердил вход по ключу в MobaXterm. После подтверждения — `PasswordAuthentication no`
+  и `PermitRootLogin prohibit-password` в том же файле + `sshd -t && systemctl reload ssh`.
+- `unattended-upgrades` + `apt-daily.timer`/`apt-daily-upgrade.timer` (были masked) —
+  автоустановка security-обновлений, авто-ребут выключен.
+- Пароль Postgres `postgres` ротирован; новый в `/home/config/application-prod.properties`,
+  копия в `/root/.pgpw.new` (600).
+- Сломанный PPA `linuxuprising/java` и дубликат `pgdg.list` отключены.
+
+Не делать: не возвращать `ufw limit OpenSSH`, не включать парольный вход в sshd, не
+отключать fail2ban — деплой идёт с ключа, а перебор идёт постоянно.
 
 ## Перед ответом пользователю
 
