@@ -20,8 +20,8 @@ $mvn="C:\Program Files\JetBrains\IntelliJIdea2026.2\plugins\maven-plugin\lib\mav
 & $mvn -o test "-Dtest=LogServiceTest,ProcessorTest"  # только классы (через запятую!)
 ```
 
-Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их ~100
-(`mvn -o test` → `Tests run: 100, Failures: 0`).
+Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их 172
+(`mvn -o test` → `Tests run: 172, Failures: 0`).
 
 Запуск приложения (локально, без сети до Telegram):
 
@@ -31,6 +31,23 @@ java -jar target/messageStatBot-0.0.1-SNAPSHOT.jar --telegram.bot.token=1:fake `
   --telegram.bot.username=testbot `
   --spring.autoconfigure.exclude=org.telegram.telegrambots.starter.TelegramBotStarterConfiguration
 ```
+
+## Миграции: локальная проверка
+
+Прод-схему и запросы к ней проверяем **локально**, на копии прод-дампа в Docker.
+`db_dump.bak` (в `.gitignore`) нужен только для первой заливки — ~2 минуты, дальше
+том переиспользуется, старт секунды. Нужен запущенный Docker Desktop.
+
+```bash
+scripts/test-migration.sh                # поднять базу tgbot с дампом
+scripts/test-migration.sh src/main/resources/db/migration/V27__selected.sql
+scripts/test-migration.sh $(ls src/main/resources/db/migration/V{18,19,20,21,22,23,24,25,26,27}__*.sql)
+```
+
+Что проверять для новой миграции: применение без ошибок (`ON_ERROR_STOP=1`),
+повторный запуск (идемпотентность), ограничения вставкой/удалением строк,
+нужные индексы (`select indexname from pg_indexes where tablename = '...'`).
+Пересоздать чистую: `docker rm -f statsbot-pgtest && docker volume rm statsbot-pgtest-data`.
 
 ## Жёсткие правила
 
@@ -42,7 +59,11 @@ java -jar target/messageStatBot-0.0.1-SNAPSHOT.jar --telegram.bot.token=1:fake `
   `settingsService.isUserAdmin(tripChannelId, userId)`, канал берётся из
   `chat_settings` (`trip_channel=true`), не из константы.
 - **Схема БД только через Flyway** (`src/main/resources/db/migration/V{n}__*.sql`),
-  идемпотентно (`if not exists`), с проверкой на живом Postgres.
+  идемпотентно (`if not exists`), с проверкой на локальном Postgres в Docker
+  (`scripts/test-migration.sh`) — **на проде SQL не экспериментировать**.
+- **Прод — не песочница.** Для тестов (SQL, миграции, запросы, скретч-базы) не ходи
+  на сервер вообще: поднимай локальный Postgres в Docker. На прод — только логи
+  (см. «Прод и логи») и факт того, что миграция применилась после деплоя.
 - **Не перезаписывай файлы через PowerShell** (`Get-Content | Set-Content`) — ломает
   UTF-8 и кириллицу. Только инструменты `edit`/`write`.
 - **Темы**: страницы Mini App обязаны работать в светлой и тёмной теме Telegram —
