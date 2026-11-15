@@ -97,11 +97,13 @@ Pull request’ы и коммиты — как обычно, `git push` уход
   GitHub Actions открывает 6+ соединений подряд и деплой падал.
 - `ufw`: `deny incoming` по умолчанию, открыты только 22/80/443; 8081 и 5432 снаружи закрыты.
 - sshd: `/etc/ssh/sshd_config.d/10-hardening.conf` — `MaxAuthTries 4`, `LoginGraceTime 20`,
-  без X11/agent forwarding. `PasswordAuthentication` пока ВКЛЮЧЁН: пользователь ещё не
-  подтвердил вход по ключу в MobaXterm. После подтверждения — `PasswordAuthentication no`
-  и `PermitRootLogin prohibit-password` в том же файле + `sshd -t && systemctl reload ssh`.
+  без X11/agent forwarding. `PasswordAuthentication no`, `PermitRootLogin prohibit-password`
+  — вход только по ключу (`moba_root` у пользователя в MobaXterm, `pi_logs` у pi на `deploylogs`).
+  Если пользователь потерял ключ — только консоль в панели Aeza.
 - `unattended-upgrades` + `apt-daily.timer`/`apt-daily-upgrade.timer` (были masked) —
-  автоустановка security-обновлений, авто-ребут выключен.
+  автоустановка security-обновлений, авто-ребут выключен. Побочка: `needrestart`
+  перезапускает `ssh.service` после обновления libpam/openssh, живые SSH-сессии рвутся
+  (MobaXterm показывает «Session stopped» — лечится кнопкой R).
 - Пароль Postgres `postgres` ротирован; новый в `/home/config/application-prod.properties`,
   копия в `/root/.pgpw.new` (600).
 - Сломанный PPA `linuxuprising/java` и дубликат `pgdg.list` отключены.
