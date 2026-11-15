@@ -11,8 +11,10 @@ import ru.zhendozzz.tgbot.messageStatBot.repo.SelectedRepo;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,11 +39,12 @@ class SelectedServiceTest {
     private final MessageExecutor messageExecutor = mock(MessageExecutor.class);
 
     private final SelectedService service =
-            new SelectedService(selectedRepo, logRepo, statsService, settingsService, messageExecutor);
+            new SelectedService(selectedRepo, logRepo, statsService, settingsService, messageExecutor, new Random(7));
 
     private void givenNoSelectionToday() {
         when(selectedRepo.findByChatIdAndDate(eq(CHAT_ID), any(LocalDate.class))).thenReturn(null);
         when(logRepo.findUserNameByUserId(anyString())).thenReturn(List.of("ivan"));
+        when(messageExecutor.getUserStatusInChat(anyString(), anyString())).thenReturn("member");
     }
 
     @Test
@@ -139,5 +142,62 @@ class SelectedServiceTest {
         when(logRepo.findDistinctUserIdByChatId(CHAT_ID)).thenReturn(List.of());
 
         assertThrows(IllegalStateException.class, () -> service.getStinky(CHAT_ID));
+    }
+
+    @Test
+    void skipsParticipantWhoLeftChat() {
+        when(logRepo.findDistinctUserIdByChatIdSince(eq(CHAT_ID), any())).thenReturn(List.of("42"));
+        when(messageExecutor.getUserStatusInChat(CHAT_ID, "42")).thenReturn("left");
+
+        assertNull(service.getStinky(CHAT_ID));
+    }
+
+    @Test
+    void acceptsParticipantWhenTelegramDidNotAnswer() {
+        when(logRepo.findDistinctUserIdByChatIdSince(eq(CHAT_ID), any())).thenReturn(List.of("42"));
+        when(messageExecutor.getUserStatusInChat(CHAT_ID, "42")).thenReturn(null);
+
+        assertEquals("42", service.getStinky(CHAT_ID));
+    }
+
+    @Test
+    void picksMemberEvenWhenRandomOrderPutsLeftUserFirst() {
+        when(logRepo.findDistinctUserIdByChatIdSince(eq(CHAT_ID), any())).thenReturn(List.of("42", "43"));
+        when(messageExecutor.getUserStatusInChat(CHAT_ID, "42")).thenReturn("kicked");
+        when(messageExecutor.getUserStatusInChat(CHAT_ID, "43")).thenReturn("administrator");
+
+        assertEquals("43", service.getStinky(CHAT_ID));
+    }
+
+    @Test
+    void doesNotSendWhenEveryCheckedParticipantLeft() {
+        givenNoSelectionToday();
+        when(logRepo.findDistinctUserIdByChatIdSince(eq(CHAT_ID), any())).thenReturn(List.of("42", "43"));
+        when(messageExecutor.getUserStatusInChat(anyString(), anyString())).thenReturn("left");
+
+        service.sendSelected(CHAT);
+
+        verify(messageExecutor, never()).sendMessage(any(SendMessage.class));
+        verify(selectedRepo, never()).save(any(Selected.class));
+    }
+
+    @Test
+    void redrawsAndUpdatesRowWhenSavedParticipantLeftChat() {
+        Selected saved = new Selected();
+        saved.setChatId(CHAT_ID);
+        saved.setUserId("99");
+        when(selectedRepo.findByChatIdAndDate(eq(CHAT_ID), any(LocalDate.class))).thenReturn(saved);
+        when(logRepo.findDistinctUserIdByChatIdSince(eq(CHAT_ID), any())).thenReturn(List.of("7"));
+        when(logRepo.findUserNameByUserId("7")).thenReturn(List.of("kolya"));
+        when(messageExecutor.getUserStatusInChat(CHAT_ID, "99")).thenReturn("left");
+        when(messageExecutor.getUserStatusInChat(CHAT_ID, "7")).thenReturn("member");
+        when(messageExecutor.sendMessage(any(SendMessage.class))).thenReturn(777);
+
+        service.sendSelected(CHAT);
+
+        ArgumentCaptor<Selected> stored = ArgumentCaptor.forClass(Selected.class);
+        verify(selectedRepo, times(1)).save(stored.capture());
+        assertEquals("7", stored.getValue().getUserId());
+        assertEquals(CHAT_ID, stored.getValue().getChatId());
     }
 }

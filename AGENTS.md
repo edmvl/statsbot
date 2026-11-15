@@ -20,8 +20,8 @@ $mvn="C:\Program Files\JetBrains\IntelliJIdea2026.2\plugins\maven-plugin\lib\mav
 & $mvn -o test "-Dtest=LogServiceTest,ProcessorTest"  # только классы (через запятую!)
 ```
 
-Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их 180
-(`mvn -o test` → `Tests run: 180, Failures: 0`).
+Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их 185
+(`mvn -o test` → `Tests run: 185, Failures: 0`).
 
 Запуск приложения (локально, без сети до Telegram):
 
