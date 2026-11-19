@@ -6,9 +6,16 @@
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>/var/log/myapplication.log</file>
+    <!-- Файл с ротацией: части по 30 МБ, не больше 300 МБ и 7 дней истории. -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/tgbot.log</file>
         <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/tgbot.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>30MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
