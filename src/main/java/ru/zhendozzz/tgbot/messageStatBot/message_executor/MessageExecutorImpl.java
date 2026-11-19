@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.methods.GetUserProfilePhotos;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.UserProfilePhotos;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
+import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMemberRestricted;
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaDocument;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
@@ -29,6 +30,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
 import java.io.File;
 import java.time.Duration;
@@ -44,6 +46,12 @@ public class MessageExecutorImpl implements MessageExecutor {
 
     private static final int MAX_CAPTION_LENGTH = 1024;
     private static final int MAX_TEXT_CHUNK_LENGTH = 4000;
+
+    /** HTTP-код Telegram на ошибки запроса: для getChatMember это «такого участника нет» и «чат не найден». */
+    private static final int BAD_REQUEST = 400;
+
+    /** Статус «человек не в чате» (left/kicked), который проверяет розыгрыш проставляющегося. */
+    private static final String STATUS_LEFT = "left";
 
     private MyTelegramBot tgBot;
 
@@ -312,7 +320,20 @@ public class MessageExecutorImpl implements MessageExecutor {
         chatMemberMember.setChatId(chatId);
         try {
             ChatMember execute = tgBot.execute(chatMemberMember);
+            if (execute instanceof ChatMemberRestricted
+                    && !Boolean.TRUE.equals(((ChatMemberRestricted) execute).getIsMember())) {
+                // restricted с is_member=false — человек уже вышел или исключён из чата.
+                return STATUS_LEFT;
+            }
             return execute.getStatus();
+        } catch (TelegramApiRequestException e) {
+            // 400 — это ответ Telegram по существу (USER_NOT_PARTICIPANT, PARTICIPANT_ID_INVALID,
+            // chat not found): проверить членство нельзя, значит участника в чате нет. Иначе
+            // розыгрыш «проставляющегося» называл людей, которых в чате уже нет.
+            if (Integer.valueOf(BAD_REQUEST).equals(e.getErrorCode())) {
+                return STATUS_LEFT;
+            }
+            log.error("{}", e.getMessage());
         } catch (TelegramApiException e) {
             log.error("{}", e.getMessage());
         }
