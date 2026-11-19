@@ -20,8 +20,8 @@ $mvn="C:\Program Files\JetBrains\IntelliJIdea2026.2\plugins\maven-plugin\lib\mav
 & $mvn -o test "-Dtest=LogServiceTest,ProcessorTest"  # только классы (через запятую!)
 ```
 
-Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их 186
-(`mvn -o test` → `Tests run: 186, Failures: 0`).
+Правило: **зелёные тесты обязательны** перед завершением задачи. Сейчас их 197
+(`mvn -o test` → `Tests run: 197, Failures: 0`).
 
 Запуск приложения (локально, без сети до Telegram):
 
@@ -100,6 +100,11 @@ ssh statsbot 'journalctl -u tgbot -n 300 --no-pager'
 ssh statsbot 'journalctl -u tgbot -p err --since "1 hour ago" --no-pager'
 ```
 
+Лог приложения — `/var/log/tgbot.log` (`src/main/resources/logback.xml`):
+`RollingFileAppender` + `SizeAndTimeBasedRollingPolicy`, части по 30 МБ
+(`/var/log/tgbot.<дата>.<n>.log.gz`), 7 дней, общий потолок 300 МБ. Журнал systemd
+ограничен `SystemMaxUse=200M`/`SystemKeepFree=500M` в `/etc/systemd/journald.conf`.
+
 Alias `statsbot` = `deploylogs@api.zhendozzz.ru`, ключ `~/.ssh/pi_logs` (в `authorized_keys`
 с опцией `restrict`: без pty, forwarding, agent и X11), беспарольный. Пользователь
 `deploylogs` состоит в группе `systemd-journal`, sudo нет — только чтение логов.
@@ -113,6 +118,22 @@ Alias `statsbot` = `deploylogs@api.zhendozzz.ru`, ключ `~/.ssh/pi_logs` (в 
 паузу 40–60 с и не паниковать.
 Pull request’ы и коммиты — как обычно, `git push` уходит через credential helper
 без интерактива.
+
+## Бэкапы БД
+
+Сделано (19.11.2026), живёт только на сервере, в репозитории этих файлов нет:
+- `/usr/local/bin/pg-backup.sh` + `pg-backup.timer` — ежедневно 03:30 (MSK), `pg_dump -Fc -Z6`
+  базы `tgbot` от пользователя `postgres` (peer-auth), проверка `pg_restore -l`, 7 последних
+  дампов в `/var/backups/postgres/` (каждый ~55 МБ).
+- `/usr/local/bin/pg-backup-push.sh` + `pg-backup-push.timer` — ежедневно 04:00, `rsync`
+  последнего дампа с `.sha256` на `waper2` (`edmvl@176.193.70.219`), там `sha256sum -c`
+  и ротация до 14 файлов в `/home/edmvl/backups/tgbot/`. Ключ `/root/.ssh/backup_ed25519`,
+  в `authorized_keys` на `waper2` ограничен `from="89.22.228.164"`, без pty/forwarding.
+  Параметры — `/etc/default/pg-backup-push`.
+- `pg_restore` на `waper2` старше (PG16), дампы PG17 там не читаются — целостность
+  проверяется по `sha256sum`, восстанавливать надо `pg_restore` версии 17 (есть на проде).
+- Ручной прогон: `systemctl start pg-backup.service && systemctl start pg-backup-push.service`,
+  журнал — `journalctl -u pg-backup -u pg-backup-push --since today`.
 
 ## Безопасность сервера
 
