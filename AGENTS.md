@@ -126,12 +126,14 @@ Pull request’ы и коммиты — как обычно, `git push` уход
   базы `tgbot` от пользователя `postgres` (peer-auth), проверка `pg_restore -l`, 7 последних
   дампов в `/var/backups/postgres/` (каждый ~55 МБ).
 - `/usr/local/bin/pg-backup-push.sh` + `pg-backup-push.timer` — ежедневно 04:00, `rsync`
-  последнего дампа с `.sha256` на `waper2` (`edmvl@176.193.70.219`), там `sha256sum -c`
-  и ротация до 14 файлов в `/home/edmvl/backups/tgbot/`. Ключ `/root/.ssh/backup_ed25519`,
-  в `authorized_keys` на `waper2` ограничен `from="89.22.228.164"`, без pty/forwarding.
-  Параметры — `/etc/default/pg-backup-push`.
-- `pg_restore` на `waper2` старше (PG16), дампы PG17 там не читаются — целостность
-  проверяется по `sha256sum`, восстанавливать надо `pg_restore` версии 17 (есть на проде).
+  последнего дампа с `.sha256` на `waper2` (`edmvl@176.193.70.219`), там проверка
+  `sha256sum -c` + `pg_restore -l` и ротация до 14 файлов в `/home/edmvl/backups/tgbot/`.
+  Ключ `/root/.ssh/backup_ed25519`, в `authorized_keys` на `waper2` ограничен
+  `from="89.22.228.164"`, без pty/forwarding. Параметры — `/etc/default/pg-backup-push`.
+- `waper2` (`srv1`, `176.193.70.219`): с 19.11.2026 кластер PostgreSQL 17/main на 5432
+  (апгрейд с 15/main через `pg_upgradecluster`), версии с продом совпадают, дампы читаются.
+  Локальный alias `waper2` = `root@176.193.70.219` ключом `~/.ssh/moba_root`
+  (`PermitRootLogin prohibit-password` в `/etc/ssh/sshd_config.d/10-root-key.conf`).
 - Ручной прогон: `systemctl start pg-backup.service && systemctl start pg-backup-push.service`,
   журнал — `journalctl -u pg-backup -u pg-backup-push --since today`.
 
