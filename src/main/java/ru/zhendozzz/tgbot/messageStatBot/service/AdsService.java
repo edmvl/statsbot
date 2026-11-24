@@ -34,6 +34,12 @@ public class AdsService {
     /** К посту можно прикрепить не больше трёх файлов. */
     public static final int MAX_FILES = 3;
 
+    /**
+     * Имя файла обрезаем с запасом: в БД {@code varchar(255)}, а к имени ещё
+     * добавляется префикс {@code System.currentTimeMillis() + "_"}.
+     */
+    private static final int MAX_FILE_NAME = 200;
+
     private static final String ADS_DIR = "ads";
     private static final String APP_BASE_URL = "https://api.zhendozzz.ru";
     private static final String PAYLOAD_PREFIX = "ad:";
@@ -564,7 +570,22 @@ public class AdsService {
 
     private String sanitize(String name) {
         String cleaned = name.replace('\\', '_').replace('/', '_').trim();
-        return cleaned.isEmpty() ? "file" : cleaned;
+        if (cleaned.isEmpty()) {
+            return "file";
+        }
+        if (cleaned.length() <= MAX_FILE_NAME) {
+            return cleaned;
+        }
+        String extension = "";
+        int dot = cleaned.lastIndexOf('.');
+        if (dot > 0 && cleaned.length() - dot <= 20) {
+            extension = cleaned.substring(dot);
+        }
+        int end = MAX_FILE_NAME - extension.length();
+        if (Character.isLowSurrogate(cleaned.charAt(end))) {
+            end--;
+        }
+        return cleaned.substring(0, end) + extension;
     }
 
     private boolean isBlank(String value) {
