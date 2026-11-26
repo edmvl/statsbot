@@ -4,6 +4,7 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.ChatMemberViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ChatMessageDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ChatViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.ChattyDaysDto;
+import ru.zhendozzz.tgbot.messageStatBot.dto.PrivateChatDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.StatsViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.TripViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.Log;
@@ -108,6 +109,23 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             + "order by chat_id, id desc) as t "
             + "order by date_time desc", nativeQuery = true)
     List<ChatViewDto> getAllChats();
+
+    /**
+     * Личные чаты с ботом: id положительный (у групп и каналов он отрицательный).
+     * Для каждого чата — последнее сообщение, время и общее количество сообщений.
+     */
+    @Query(value = "select t.chat_id as chatId, "
+            + "to_char(t.date_time, 'DD.MM.YYYY HH24:MI') as lastMessage, "
+            + "t.text as lastText, "
+            + "(select count(*) from log l2 where l2.chat_id = t.chat_id) as messageCount, "
+            + "u.first_name as firstName, u.last_name as lastName, "
+            + "u.user_name as userName, u.avatar_path as avatarPath "
+            + "from (select distinct on (chat_id) chat_id, date_time, text "
+            + "      from log where chat_id ~ '^[0-9]+$' "
+            + "      order by chat_id, id desc) t "
+            + "left join users u on u.id = t.chat_id "
+            + "order by t.date_time desc", nativeQuery = true)
+    List<PrivateChatDto> findPrivateChats();
 
     @Query(value = "select l.id as logId, l.user_id as userId, l.date_time as dateTime, u.user_name as userName, "
             + "u.first_name as firstName, u.last_name as lastName, u.avatar_path as avatarPath, "

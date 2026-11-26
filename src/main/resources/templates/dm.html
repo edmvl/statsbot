@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Личная переписка</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app/dms" defer></script>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--page-bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            padding: 20px 16px 48px;
+            margin: 0 auto;
+            max-width: 720px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .page-header h1 {
+            font-size: 22px;
+            line-height: 1.25;
+            margin: 0 0 4px;
+            letter-spacing: -0.3px;
+            word-break: break-word;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .count-badge {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg {
+            display: flex;
+            gap: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-lg);
+            padding: 12px 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .msg-avatar {
+            flex: 0 0 auto;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--soft);
+        }
+
+        .msg-avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .msg-main {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .msg-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+
+        .msg-author {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--link);
+            text-decoration: none;
+        }
+
+        .msg-author:hover {
+            text-decoration: underline;
+        }
+
+        .msg-nick {
+            font-size: 13px;
+            color: var(--link);
+            text-decoration: none;
+        }
+
+        .msg-time {
+            font-size: 12px;
+            color: var(--muted);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .msg-text {
+            font-size: 15px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .msg.is-deleted .msg-text {
+            opacity: 0.6;
+        }
+
+        .msg-flags {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .flag {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .pager {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .pager a {
+            color: var(--link);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .pager .current {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .empty {
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--muted);
+            background: var(--card-bg);
+            border: 1px dashed var(--line);
+            border-radius: var(--radius-lg);
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+<header class="page-header">
+    <div>
+        <h1 th:text="${chatTitle != null and !#strings.isEmpty(chatTitle) ? chatTitle : 'Личная переписка'}">Личная переписка</h1>
+        <p class="subtitle">Новые сообщения сверху</p>
+    </div>
+    <span class="count-badge" th:text="${messages != null ? #lists.size(messages) : 0}">0</span>
+</header>
+
+<div th:if="${messages == null or #lists.isEmpty(messages)}" class="empty">
+    Сообщений нет
+</div>
+
+<div class="messages">
+    <article class="msg" th:each="m : ${messages}"
+             th:classappend="${m.deleted != null and m.deleted} ? ' is-deleted'">
+        <img class="msg-avatar" th:if="${m.avatarPath != null and !#strings.isEmpty(m.avatarPath)}"
+             th:src="@{/avatar/{id}(id=${m.userId})}" alt=""/>
+        <span class="msg-avatar msg-avatar-placeholder" th:unless="${m.avatarPath != null and !#strings.isEmpty(m.avatarPath)}"
+              th:text="${m.firstName != null and !#strings.isEmpty(m.firstName) ? #strings.substring(m.firstName,0,1) : '👤'}">👤</span>
+
+        <div class="msg-main">
+            <div class="msg-head">
+                <a class="msg-author" th:href="@{/app/reviews/{id}(id=${m.userId})}"
+                   th:text="${m.firstName != null and !#strings.isEmpty(m.firstName)
+                           ? (m.firstName + ' ' + (m.lastName != null ? m.lastName : ''))
+                           : (m.userName != null and !#strings.isEmpty(m.userName) ? '@' + m.userName : 'ID ' + m.userId)}">Имя</a>
+                <a class="msg-nick" th:if="${m.userName != null and !#strings.isEmpty(m.userName)
+                                          and m.firstName != null and !#strings.isEmpty(m.firstName)}"
+                   th:href="@{/app/reviews/{id}(id=${m.userId})}"
+                   th:text="'@' + ${m.userName}"></a>
+                <time class="msg-time"
+                      th:text="${m.dateTime != null ? #temporals.format(m.dateTime, 'dd.MM.yyyy HH:mm') : ''}"></time>
+            </div>
+            <div class="msg-text" th:text="${m.text != null and !#strings.isEmpty(m.text) ? m.text : '— без текста —'}"></div>
+            <div class="msg-flags" th:if="${(m.deleted != null and m.deleted) or m.editedAt != null}">
+                <span class="flag" th:if="${m.deleted != null and m.deleted}">🗑 удалено</span>
+                <span class="flag" th:if="${m.editedAt != null}">✏️ изменено</span>
+            </div>
+        </div>
+    </article>
+</div>
+
+<div class="pager" th:if="${messages != null and !#lists.isEmpty(messages)}">
+    <a th:if="${currentPage != null and currentPage > 0}"
+       th:href="@{/app/dm/{chatId}(chatId=${chatId}, page=${prevPage}, count=${count})}">‹ Новее</a>
+    <span class="current" th:text="'Стр. ' + (${currentPage != null ? currentPage + 1 : 1})">Стр. 1</span>
+    <a th:if="${messages != null and count != null and #lists.size(messages) >= count}"
+       th:href="@{/app/dm/{chatId}(chatId=${chatId}, page=${nextPage}, count=${count})}">Старее ›</a>
+</div>
+
+</body>
+</html>

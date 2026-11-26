@@ -209,6 +209,16 @@
             <span class="menu-arrow">›</span>
         </a>
 
+        <a class="menu-card" href="/app/dms" data-super-admin-only
+           th:attr="hidden=${superAdmin == null || !superAdmin}">
+            <span class="menu-icon">📬</span>
+            <span class="menu-text">
+                <span class="menu-title">Личные сообщения</span>
+                <span class="menu-desc">Переписка пользователей с ботом</span>
+            </span>
+            <span class="menu-arrow">›</span>
+        </a>
+
         <a class="menu-card" href="/app/feedback-list" data-trip-admin-only
            th:attr="hidden=${tripAdmin == null || !tripAdmin}">
             <span class="menu-icon">📨</span>

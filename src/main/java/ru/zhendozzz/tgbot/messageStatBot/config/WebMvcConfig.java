@@ -26,8 +26,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/app/chat-settings/**", "/app/chat-admins/**", "/app/challenges/**");
 
         // Общие админские разделы остаются только для супер-админа.
+        // Личные сообщения боту — тоже интимный раздел, доступен только супер-админу.
         registry.addInterceptor(superAdminAuthInterceptor)
                 .addPathPatterns("/app/subscriptions", "/app/ads",
+                        "/app/dms", "/app/dm/**",
                         "/api/ads", "/api/ads/**");
     }
 }

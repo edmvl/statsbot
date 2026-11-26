@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Личные сообщения</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script th:src="@{/js/telegram-web-app.js}" defer></script>
+    <script th:src="@{/js/app-back.js(v=13)}" data-back="/app" defer></script>
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--page-bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            padding: 20px 16px 48px;
+            margin: 0 auto;
+            max-width: 720px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .page-header h1 {
+            font-size: 23px;
+            line-height: 1.25;
+            margin: 0 0 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .count-badge {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .chat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            text-decoration: none;
+            color: var(--text);
+            transition: box-shadow var(--transition), transform var(--transition);
+        }
+
+        .chat-card:hover,
+        .chat-card:active {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-1px);
+        }
+
+        .chat-avatar {
+            flex: 0 0 auto;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--soft);
+        }
+
+        .chat-avatar-placeholder {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .chat-main {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .chat-name {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            word-break: break-word;
+        }
+
+        .chat-nick {
+            display: block;
+            font-size: 13px;
+            color: var(--link);
+            text-decoration: none;
+            word-break: break-word;
+        }
+
+        .chat-preview {
+            display: block;
+            margin-top: 2px;
+            font-size: 13px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-side {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .chat-time {
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .chat-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 20px;
+            padding: 0 7px;
+            border-radius: var(--radius-pill);
+            background: var(--soft);
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .empty {
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--muted);
+            background: var(--card-bg);
+            border: 1px dashed var(--line);
+            border-radius: var(--radius-lg);
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+<header class="page-header">
+    <div>
+        <h1>Личные сообщения</h1>
+        <p class="subtitle">Переписка пользователей с ботом</p>
+    </div>
+    <span class="count-badge" th:text="${chats != null ? #lists.size(chats) : 0}">0</span>
+</header>
+
+<div th:if="${chats == null or #lists.isEmpty(chats)}" class="empty">
+    Личных сообщений пока нет
+</div>
+
+<div class="chat-list">
+    <a class="chat-card" th:each="c : ${chats}"
+       th:href="@{/app/dm/{chatId}(chatId=${c.chatId})}">
+        <img class="chat-avatar" th:if="${c.avatarPath != null and !#strings.isEmpty(c.avatarPath)}"
+             th:src="@{/avatar/{id}(id=${c.chatId})}" alt=""/>
+        <span class="chat-avatar chat-avatar-placeholder" th:unless="${c.avatarPath != null and !#strings.isEmpty(c.avatarPath)}"
+              th:text="${c.firstName != null and !#strings.isEmpty(c.firstName) ? #strings.substring(c.firstName,0,1) : '👤'}">👤</span>
+
+        <span class="chat-main">
+            <span class="chat-name"
+                  th:text="${c.firstName != null and !#strings.isEmpty(c.firstName)
+                            ? (c.firstName + ' ' + (c.lastName != null ? c.lastName : ''))
+                            : (c.userName != null and !#strings.isEmpty(c.userName) ? '@' + c.userName : 'ID ' + c.chatId)}">Имя</span>
+            <span class="chat-nick" th:if="${c.userName != null and !#strings.isEmpty(c.userName)
+                                        and c.firstName != null and !#strings.isEmpty(c.firstName)}"
+                  th:text="'@' + ${c.userName}"></span>
+            <span class="chat-preview"
+                  th:text="${c.lastText != null and !#strings.isEmpty(c.lastText) ? c.lastText : '— без текста —'}">Текст</span>
+        </span>
+
+        <span class="chat-side">
+            <span class="chat-time" th:text="${c.lastMessage != null ? c.lastMessage : ''}"></span>
+            <span class="chat-count" th:if="${c.messageCount != null}" th:text="${c.messageCount}">0</span>
+        </span>
+    </a>
+</div>
+
+</body>
+</html>

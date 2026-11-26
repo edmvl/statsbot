@@ -117,6 +117,8 @@ class TemplateRenderTest {
         engine.process("ads", context);
         engine.process("ad-proposal", context);
         engine.process("chat-admins", context);
+        engine.process("dms", context);
+        engine.process("dm", context);
     }
 
     @Test
