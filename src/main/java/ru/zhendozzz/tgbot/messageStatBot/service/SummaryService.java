@@ -51,11 +51,22 @@ public class SummaryService {
     private static final double PRICE_INPUT = 0.30;
     private static final double PRICE_OUTPUT = 1.20;
 
-    private static final String SYSTEM_PROMPT =
+    private static final String SYSTEM_PROMPT_NEUTRAL =
             "Ты делаешь краткое саммари переписки в Telegram-чате за день. "
                     + "Пиши по-русски, 5–8 пунктов, каждый пункт — одна короткая строка. "
                     + "Только факты из переписки: о чём договорились, что произошло, какие вопросы остались. "
                     + "Без вступлений, без выводов, без оценок, без упоминания, что это пересказ.";
+
+    private static final String SYSTEM_PROMPT_SARCASTIC =
+            "Ты — ехидный летописец Telegram-чата. Сделай саммари переписки за день в стиле "
+                    + "добродушного троллинга: ирония, гиперболы, мемные формулировки и подколы "
+                    + "в адрес самых активных участников. 5–8 пунктов, каждый — одна короткая строка. "
+                    + "Подкалывай только поведение в чате: флуд, повторы, ночные сообщения, оффтоп, "
+                    + "споры ни о чём, «а поговорить?». "
+                    + "Строго запрещено: внешность, возраст, семья, здоровье, работа, "
+                    + "национальность, религия, политика, мат и прямые оскорбления. "
+                    + "Факты, договорённости и итоги пересказывай точно — ехидной должна быть подача, "
+                    + "а не правда. Без вступлений и без упоминания, что это пересказ.";
 
     private final LogRepo logRepo;
     private final SettingsService settingsService;
@@ -82,6 +93,10 @@ public class SummaryService {
 
     @Value("${summary.max-output-tokens:500}")
     private int maxOutputTokens;
+
+    /** Стиль саммари: {@code sarcastic} (по умолчанию) или {@code neutral}. */
+    @Value("${summary.style:sarcastic}")
+    private String style;
 
     private RestTemplate restTemplate;
 
@@ -207,7 +222,7 @@ public class SummaryService {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("model", model);
         payload.put("messages", List.of(
-                Map.of("role", "system", "content", SYSTEM_PROMPT),
+                Map.of("role", "system", "content", systemPrompt()),
                 Map.of("role", "user", "content", userPrompt)));
         payload.put("temperature", 0.3);
         payload.put("max_tokens", maxOutputTokens);
@@ -307,8 +322,18 @@ public class SummaryService {
         return asLong(details.get("reasoning_tokens"));
     }
 
+    /** Промпт под выбранный стиль: ехидный (по умолчанию) или нейтральный. */
+    String systemPrompt() {
+        return isNeutralStyle() ? SYSTEM_PROMPT_NEUTRAL : SYSTEM_PROMPT_SARCASTIC;
+    }
+
+    private boolean isNeutralStyle() {
+        return "neutral".equalsIgnoreCase(Objects.toString(style, "").trim());
+    }
+
     private String compose(LocalDate day, String summary, List<Log> messages) {
-        String header = "📊 Саммари за " + day.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String date = day.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String header = isNeutralStyle() ? "📊 Саммари за " + date : "🤡 Дневник чата за " + date;
         String posters = topPosters(messages);
         String text = header + "\n" + summary.trim() + (posters.isEmpty() ? "" : "\n\n" + posters);
         return text.length() > TELEGRAM_MESSAGE_LIMIT
@@ -337,7 +362,7 @@ public class SummaryService {
         String list = top.stream()
                 .map(id -> names.getOrDefault(id, id) + " (" + counts.get(id) + ")")
                 .collect(Collectors.joining(", "));
-        return "Активнее всех: " + list;
+        return isNeutralStyle() ? "Активнее всех: " + list : "🍿 Больше всех строчили: " + list;
     }
 
     private boolean isDisabled() {

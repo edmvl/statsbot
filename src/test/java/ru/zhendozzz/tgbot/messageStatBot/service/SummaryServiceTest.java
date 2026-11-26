@@ -116,6 +116,7 @@ class SummaryServiceTest {
         server.expect(requestTo("https://api.deepseek.com/chat/completions"))
                 .andExpect(header("Authorization", "Bearer test-key"))
                 .andExpect(content().string(containsString("\"model\":\"deepseek-chat\"")))
+                .andExpect(content().string(containsString("ехидный летописец")))
                 .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"• Обсудили поездку\"}}],"
                         + "\"usage\":{\"prompt_tokens\":1200,\"completion_tokens\":80}}", MediaType.APPLICATION_JSON));
 
@@ -124,7 +125,10 @@ class SummaryServiceTest {
 
         ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
         verify(messageExecutor).sendMessage(eq(CHAT), text.capture());
-        assertThat(text.getValue()).contains("Саммари за 25.11.2026").contains("Обсудили поездку");
+        assertThat(text.getValue())
+                .contains("Дневник чата за 25.11.2026")
+                .contains("Обсудили поездку")
+                .contains("Больше всех строчили");
 
         ArgumentCaptor<ChatSettings> saved = ArgumentCaptor.forClass(ChatSettings.class);
         verify(chatSettingsRepo).save(saved.capture());
@@ -157,6 +161,25 @@ class SummaryServiceTest {
 
         assertThat(service.summarizeChat(CHAT, DAY)).isFalse();
         verify(chatSettingsRepo, never()).save(any(ChatSettings.class));
+    }
+
+    @Test
+    void neutralStyleUsesFactsPrompt() {
+        SummaryService service = service();
+        ReflectionTestUtils.setField(service, "style", "neutral");
+        MockRestServiceServer server = server(service);
+        when(logRepo.findForSummary(eq(CHAT), any(), any())).thenReturn(messages(20));
+        when(messageExecutor.sendMessage(eq(CHAT), anyString())).thenReturn(10);
+        server.expect(requestTo("https://api.deepseek.com/chat/completions"))
+                .andExpect(content().string(containsString("краткое саммари")))
+                .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"• Итог\"}}]}",
+                        MediaType.APPLICATION_JSON));
+
+        assertThat(service.summarizeChat(CHAT, DAY)).isTrue();
+
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        verify(messageExecutor).sendMessage(eq(CHAT), text.capture());
+        assertThat(text.getValue()).contains("Активнее всех").contains("Саммари за").doesNotContain("строчили");
     }
 
     @Test
