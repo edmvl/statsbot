@@ -10,6 +10,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.ChatPermissions;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.GetUserProfilePhotos;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
@@ -302,15 +303,34 @@ public class MessageExecutorImpl implements MessageExecutor {
         }
     }
 
+    @Override
     public void restrictChatMember(Long chatId, Long userId) {
         RestrictChatMember restrictChatMember = new RestrictChatMember();
         restrictChatMember.setChatId(chatId);
-        restrictChatMember.setUserId(chatId);
+        restrictChatMember.setUserId(userId);
+        // Запрет писать сообщения на час: canSendMessages=false без permissions Telegram
+        // не применяет — метод требует объект прав целиком.
+        restrictChatMember.setPermissions(ChatPermissions.builder()
+                .canSendMessages(false)
+                .canSendAudios(false)
+                .canSendDocuments(false)
+                .canSendPhotos(false)
+                .canSendVideos(false)
+                .canSendVideoNotes(false)
+                .canSendVoiceNotes(false)
+                .canSendPolls(false)
+                .canSendOtherMessages(false)
+                .canAddWebPagePreviews(false)
+                .canChangeInfo(false)
+                .canInviteUsers(false)
+                .canPinMessages(false)
+                .canManageTopics(false)
+                .build());
         restrictChatMember.forTimePeriodDuration(Duration.ofHours(1));
         try {
             tgBot.execute(restrictChatMember);
         } catch (TelegramApiException e) {
-            log.error("{}", e.getMessage());
+            log.error("Не удалось ограничить {} в чате {}: {}", userId, chatId, e.getMessage());
         }
     }
 

@@ -2,9 +2,13 @@ package ru.zhendozzz.tgbot.messageStatBot.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
 import ru.zhendozzz.tgbot.messageStatBot.entity.WordsFilter;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
@@ -148,6 +152,117 @@ class WordsFilterServiceTest {
 
         verify(wordsFilterRepo, times(2)).findAll();
         verify(wordsFilterRepo).save(any(WordsFilter.class));
+    }
+
+    @Test
+    void deletesForeignBotMentionAndMutesAuthor() {
+        when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.ENABLE_BOT_MENTION_FILTER))).thenReturn(true);
+
+        Message message = new Message();
+        message.setFrom(user(777L, false));
+        message.setText("Закажи у @spam_bot");
+
+        service.deleteByFilter(messageWithText(20, 777L, "Закажи у @spam_bot"), updateWith(message));
+
+        verify(messageExecutor).deleteMessage(-100L, 20);
+        verify(logService).markDeleted(-100L, 20);
+        verify(messageExecutor).restrictChatMember(-100L, 777L);
+    }
+
+    @Test
+    void keepsMentionOfOwnBot() {
+        ReflectionTestUtils.setField(service, "botUsername", "my_bot");
+        when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.ENABLE_BOT_MENTION_FILTER))).thenReturn(true);
+
+        Message message = new Message();
+        message.setFrom(user(777L, false));
+        message.setText("@my_bot покажи статистику");
+
+        service.deleteByFilter(messageWithText(21, 777L, "@my_bot покажи статистику"), updateWith(message));
+
+        verify(messageExecutor, never()).deleteMessage(any(), any());
+        verify(messageExecutor, never()).restrictChatMember(any(), any());
+    }
+
+    @Test
+    void deletesTextMentionOfForeignBot() {
+        when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.ENABLE_BOT_MENTION_FILTER))).thenReturn(true);
+
+        MessageEntity textMention = new MessageEntity();
+        textMention.setType("text_mention");
+        textMention.setOffset(0);
+        textMention.setLength(9);
+        textMention.setUser(user(999L, true));
+
+        Message message = new Message();
+        message.setFrom(user(777L, false));
+        message.setText("Чужой бот");
+        message.setEntities(List.of(textMention));
+
+        service.deleteByFilter(messageWithText(22, 777L, "Чужой бот"), updateWith(message));
+
+        verify(messageExecutor).deleteMessage(-100L, 22);
+        verify(messageExecutor).restrictChatMember(-100L, 777L);
+    }
+
+    @Test
+    void deletesLinkHiddenUnderInlineButton() {
+        when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.ENABLE_BOT_MENTION_FILTER))).thenReturn(true);
+
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText("Открыть");
+        button.setUrl("https://spam.example");
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(List.of(List.of(button)));
+
+        Message message = new Message();
+        message.setFrom(user(777L, false));
+        message.setText("Смотри");
+        message.setReplyMarkup(markup);
+
+        service.deleteByFilter(messageWithText(23, 777L, "Смотри"), updateWith(message));
+
+        verify(messageExecutor).deleteMessage(-100L, 23);
+        verify(messageExecutor).restrictChatMember(-100L, 777L);
+    }
+
+    @Test
+    void keepsBotMentionsWhenSettingIsOff() {
+        Message message = new Message();
+        message.setFrom(user(777L, false));
+        message.setText("Закажи у @spam_bot");
+
+        service.deleteByFilter(messageWithText(24, 777L, "Закажи у @spam_bot"), updateWith(message));
+
+        verify(messageExecutor, never()).deleteMessage(any(), any());
+        verify(messageExecutor, never()).restrictChatMember(any(), any());
+    }
+
+    @Test
+    void deletesBotMessageButDoesNotTryToRestrictBot() {
+        when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.ENABLE_BOT_MENTION_FILTER))).thenReturn(true);
+
+        Message message = new Message();
+        message.setFrom(user(555L, true));
+        message.setText("Закажи у @spam_bot");
+
+        service.deleteByFilter(messageWithText(25, 555L, "Закажи у @spam_bot"), updateWith(message));
+
+        verify(messageExecutor).deleteMessage(-100L, 25);
+        verify(messageExecutor, never()).restrictChatMember(any(), any());
+    }
+
+    private User user(Long id, boolean isBot) {
+        User user = new User();
+        user.setId(id);
+        user.setIsBot(isBot);
+        return user;
+    }
+
+    private Update updateWith(Message message) {
+        Update update = new Update();
+        update.setMessage(message);
+        return update;
     }
 
     private MessageDTO messageWithText(Integer messageId, Long userId, String text) {

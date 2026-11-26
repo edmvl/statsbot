@@ -11,6 +11,7 @@ public enum ChatSettingConstants {
     TRIP_CHANNEL("trip_channel"),
     ENABLE_MEMBER_CONTROL("enable_member_control"),
     ENABLE_ADS("enable_ads"),
+    ENABLE_BOT_MENTION_FILTER("enable_bot_mention_filter"),
     ;
 
 

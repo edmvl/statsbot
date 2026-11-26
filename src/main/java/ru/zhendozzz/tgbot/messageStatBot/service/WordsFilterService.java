@@ -3,12 +3,16 @@ package ru.zhendozzz.tgbot.messageStatBot.service;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
 import ru.zhendozzz.tgbot.messageStatBot.entity.WordsFilter;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.repo.WordsFilterRepo;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.BotCommands;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
 
@@ -16,6 +20,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class WordsFilterService implements CommandExecutable, NeedProcessMessage {
@@ -33,8 +39,20 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
      */
     private static final long WORDS_CACHE_TTL_MS = 60_000;
 
+    /**
+     * Упоминание в тексте: Telegram-боты обязаны иметь username, оканчивающийся на «bot»,
+     * поэтому по одному виду {@code @username} можно отличить бота от человека.
+     */
+    private static final Pattern MENTION_PATTERN = Pattern.compile("(?<![A-Za-z0-9_])@[A-Za-z0-9_]+");
+
+    private static final String MENTION_ENTITY = "mention";
+    private static final String TEXT_MENTION_ENTITY = "text_mention";
+
     private volatile List<String> cachedWords = List.of();
     private volatile long cachedWordsAt = 0;
+
+    @Value("${telegram.bot.username}")
+    private String botUsername;
 
     private final MessageExecutor messageExecutor;
 
@@ -53,39 +71,163 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
     }
 
     public void deleteByFilter(MessageDTO messageDTO, Update update) {
-        if (messageDTO.isServiceMessage() || Objects.isNull(messageDTO.getUserText())) {
+        if (messageDTO.isServiceMessage()) {
             return;
         }
+        Message message = resolveMessage(update);
         // Сообщения супер-админа и админов чата не трогаем — в том числе отправленные анонимно.
-        if (isPrivileged(messageDTO, update)) {
+        if (isPrivileged(messageDTO, message)) {
             return;
         }
-        List<String> words = Arrays.stream(messageDTO.getUserText().split(" "))
-                .map(word -> word.toLowerCase(Locale.ROOT))
-                .toList();
-        List<String> wordsToFilter = wordsToFilter();
-        if (wordsToFilter.stream().anyMatch(words::contains)) {
-            messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
-            logService.markDeleted(messageDTO.getChatId(), messageDTO.getMessageId());
+
+        boolean deleted = false;
+        if (Objects.nonNull(messageDTO.getUserText())) {
+            List<String> words = Arrays.stream(messageDTO.getUserText().split(" "))
+                    .map(word -> word.toLowerCase(Locale.ROOT))
+                    .toList();
+            List<String> wordsToFilter = wordsToFilter();
+            if (wordsToFilter.stream().anyMatch(words::contains)) {
+                deleteAndMark(messageDTO);
+                deleted = true;
+            }
         }
-        if (settingsService.isEnabled(messageDTO.getChatId().toString(), ChatSettingConstants.TRIP_CHANNEL)) {
-            Message message = update.getMessage();
-            List<MessageEntity> entities = Objects.nonNull(message) ? message.getEntities() : null;
-            if (Objects.nonNull(entities)) {
-                long messagesWithUrl = entities.stream().filter(messageEntity -> Objects.nonNull(messageEntity.getUrl())).count();
-                if (messagesWithUrl > 0) {
-                    messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
-                    logService.markDeleted(messageDTO.getChatId(), messageDTO.getMessageId());
+        if (Objects.nonNull(message)
+                && settingsService.isEnabled(messageDTO.getChatId().toString(), ChatSettingConstants.TRIP_CHANNEL)
+                && hasLink(message)) {
+            if (!deleted) {
+                deleteAndMark(messageDTO);
+                deleted = true;
+            }
+        }
+        // Чистка от упоминаний ботов: сообщение с чужим ботом (в тексте или кнопкой-ссылкой)
+        // удаляем, а автора ограничиваем на час. Свои сообщения бот отсекает ещё в MessageHandler.
+        if (Objects.nonNull(message)
+                && settingsService.isEnabled(messageDTO.getChatId().toString(), ChatSettingConstants.ENABLE_BOT_MENTION_FILTER)
+                && (mentionsForeignBot(message) || hasUrlButton(message))) {
+            if (!deleted) {
+                deleteAndMark(messageDTO);
+            }
+            muteAuthor(messageDTO, message);
+        }
+    }
+
+    private void deleteAndMark(MessageDTO messageDTO) {
+        messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
+        logService.markDeleted(messageDTO.getChatId(), messageDTO.getMessageId());
+    }
+
+    private Message resolveMessage(Update update) {
+        return Objects.nonNull(update.getMessage()) ? update.getMessage() : update.getEditedMessage();
+    }
+
+    /** Ссылка в тексте/подписи: {@code url} или скрытая {@code text_link} — у обеих есть url. */
+    private boolean hasLink(Message message) {
+        return hasUrlEntity(message.getEntities()) || hasUrlEntity(message.getCaptionEntities());
+    }
+
+    private boolean hasUrlEntity(List<MessageEntity> entities) {
+        return Objects.nonNull(entities)
+                && entities.stream().anyMatch(entity -> Objects.nonNull(entity) && Objects.nonNull(entity.getUrl()));
+    }
+
+    /**
+     * Упоминание любого бота, кроме нашего: {@code text_mention} с флагом is_bot,
+     * {@code mention} вида {@code @...bot}, а также запасной поиск по тексту —
+     * некоторые боты присылают текст без entities.
+     */
+    private boolean mentionsForeignBot(Message message) {
+        return hasForeignBotMention(message.getText(), message.getEntities())
+                || hasForeignBotMention(message.getCaption(), message.getCaptionEntities());
+    }
+
+    private boolean hasForeignBotMention(String text, List<MessageEntity> entities) {
+        if (Objects.isNull(text)) {
+            return false;
+        }
+        if (Objects.nonNull(entities)) {
+            for (MessageEntity entity : entities) {
+                if (Objects.isNull(entity) || Objects.isNull(entity.getType())) {
+                    continue;
+                }
+                if (TEXT_MENTION_ENTITY.equals(entity.getType())) {
+                    User user = entity.getUser();
+                    if (Objects.nonNull(user) && Boolean.TRUE.equals(user.getIsBot())
+                            && !isOwnBotUsername(user.getUserName())) {
+                        return true;
+                    }
+                } else if (MENTION_ENTITY.equals(entity.getType())
+                        && isForeignBotUsername(mentionText(text, entity))) {
+                    return true;
                 }
             }
         }
+        Matcher matcher = MENTION_PATTERN.matcher(text);
+        while (matcher.find()) {
+            if (isForeignBotUsername(matcher.group())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String mentionText(String text, MessageEntity entity) {
+        int start = Math.max(0, entity.getOffset());
+        int end = Math.min(text.length(), start + entity.getLength());
+        return start < end ? text.substring(start, end) : "";
+    }
+
+    /** Telegram требует, чтобы username бота оканчивался на «bot» (регистр не важен). */
+    private boolean isForeignBotUsername(String username) {
+        if (Objects.isNull(username)) {
+            return false;
+        }
+        String name = username.trim();
+        while (name.startsWith("@")) {
+            name = name.substring(1);
+        }
+        return name.toLowerCase(Locale.ROOT).endsWith("bot") && !isOwnBotUsername(name);
+    }
+
+    private boolean isOwnBotUsername(String username) {
+        if (Objects.isNull(username) || Objects.isNull(botUsername)) {
+            return false;
+        }
+        return botUsername.replace("@", "").equalsIgnoreCase(username.replace("@", "").trim());
+    }
+
+    /** Ссылка, спрятанная под inline-кнопку: в тексте её нет, поэтому entities не помогают. */
+    private boolean hasUrlButton(Message message) {
+        InlineKeyboardMarkup markup = message.getReplyMarkup();
+        if (Objects.isNull(markup) || Objects.isNull(markup.getKeyboard())) {
+            return false;
+        }
+        for (List<InlineKeyboardButton> row : markup.getKeyboard()) {
+            if (Objects.isNull(row)) {
+                continue;
+            }
+            for (InlineKeyboardButton button : row) {
+                if (Objects.nonNull(button) && Objects.nonNull(button.getUrl()) && !button.getUrl().isBlank()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Ботов не ограничиваем: Telegram не даёт управлять правами ботов, да и автор — человек. */
+    private void muteAuthor(MessageDTO messageDTO, Message message) {
+        User from = message.getFrom();
+        if (Objects.isNull(from) || Boolean.TRUE.equals(from.getIsBot()) || Objects.isNull(messageDTO.getUserId())) {
+            return;
+        }
+        messageExecutor.restrictChatMember(messageDTO.getChatId(), messageDTO.getUserId());
     }
 
     /**
      * Супер-админ бота, админ чата ({@code is_admin}) или анонимный администратор
      * (Telegram подменяет отправителя ботом {@code GroupAnonymousBot}).
      */
-    private boolean isPrivileged(MessageDTO messageDTO, Update update) {
+    private boolean isPrivileged(MessageDTO messageDTO, Message message) {
         Long userId = messageDTO.getUserId();
         if (Objects.nonNull(userId)) {
             if (AccessConstants.SUPER_ADMIN_ID.equals(userId) || GROUP_ANONYMOUS_BOT_ID == userId) {
@@ -95,7 +237,6 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
                 return true;
             }
         }
-        Message message = update.getMessage();
         // сообщение от имени канала (в т.ч. анонимный админ со связанным каналом)
         return Objects.nonNull(message) && Objects.nonNull(message.getSenderChat());
     }

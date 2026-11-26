@@ -1,8 +1,10 @@
 package ru.zhendozzz.tgbot.messageStatBot.message_executor;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.RestrictChatMember;
 import org.telegram.telegrambots.meta.api.objects.ApiResponse;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMemberRestricted;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -16,6 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class MessageExecutorImplTest {
 
@@ -72,6 +75,24 @@ class MessageExecutorImplTest {
         impl.setMyTelegramBot(bot);
 
         assertThat(impl.getUserStatusInChat(-100L, 42L)).isEqualTo("left");
+    }
+
+    @Test
+    void restrictsMessageAuthorForOneHour() throws TelegramApiException {
+        MessageExecutorImpl impl = new MessageExecutorImpl();
+        MyTelegramBot bot = mock(MyTelegramBot.class);
+        impl.setMyTelegramBot(bot);
+
+        impl.restrictChatMember(-100L, 42L);
+
+        ArgumentCaptor<RestrictChatMember> captor = ArgumentCaptor.forClass(RestrictChatMember.class);
+        verify(bot).execute(captor.capture());
+        RestrictChatMember request = captor.getValue();
+        // Раньше в userId попадал chatId — автор никогда не ограничивался.
+        assertThat(request.getUserId()).isEqualTo(42L);
+        assertThat(request.getChatId()).isEqualTo("-100");
+        assertThat(request.getPermissions().getCanSendMessages()).isFalse();
+        assertThat(request.getUntilDate()).isNotNull();
     }
 
     private static ApiResponse<?> badRequest() {
