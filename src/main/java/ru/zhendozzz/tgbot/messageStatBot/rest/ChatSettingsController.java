@@ -98,7 +98,7 @@ public class ChatSettingsController {
                 case "trip_channel": return "Канал поездок";
                 case "enable_member_control": return "Контроль участников";
                 case "enable_ads": return "Показывать рекламу";
-                case "enable_bot_mention_filter": return "Чистка от упоминаний ботов";
+                case "enable_bot_mention_filter": return "Запрет ботов";
                 default: return name;
             }
         }

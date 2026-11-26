@@ -227,6 +227,41 @@ class WordsFilterServiceTest {
     }
 
     @Test
+    void deletesInlineMessageSentViaForeignBotAndMutesAuthor() {
+        when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.ENABLE_BOT_MENTION_FILTER))).thenReturn(true);
+
+        User viaBot = user(999L, true);
+        viaBot.setUserName("spam_bot");
+        Message message = new Message();
+        message.setFrom(user(777L, false));
+        message.setText("Результат из бота");
+        message.setViaBot(viaBot);
+
+        service.deleteByFilter(messageWithText(26, 777L, "Результат из бота"), updateWith(message));
+
+        verify(messageExecutor).deleteMessage(-100L, 26);
+        verify(messageExecutor).restrictChatMember(-100L, 777L);
+    }
+
+    @Test
+    void keepsInlineMessageSentViaOwnBot() {
+        ReflectionTestUtils.setField(service, "botUsername", "my_bot");
+        when(settingsService.isEnabled(anyString(), eq(ChatSettingConstants.ENABLE_BOT_MENTION_FILTER))).thenReturn(true);
+
+        User viaBot = user(999L, true);
+        viaBot.setUserName("my_bot");
+        Message message = new Message();
+        message.setFrom(user(777L, false));
+        message.setText("Результат из бота");
+        message.setViaBot(viaBot);
+
+        service.deleteByFilter(messageWithText(27, 777L, "Результат из бота"), updateWith(message));
+
+        verify(messageExecutor, never()).deleteMessage(any(), any());
+        verify(messageExecutor, never()).restrictChatMember(any(), any());
+    }
+
+    @Test
     void keepsBotMentionsWhenSettingIsOff() {
         Message message = new Message();
         message.setFrom(user(777L, false));

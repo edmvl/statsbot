@@ -99,11 +99,11 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
                 deleted = true;
             }
         }
-        // Чистка от упоминаний ботов: сообщение с чужим ботом (в тексте или кнопкой-ссылкой)
-        // удаляем, а автора ограничиваем на час. Свои сообщения бот отсекает ещё в MessageHandler.
+        // Чистка от ботов: чужое упоминание, url-кнопка или инлайн-сообщение,
+        // отправленное пользователем через стороннего бота (via_bot).
         if (Objects.nonNull(message)
                 && settingsService.isEnabled(messageDTO.getChatId().toString(), ChatSettingConstants.ENABLE_BOT_MENTION_FILTER)
-                && (mentionsForeignBot(message) || hasUrlButton(message))) {
+                && (mentionsForeignBot(message) || hasUrlButton(message) || hasForeignViaBot(message))) {
             if (!deleted) {
                 deleteAndMark(messageDTO);
             }
@@ -138,6 +138,12 @@ public class WordsFilterService implements CommandExecutable, NeedProcessMessage
     private boolean mentionsForeignBot(Message message) {
         return hasForeignBotMention(message.getText(), message.getEntities())
                 || hasForeignBotMention(message.getCaption(), message.getCaptionEntities());
+    }
+
+    /** Инлайн-режим чужого бота: автор — пользователь, но сообщение отправлено через бота. */
+    private boolean hasForeignViaBot(Message message) {
+        User viaBot = message.getViaBot();
+        return Objects.nonNull(viaBot) && !isOwnBotUsername(viaBot.getUserName());
     }
 
     private boolean hasForeignBotMention(String text, List<MessageEntity> entities) {
