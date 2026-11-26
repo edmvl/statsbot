@@ -53,6 +53,7 @@ class SummaryServiceTest {
         ReflectionTestUtils.setField(service, "maxMessageChars", 300);
         ReflectionTestUtils.setField(service, "minMessages", 15);
         ReflectionTestUtils.setField(service, "maxOutputTokens", 500);
+        ReflectionTestUtils.setField(service, "temperature", 0.6);
         return service;
     }
 
@@ -117,6 +118,8 @@ class SummaryServiceTest {
                 .andExpect(header("Authorization", "Bearer test-key"))
                 .andExpect(content().string(containsString("\"model\":\"deepseek-chat\"")))
                 .andExpect(content().string(containsString("ехидный летописец")))
+                .andExpect(content().string(containsString("чуваш")))
+                .andExpect(content().string(containsString("флудераст")))
                 .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"• Обсудили поездку\"}}],"
                         + "\"usage\":{\"prompt_tokens\":1200,\"completion_tokens\":80}}", MediaType.APPLICATION_JSON));
 
