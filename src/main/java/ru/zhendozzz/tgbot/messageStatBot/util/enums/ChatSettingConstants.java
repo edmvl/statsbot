@@ -12,6 +12,8 @@ public enum ChatSettingConstants {
     ENABLE_MEMBER_CONTROL("enable_member_control"),
     ENABLE_ADS("enable_ads"),
     ENABLE_BOT_MENTION_FILTER("enable_bot_mention_filter"),
+    /** Служебный флаг: Telegram ответил «chat not found», рассылки в чат остановлены. */
+    CHAT_UNAVAILABLE("chat_unavailable"),
     ;
 
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,8 +25,49 @@ public class SettingsService {
     }
 
     public boolean isEnabled(String chatId, ChatSettingConstants name) {
+        if (name != ChatSettingConstants.CHAT_UNAVAILABLE && isUnavailable(chatId)) {
+            return false;
+        }
         ChatSettings setting = chatSettingsRepo.findFirstByChatIdAndSettingName(chatId, name.getDbValue());
         return Objects.nonNull(setting) && "true".equals(setting.getSettingValue());
+    }
+
+    /** Чат недоступен: Telegram отвечал «chat not found», рассылки в него остановлены. */
+    public boolean isUnavailable(String chatId) {
+        ChatSettings setting = chatSettingsRepo.findFirstByChatIdAndSettingName(
+                chatId, ChatSettingConstants.CHAT_UNAVAILABLE.getDbValue());
+        return Objects.nonNull(setting) && "true".equals(setting.getSettingValue());
+    }
+
+    /**
+     * Помечает чат недоступным, чтобы ночные рассылки не долбились в удалённый чат.
+     * Идемпотентно: повторная отметка не создаёт дубль.
+     */
+    public void markUnavailable(String chatId) {
+        if (Objects.isNull(chatId) || chatId.isBlank() || isUnavailable(chatId)) {
+            return;
+        }
+        ChatSettings setting = chatSettingsRepo.findFirstByChatIdAndSettingName(
+                chatId, ChatSettingConstants.CHAT_UNAVAILABLE.getDbValue());
+        if (Objects.isNull(setting)) {
+            setting = new ChatSettings();
+            setting.setChatId(chatId);
+            setting.setSettingName(ChatSettingConstants.CHAT_UNAVAILABLE.getDbValue());
+        }
+        setting.setSettingValue("true");
+        chatSettingsRepo.save(setting);
+    }
+
+    /** Снимает отметку: бот снова получает сообщения из чата (его вернули или разблокировали). */
+    public void markAvailable(String chatId) {
+        if (Objects.isNull(chatId) || chatId.isBlank()) {
+            return;
+        }
+        ChatSettings setting = chatSettingsRepo.findFirstByChatIdAndSettingName(
+                chatId, ChatSettingConstants.CHAT_UNAVAILABLE.getDbValue());
+        if (Objects.nonNull(setting)) {
+            chatSettingsRepo.delete(setting);
+        }
     }
 
     public boolean isEnabled(Long chatId, ChatSettingConstants name) {
@@ -94,9 +136,15 @@ public class SettingsService {
     }
 
     public List<String> findEnabledBySettingName(ChatSettingConstants constant) {
+        Set<String> unavailable = chatSettingsRepo.findBySettingName(ChatSettingConstants.CHAT_UNAVAILABLE.getDbValue())
+                .stream()
+                .filter(chatSettings -> "true".equals(chatSettings.getSettingValue()))
+                .map(ChatSettings::getChatId)
+                .collect(Collectors.toSet());
         return chatSettingsRepo.findBySettingName(constant.getDbValue()).stream()
                 .filter(chatSettings -> "true".equals(chatSettings.getSettingValue()))
                 .map(ChatSettings::getChatId)
+                .filter(chatId -> !unavailable.contains(chatId))
                 .collect(Collectors.toList());
     }
 

@@ -5,11 +5,13 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.RestrictChatMember;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.ApiResponse;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMemberRestricted;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import ru.zhendozzz.tgbot.messageStatBot.app.MyTelegramBot;
+import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 
 import java.util.List;
 
@@ -18,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 class MessageExecutorImplTest {
@@ -95,10 +98,61 @@ class MessageExecutorImplTest {
         assertThat(request.getUntilDate()).isNotNull();
     }
 
+    @Test
+    void detectsDeletedChatOnlyForChatNotFound() {
+        assertThat(MessageExecutorImpl.isChatGone(
+                new TelegramApiRequestException("Bad Request: chat not found", chatNotFound()))).isTrue();
+        assertThat(MessageExecutorImpl.isChatGone(
+                new TelegramApiRequestException("Forbidden: bot was blocked by the user", forbidden()))).isFalse();
+        assertThat(MessageExecutorImpl.isChatGone(new TelegramApiException("Connection reset"))).isFalse();
+    }
+
+    @Test
+    void stopsMailingsForDeletedChat() throws TelegramApiException {
+        MessageExecutorImpl impl = new MessageExecutorImpl();
+        MyTelegramBot bot = mock(MyTelegramBot.class);
+        SettingsService settings = mock(SettingsService.class);
+        impl.setMyTelegramBot(bot);
+        impl.setSettingsService(settings);
+        doThrow(new TelegramApiRequestException("Bad Request: chat not found", chatNotFound()))
+                .when(bot).execute(any(SendMessage.class));
+
+        impl.sendMessage("-100500", "текст");
+
+        verify(settings).markUnavailable("-100500");
+    }
+
+    @Test
+    void keepsMailingsForBlockedBot() throws TelegramApiException {
+        MessageExecutorImpl impl = new MessageExecutorImpl();
+        MyTelegramBot bot = mock(MyTelegramBot.class);
+        SettingsService settings = mock(SettingsService.class);
+        impl.setMyTelegramBot(bot);
+        impl.setSettingsService(settings);
+        doThrow(new TelegramApiRequestException("Forbidden: bot was blocked by the user", forbidden()))
+                .when(bot).execute(any(SendMessage.class));
+
+        impl.sendMessage("-100500", "текст");
+
+        verify(settings, never()).markUnavailable(any());
+    }
+
     private static ApiResponse<?> badRequest() {
+        return response(400, "Bad Request: PARTICIPANT_ID_INVALID");
+    }
+
+    private static ApiResponse<?> chatNotFound() {
+        return response(400, "Bad Request: chat not found");
+    }
+
+    private static ApiResponse<?> forbidden() {
+        return response(403, "Forbidden: bot was blocked by the user");
+    }
+
+    private static ApiResponse<?> response(int errorCode, String errorDescription) {
         ApiResponse<?> response = new ApiResponse<>();
-        ReflectionTestUtils.setField(response, "errorCode", 400);
-        ReflectionTestUtils.setField(response, "errorDescription", "Bad Request: PARTICIPANT_ID_INVALID");
+        ReflectionTestUtils.setField(response, "errorCode", errorCode);
+        ReflectionTestUtils.setField(response, "errorDescription", errorDescription);
         return response;
     }
 }

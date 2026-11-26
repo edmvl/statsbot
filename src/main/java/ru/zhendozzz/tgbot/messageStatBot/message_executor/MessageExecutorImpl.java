@@ -23,6 +23,7 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import ru.zhendozzz.tgbot.messageStatBot.app.MyTelegramBot;
 import ru.zhendozzz.tgbot.messageStatBot.dto.UserAvatar;
+import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,7 +55,12 @@ public class MessageExecutorImpl implements MessageExecutor {
     /** Статус «человек не в чате» (left/kicked), который проверяет розыгрыш проставляющегося. */
     private static final String STATUS_LEFT = "left";
 
+    /** Ответ Telegram, когда бота выгнали из чата или чат удалён. */
+    private static final String CHAT_NOT_FOUND = "chat not found";
+
     private MyTelegramBot tgBot;
+
+    private SettingsService settingsService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -66,8 +72,36 @@ public class MessageExecutorImpl implements MessageExecutor {
             return execute.getMessageId();
         } catch (TelegramApiException e) {
             log.error("{}", e.getMessage());
+            stopMailingsIfChatGone(sendMessage.getChatId(), e);
         }
         return null;
+    }
+
+    /**
+     * Telegram ответил «chat not found» — чат удалён или бота из него убрали.
+     * Помечаем чат недоступным, чтобы ночные рассылки не повторяли ошибку каждый день.
+     * Флаг снимается сам, когда из чата снова приходит сообщение.
+     */
+    private void stopMailingsIfChatGone(String chatId, TelegramApiException e) {
+        if (Objects.isNull(chatId) || chatId.isBlank() || !isChatGone(e) || Objects.isNull(settingsService)) {
+            return;
+        }
+        log.warn("Чат {} недоступен (chat not found), рассылки в него остановлены", chatId);
+        settingsService.markUnavailable(chatId);
+    }
+
+    /** true — Telegram ответил 400 «chat not found», то есть чата больше нет. */
+    static boolean isChatGone(TelegramApiException e) {
+        if (!(e instanceof TelegramApiRequestException)) {
+            return false;
+        }
+        TelegramApiRequestException request = (TelegramApiRequestException) e;
+        if (!Integer.valueOf(BAD_REQUEST).equals(request.getErrorCode())) {
+            return false;
+        }
+        String message = request.getMessage();
+        return Objects.nonNull(message)
+                && message.toLowerCase(Locale.ROOT).contains(CHAT_NOT_FOUND);
     }
 
     @Override
@@ -158,6 +192,7 @@ public class MessageExecutorImpl implements MessageExecutor {
                     .collect(Collectors.joining(","));
         } catch (TelegramApiException e) {
             log.error("Не удалось отправить вложения рекламы в чат {}: {}", chatId, e.getMessage());
+            stopMailingsIfChatGone(chatId, e);
             return null;
         }
     }
@@ -421,6 +456,11 @@ public class MessageExecutorImpl implements MessageExecutor {
     @Autowired
     public void setMyTelegramBot(MyTelegramBot tgBot) {
         this.tgBot = tgBot;
+    }
+
+    @Autowired
+    public void setSettingsService(SettingsService settingsService) {
+        this.settingsService = settingsService;
     }
 
 }
