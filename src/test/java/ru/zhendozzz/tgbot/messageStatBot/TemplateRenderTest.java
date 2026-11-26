@@ -119,6 +119,7 @@ class TemplateRenderTest {
         engine.process("chat-admins", context);
         engine.process("dms", context);
         engine.process("dm", context);
+        engine.process("chat-settings", context);
     }
 
     @Test

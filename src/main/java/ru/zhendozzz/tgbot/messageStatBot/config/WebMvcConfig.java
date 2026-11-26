@@ -29,7 +29,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // Личные сообщения боту — тоже интимный раздел, доступен только супер-админу.
         registry.addInterceptor(superAdminAuthInterceptor)
                 .addPathPatterns("/app/subscriptions", "/app/ads",
-                        "/app/dms", "/app/dm/**",
+                        "/app/dms", "/app/dm/**", "/app/summary/**",
                         "/api/ads", "/api/ads/**");
     }
 }

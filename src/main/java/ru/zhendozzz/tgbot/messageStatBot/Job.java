@@ -8,6 +8,7 @@ import ru.zhendozzz.tgbot.messageStatBot.service.HoroService;
 import ru.zhendozzz.tgbot.messageStatBot.service.RemindService;
 import ru.zhendozzz.tgbot.messageStatBot.service.SelectedService;
 import ru.zhendozzz.tgbot.messageStatBot.service.StatsService;
+import ru.zhendozzz.tgbot.messageStatBot.service.SummaryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,7 @@ public class Job {
     private final RemindService remindService;
     private final AdsService adsService;
     private final ChatMemberService chatMemberService;
+    private final SummaryService summaryService;
 
     public Job(StatsService statsService,
                SelectedService selectedService,
@@ -32,7 +34,8 @@ public class Job {
                HolidayService holidayService,
                RemindService remindService,
                AdsService adsService,
-               ChatMemberService chatMemberService) {
+               ChatMemberService chatMemberService,
+               SummaryService summaryService) {
         this.statsService = statsService;
         this.selectedService = selectedService;
         this.challengeService = challengeService;
@@ -41,6 +44,16 @@ public class Job {
         this.remindService = remindService;
         this.adsService = adsService;
         this.chatMemberService = chatMemberService;
+        this.summaryService = summaryService;
+    }
+
+    /**
+     * Саммари переписки за прошедший день. Запуск в 00:30 — у DeepSeek в это время
+     * действует ночная скидка, а «за сутки» = прошедший календарный день.
+     */
+    @Scheduled(cron = "0 30 0 * * ?")
+    public void sendDailySummaries() {
+        summaryService.summarizePreviousDay();
     }
 
     @Scheduled(cron = "0 0 0 * * ?")

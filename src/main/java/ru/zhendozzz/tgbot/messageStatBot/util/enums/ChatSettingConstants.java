@@ -12,15 +12,24 @@ public enum ChatSettingConstants {
     ENABLE_MEMBER_CONTROL("enable_member_control"),
     ENABLE_ADS("enable_ads"),
     ENABLE_BOT_MENTION_FILTER("enable_bot_mention_filter"),
+    /** Ежедневное саммари переписки (DeepSeek) в 00:30. */
+    ENABLE_SUMMARY("enable_summary"),
     /** Служебный флаг: Telegram ответил «chat not found», рассылки в чат остановлены. */
-    CHAT_UNAVAILABLE("chat_unavailable"),
+    CHAT_UNAVAILABLE("chat_unavailable", true),
     ;
 
 
     private final String dbValue;
+    /** Служебная настройка: не показывается в интерфейсе и не управляется из Mini App. */
+    private final boolean internal;
 
     ChatSettingConstants(String dbValue) {
+        this(dbValue, false);
+    }
+
+    ChatSettingConstants(String dbValue, boolean internal) {
         this.dbValue = dbValue;
+        this.internal = internal;
     }
 
 }

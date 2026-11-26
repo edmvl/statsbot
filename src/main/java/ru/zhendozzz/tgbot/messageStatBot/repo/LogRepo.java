@@ -7,6 +7,7 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.ChattyDaysDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.PrivateChatDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.StatsViewDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.TripViewDto;
+import ru.zhendozzz.tgbot.messageStatBot.dto.UserNameDto;
 import ru.zhendozzz.tgbot.messageStatBot.entity.Log;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -114,6 +116,26 @@ public interface LogRepo extends JpaRepository<Log, Long> {
      * Личные чаты с ботом: id положительный (у групп и каналов он отрицательный).
      * Для каждого чата — последнее сообщение, время и общее количество сообщений.
      */
+    /**
+     * Сообщения чата за интервал для саммари: без пустых, служебных и удалённых,
+     * в хронологическом порядке.
+     */
+    @Query("select l from Log l where l.chatId = :chatId "
+            + "and l.dateTime >= :from and l.dateTime < :to "
+            + "and l.text is not null and l.text <> '' "
+            + "and (l.deleted is null or l.deleted = false) "
+            + "order by l.dateTime asc, l.id asc")
+    List<Log> findForSummary(@Param("chatId") String chatId,
+                             @Param("from") LocalDateTime from,
+                             @Param("to") LocalDateTime to);
+
+    /** Отображаемые имена для набора id: «Имя Фамилия», ник или сам id. */
+    @Query(value = "select id as id, "
+            + "coalesce(nullif(trim(coalesce(first_name, '') || ' ' || coalesce(last_name, '')), ''), "
+            + "         user_name, id) as name "
+            + "from users where id in (:ids)", nativeQuery = true)
+    List<UserNameDto> findNamesByIds(@Param("ids") Collection<String> ids);
+
     @Query(value = "select t.chat_id as chatId, "
             + "to_char(t.date_time, 'DD.MM.YYYY HH24:MI') as lastMessage, "
             + "t.text as lastText, "

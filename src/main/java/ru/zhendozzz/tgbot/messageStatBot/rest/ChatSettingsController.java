@@ -9,8 +9,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.zhendozzz.tgbot.messageStatBot.entity.ChatSettings;
 import ru.zhendozzz.tgbot.messageStatBot.repo.ChatSettingsRepo;
+import ru.zhendozzz.tgbot.messageStatBot.service.CurrentUserService;
+import ru.zhendozzz.tgbot.messageStatBot.service.SummaryService;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,21 +25,37 @@ import java.util.Objects;
 public class ChatSettingsController {
 
     private final ChatSettingsRepo chatSettingsRepo;
+    private final SummaryService summaryService;
+    private final CurrentUserService currentUserService;
 
-    public ChatSettingsController(ChatSettingsRepo chatSettingsRepo) {
+    public ChatSettingsController(ChatSettingsRepo chatSettingsRepo,
+                                  SummaryService summaryService,
+                                  CurrentUserService currentUserService) {
         this.chatSettingsRepo = chatSettingsRepo;
+        this.summaryService = summaryService;
+        this.currentUserService = currentUserService;
     }
 
     @GetMapping("/{chatId}")
-    public String getChatSettings(@PathVariable String chatId, Model model) {
+    public String getChatSettings(@PathVariable String chatId,
+                                  @RequestParam(value = "summary", required = false) String summary,
+                                  HttpServletRequest request,
+                                  Model model) {
         List<ChatSettingView> settings = new ArrayList<>();
         for (ChatSettingConstants constant : ChatSettingConstants.values()) {
+            if (constant.isInternal()) {
+                // Служебные флаги (например, chat_unavailable) в интерфейсе не показываем.
+                continue;
+            }
             ChatSettings setting = chatSettingsRepo.findFirstByChatIdAndSettingName(chatId, constant.getDbValue());
             boolean enabled = Objects.nonNull(setting) && "true".equals(setting.getSettingValue());
             settings.add(new ChatSettingView(constant.getDbValue(), enabled));
         }
         model.addAttribute("chatId", chatId);
         model.addAttribute("settings", settings);
+        model.addAttribute("superAdmin", currentUserService.isSuperAdmin(request));
+        model.addAttribute("lastSummaryDate", summaryService.lastSummaryDate(chatId));
+        model.addAttribute("summaryResult", summary);
         return "chat-settings";
     }
 
@@ -49,6 +68,10 @@ public class ChatSettingsController {
         List<String> enabled = Objects.nonNull(enabledSettings) ? enabledSettings : new ArrayList<>();
 
         for (ChatSettingConstants constant : ChatSettingConstants.values()) {
+            if (constant.isInternal()) {
+                // Служебные флаги из формы не принимаем: значение меняет только сам бот.
+                continue;
+            }
             String settingName = constant.getDbValue();
             boolean shouldBeEnabled = enabled.contains(settingName);
 
@@ -99,6 +122,7 @@ public class ChatSettingsController {
                 case "enable_member_control": return "Контроль участников";
                 case "enable_ads": return "Показывать рекламу";
                 case "enable_bot_mention_filter": return "Запрет ботов";
+                case "enable_summary": return "Саммари за день";
                 default: return name;
             }
         }
