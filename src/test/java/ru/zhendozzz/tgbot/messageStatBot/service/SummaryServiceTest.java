@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -46,7 +48,7 @@ class SummaryServiceTest {
         SummaryService service = new SummaryService(logRepo, settingsService, chatSettingsRepo, messageExecutor);
         ReflectionTestUtils.setField(service, "apiKey", "test-key");
         ReflectionTestUtils.setField(service, "baseUrl", "https://api.deepseek.com");
-        ReflectionTestUtils.setField(service, "model", "deepseek-flash");
+        ReflectionTestUtils.setField(service, "model", "deepseek-chat");
         ReflectionTestUtils.setField(service, "maxInputChars", 20_000);
         ReflectionTestUtils.setField(service, "maxMessageChars", 300);
         ReflectionTestUtils.setField(service, "minMessages", 15);
@@ -113,6 +115,7 @@ class SummaryServiceTest {
         when(messageExecutor.sendMessage(eq(CHAT), anyString())).thenReturn(10);
         server.expect(requestTo("https://api.deepseek.com/chat/completions"))
                 .andExpect(header("Authorization", "Bearer test-key"))
+                .andExpect(content().string(containsString("\"model\":\"deepseek-chat\"")))
                 .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"• Обсудили поездку\"}}],"
                         + "\"usage\":{\"prompt_tokens\":1200,\"completion_tokens\":80}}", MediaType.APPLICATION_JSON));
 
@@ -153,6 +156,22 @@ class SummaryServiceTest {
                         MediaType.APPLICATION_JSON));
 
         assertThat(service.summarizeChat(CHAT, DAY)).isFalse();
+        verify(chatSettingsRepo, never()).save(any(ChatSettings.class));
+    }
+
+    @Test
+    void doesNotSendWhenModelReturnsEmptyContent() {
+        SummaryService service = service();
+        MockRestServiceServer server = server(service);
+        when(logRepo.findForSummary(eq(CHAT), any(), any())).thenReturn(messages(20));
+        // Так отвечает reasoning-модель, когда max_tokens ушёл на размышления.
+        server.expect(requestTo("https://api.deepseek.com/chat/completions"))
+                .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"\"},"
+                        + "\"finish_reason\":\"length\"}],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":500,"
+                        + "\"completion_tokens_details\":{\"reasoning_tokens\":500}}}", MediaType.APPLICATION_JSON));
+
+        assertThat(service.summarizeChat(CHAT, DAY)).isFalse();
+        verify(messageExecutor, never()).sendMessage(anyString(), anyString());
         verify(chatSettingsRepo, never()).save(any(ChatSettings.class));
     }
 

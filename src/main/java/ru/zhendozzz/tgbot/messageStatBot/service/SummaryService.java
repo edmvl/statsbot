@@ -222,6 +222,13 @@ public class SummaryService {
                     baseUrl + "/chat/completions", new HttpEntity<>(payload, headers), Map.class);
             String content = extractContent(response);
             logUsage(chatId, response);
+            if (Objects.isNull(content) || content.isBlank()) {
+                // Частая причина: модель с размышлениями потратила весь max_tokens на
+                // reasoning_content и вернула пустой content (finish_reason=length).
+                log.warn("summary: чат {} — пустой ответ модели (finish_reason={}, reasoning_tokens={})",
+                        chatId, finishReason(response), reasoningTokens(response));
+                return null;
+            }
             return content;
         } catch (HttpStatusCodeException e) {
             // 401/402/429 — ключ, баланс или лимит: повторять бессмысленно, только сообщаем.
@@ -270,6 +277,34 @@ public class SummaryService {
 
     private long asLong(Object value) {
         return value instanceof Number ? ((Number) value).longValue() : 0L;
+    }
+
+    /** Причина остановки генерации: stop — норма, length — упёрлись в max_tokens. */
+    @SuppressWarnings("unchecked")
+    private String finishReason(Map<String, Object> response) {
+        if (Objects.isNull(response) || !(response.get("choices") instanceof List)) {
+            return "?";
+        }
+        List<?> choices = (List<?>) response.get("choices");
+        if (choices.isEmpty() || !(choices.get(0) instanceof Map)) {
+            return "?";
+        }
+        Object reason = ((Map<String, Object>) choices.get(0)).get("finish_reason");
+        return Objects.isNull(reason) ? "?" : reason.toString();
+    }
+
+    /** Сколько токенов модель потратила на «размышления» — их тоже оплачиваем как выход. */
+    @SuppressWarnings("unchecked")
+    private long reasoningTokens(Map<String, Object> response) {
+        if (Objects.isNull(response) || !(response.get("usage") instanceof Map)) {
+            return 0L;
+        }
+        Map<String, Object> usage = (Map<String, Object>) response.get("usage");
+        if (!(usage.get("completion_tokens_details") instanceof Map)) {
+            return 0L;
+        }
+        Map<String, Object> details = (Map<String, Object>) usage.get("completion_tokens_details");
+        return asLong(details.get("reasoning_tokens"));
     }
 
     private String compose(LocalDate day, String summary, List<Log> messages) {
