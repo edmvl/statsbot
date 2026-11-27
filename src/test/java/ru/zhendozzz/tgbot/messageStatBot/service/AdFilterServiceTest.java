@@ -5,6 +5,7 @@ import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.MessageEntity;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.ChatSettingConstants;
@@ -45,9 +46,17 @@ class AdFilterServiceTest {
         message.setText(text);
         message.setEntities(List.of(entity(text, "mention")));
         message.setChat(new Chat(CHAT_ID, "supergroup"));
+        message.setFrom(user(false));
         Update update = new Update();
         update.setMessage(message);
         return update;
+    }
+
+    private User user(boolean bot) {
+        User user = new User();
+        user.setId(AUTHOR_ID);
+        user.setIsBot(bot);
+        return user;
     }
 
     private MessageEntity entity(String text, String type) {
@@ -90,6 +99,20 @@ class AdFilterServiceTest {
 
         verify(messageExecutor).deleteMessage(CHAT_ID, MESSAGE_ID);
         verify(logService).markDeleted(CHAT_ID, MESSAGE_ID);
+        verify(messageExecutor).restrictChatMember(CHAT_ID, AUTHOR_ID);
+    }
+
+    @Test
+    void doesNotMuteBotAuthors() {
+        enabled();
+        when(messageExecutor.getChat("MiozPlugins")).thenReturn(chat(-1001234567890L, "channel"));
+        Update update = update(AD_TEXT);
+        update.getMessage().setFrom(user(true));
+
+        service.processMessage(dto(), update);
+
+        verify(messageExecutor).deleteMessage(CHAT_ID, MESSAGE_ID);
+        verify(messageExecutor, never()).restrictChatMember(anyLong(), anyLong());
     }
 
     @Test

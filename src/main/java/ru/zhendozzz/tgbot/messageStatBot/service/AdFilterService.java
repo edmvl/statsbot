@@ -98,7 +98,7 @@ public class AdFilterService implements NeedProcessMessage {
         for (String username : usernames(message, text)) {
             Chat chat = resolve(username);
             if (isPublicChannel(chat) && !isCurrentChat(chat, messageDTO)) {
-                remove(messageDTO, username, text, strong, weak);
+                remove(messageDTO, message, username, text, strong, weak);
                 return;
             }
         }
@@ -114,11 +114,27 @@ public class AdFilterService implements NeedProcessMessage {
         return Objects.nonNull(chat.getId()) && chat.getId().equals(messageDTO.getChatId());
     }
 
-    private void remove(MessageDTO messageDTO, String username, String text, int strong, int weak) {
+    private void remove(MessageDTO messageDTO, Message message, String username, String text,
+                        int strong, int weak) {
         log.info("ad-filter: чат {}, автор {} — реклама канала @{} (сильных {}, слабых {}): {}",
                 messageDTO.getChatId(), messageDTO.getUserId(), username, strong, weak, shortText(text));
         messageExecutor.deleteMessage(messageDTO.getChatId(), messageDTO.getMessageId());
         logService.markDeleted(messageDTO.getChatId(), messageDTO.getMessageId());
+        muteAuthor(messageDTO, message);
+    }
+
+    /**
+     * Мьют автора на час — как в «Запрете ботов»: одного удаления мало,
+     * спамер просто пришлёт следующее сообщение.
+     */
+    private void muteAuthor(MessageDTO messageDTO, Message message) {
+        User from = message.getFrom();
+        if (Objects.isNull(from) || Boolean.TRUE.equals(from.getIsBot()) || Objects.isNull(messageDTO.getUserId())) {
+            return;
+        }
+        log.info("ad-filter: автор {} в чате {} ограничен на час",
+                messageDTO.getUserId(), messageDTO.getChatId());
+        messageExecutor.restrictChatMember(messageDTO.getChatId(), messageDTO.getUserId());
     }
 
     /** Резолв ника через getChat с кэшем: публичный канал, иначе {@code null}. */
