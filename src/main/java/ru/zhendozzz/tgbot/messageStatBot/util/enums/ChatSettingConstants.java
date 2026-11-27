@@ -14,6 +14,8 @@ public enum ChatSettingConstants {
     ENABLE_BOT_MENTION_FILTER("enable_bot_mention_filter"),
     /** Ежедневное саммари переписки (DeepSeek) в 00:30. */
     ENABLE_SUMMARY("enable_summary"),
+    /** Фильтр рекламы сторонних каналов (упоминание @channel + рекламные слова). */
+    ENABLE_AD_FILTER("enable_ad_filter"),
     /** Служебный флаг: Telegram ответил «chat not found», рассылки в чат остановлены. */
     CHAT_UNAVAILABLE("chat_unavailable", true),
     ;

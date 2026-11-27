@@ -1,6 +1,7 @@
 package ru.zhendozzz.tgbot.messageStatBot.message_executor;
 
 import org.telegram.telegrambots.meta.api.methods.groupadministration.BanChatMember;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChat;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.RestrictChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.UnbanChatMember;
@@ -10,6 +11,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.ChatPermissions;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.GetUserProfilePhotos;
@@ -420,9 +422,27 @@ public class MessageExecutorImpl implements MessageExecutor {
         return getUserStatusInChat(Long.valueOf(chatId), Long.valueOf(userId));
     }
 
+    /**
+     * Данные чата по username. Пользовательские ники и приватные каналы ботам недоступны —
+     * это ожидаемый ответ, поэтому {@code null}, а не исключение.
+     */
     @Override
-    public ChatMember getUserStatus(String chatId, Long userId) {
-        GetChatMember request = new GetChatMember();
+    public Chat getChat(String chatUsername) {
+        if (Objects.isNull(chatUsername) || chatUsername.isBlank()) {
+            return null;
+        }
+        GetChat request = new GetChat();
+        request.setChatId(chatUsername.startsWith("@") ? chatUsername : "@" + chatUsername);
+        try {
+            return tgBot.execute(request);
+        } catch (TelegramApiException e) {
+            log.debug("getChat {}: {}", chatUsername, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public ChatMember getUserStatus(String chatId, Long userId) {        GetChatMember request = new GetChatMember();
         request.setChatId(chatId);
         request.setUserId(userId);
         try {

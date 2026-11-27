@@ -123,6 +123,7 @@ public class ChatSettingsController {
                 case "enable_ads": return "Показывать рекламу";
                 case "enable_bot_mention_filter": return "Запрет ботов";
                 case "enable_summary": return "Саммари за день";
+                case "enable_ad_filter": return "Фильтр рекламы";
                 default: return name;
             }
         }

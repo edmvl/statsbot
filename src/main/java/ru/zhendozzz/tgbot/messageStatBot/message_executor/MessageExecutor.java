@@ -1,6 +1,7 @@
 package ru.zhendozzz.tgbot.messageStatBot.message_executor;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
 import ru.zhendozzz.tgbot.messageStatBot.dto.UserAvatar;
 
@@ -63,6 +64,14 @@ public interface MessageExecutor {
      * или {@code null}, если получить не удалось.
      */
     ChatMember getUserStatus(String chatId, Long userId);
+
+    /**
+     * Данные чата по username ({@code @channel}) — нужны фильтру рекламы, чтобы понять,
+     * что в сообщении рекламируют канал, а не упоминают участника.
+     *
+     * @return чат или {@code null}, если username не резолвится (пользователь, приватный канал)
+     */
+    Chat getChat(String chatUsername);
 
     /**
      * Возвращает данные аватара пользователя из Telegram (или {@code null}, если фото нет).
