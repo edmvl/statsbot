@@ -26,6 +26,9 @@ import java.util.logging.Level;
 @lombok.extern.java.Log
 public class LogService implements NeedProcessMessage {
 
+    /** Тип записи для сообщений самого бота: видны в истории, но не идут в статистику. */
+    public static final String LOGGER_BOT = "bot";
+
     /** Как часто перечитывать id канала поездок (чтобы не ходить в БД на каждое сообщение). */
     private static final long TRIP_CHAT_CACHE_MS = 60_000;
 
@@ -145,8 +148,34 @@ public class LogService implements NeedProcessMessage {
         tripDuplicateService.regroup(saved);
     }
 
-    /** Помечает сообщение удалённым (бот удалил его сам, например по фильтру слов). */
-    public void markDeleted(Long chatId, Integer messageId) {
+    /**
+     * Сохраняет сообщение, отправленное самим ботом (статистика, саммари, реклама и т.п.).
+     * Такие записи нужны в истории чата, но не должны попадать в статистику:
+     * у них {@code logger_type = bot} и нет автора.
+     */
+    public void saveBotMessage(String chatId, Integer messageId, String text) {
+        if (Objects.isNull(chatId) || Objects.isNull(messageId)
+                || Objects.isNull(text) || text.isBlank()) {
+            return;
+        }
+        try {
+            Log log = new Log();
+            log.setChatId(chatId);
+            log.setMessageId(messageId);
+            log.setDateTime(LocalDateTime.now());
+            log.setLoggerType(LOGGER_BOT);
+            log.setDeleted(false);
+            // Сообщения бота не участвуют в распознавании поездок.
+            log.setTripParsed(true);
+            log.setText(text);
+            logRepo.save(log);
+        } catch (Exception e) {
+            // История бота — вспомогательная: сбой записи не должен ломать отправку.
+            log.log(Level.WARNING, "Не удалось сохранить сообщение бота в чате " + chatId + ": " + e.getMessage());
+        }
+    }
+
+    /** Помечает сообщение удалённым (бот удалил его сам, например по фильтру слов). */    public void markDeleted(Long chatId, Integer messageId) {
         if (Objects.isNull(chatId) || Objects.isNull(messageId)) {
             return;
         }

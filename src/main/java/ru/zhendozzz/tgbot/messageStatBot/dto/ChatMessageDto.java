@@ -20,4 +20,6 @@ public interface ChatMessageDto {
     LocalDateTime getEditedAt();
     /** Сообщение удалено ботом. */
     Boolean getDeleted();
+    /** Тип записи: {@code chatbot} — человек, {@code service} — служебное, {@code bot} — сам бот. */
+    String getLoggerType();
 }

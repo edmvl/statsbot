@@ -45,20 +45,24 @@ public interface LogRepo extends JpaRepository<Log, Long> {
     List<String> findDistinctChatId();
 
     @Query(value = "select TO_DATE(TO_CHAR(date_time, 'dd.mm.yyyy'), 'dd.mm.yyyy') as date, count(0) as sm from log l " +
-            "where l.chat_id = ?1 group by date order by sm desc limit 10", nativeQuery = true)
+            "where l.chat_id = ?1 and coalesce(l.logger_type, '') <> 'bot' " +
+            "group by date order by sm desc limit 10", nativeQuery = true)
     List<ChattyDaysDto> findTopChattyDays(String chatId);
 
     @Query(value = "select  chat_id as chatId, user_id as userId, count(0) as count from log l " +
             "where l.chat_id = ?1 and date_time between ?2 and ?3 " +
+            "and coalesce(l.logger_type, '') <> 'bot' and l.user_id is not null " +
             "group by user_id, chat_id order by count desc limit 10", nativeQuery = true)
     List<StatsViewDto> findByChatIdAndDateBetweenOrderByCountDesc(String chatId, LocalDateTime startDate, LocalDateTime endDate);
 
-    @Query(value = "select distinct l.user_id from log l where l.chat_id = ?1", nativeQuery = true)
+    @Query(value = "select distinct l.user_id from log l where l.chat_id = ?1 "
+            + "and l.user_id is not null and coalesce(l.logger_type, '') <> 'bot'", nativeQuery = true)
     List<String> findDistinctUserIdByChatId(String chatId);
 
     /** То же самое, но только те, кто писал в чат начиная с указанного момента. */
     @Query(value = "select distinct l.user_id from log l " +
-            "where l.chat_id = ?1 and l.date_time >= ?2", nativeQuery = true)
+            "where l.chat_id = ?1 and l.date_time >= ?2 " +
+            "and l.user_id is not null and coalesce(l.logger_type, '') <> 'bot'", nativeQuery = true)
     List<String> findDistinctUserIdByChatIdSince(String chatId, LocalDateTime since);
 
     /**
@@ -69,7 +73,8 @@ public interface LogRepo extends JpaRepository<Log, Long> {
             + "trim(coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')) as name, "
             + "u.user_name as userName, "
             + "u.avatar_path as avatarPath "
-            + "from (select distinct user_id from log where chat_id = :chatId) m "
+            + "from (select distinct user_id from log where chat_id = :chatId "
+            + "      and user_id is not null and coalesce(logger_type, '') <> 'bot') m "
             + "left join users u on u.id = m.user_id "
             + "where (cast(:q as text) = '' "
             + "   or coalesce(u.first_name, '') ilike '%' || :q || '%' "
@@ -88,6 +93,7 @@ public interface LogRepo extends JpaRepository<Log, Long> {
      */
     @Query(value = "select l.id as id, l.date_time as dateTime, l.user_id as userId, l.text as text, "
             + "l.message_id as messageId, l.edited_at as editedAt, l.deleted as deleted, "
+            + "l.logger_type as loggerType, "
             + "u.first_name as firstName, u.last_name as lastName, u.user_name as userName, "
             + "u.avatar_path as avatarPath "
             + "from log l left join users u on u.id = l.user_id "
@@ -123,6 +129,7 @@ public interface LogRepo extends JpaRepository<Log, Long> {
     @Query("select l from Log l where l.chatId = :chatId "
             + "and l.dateTime >= :from and l.dateTime < :to "
             + "and l.text is not null and l.text <> '' "
+            + "and (l.loggerType is null or l.loggerType <> 'bot') "
             + "and (l.deleted is null or l.deleted = false) "
             + "order by l.dateTime asc, l.id asc")
     List<Log> findForSummary(@Param("chatId") String chatId,

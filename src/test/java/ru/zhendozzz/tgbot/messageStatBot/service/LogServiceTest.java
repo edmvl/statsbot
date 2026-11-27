@@ -134,6 +134,31 @@ class LogServiceTest {
     }
 
     @Test
+    void savesBotMessageWithBotMarker() {
+        service.saveBotMessage("-100", 55, "Топ 10 болтунов за день");
+
+        ArgumentCaptor<Log> captor = ArgumentCaptor.forClass(Log.class);
+        verify(logRepo).save(captor.capture());
+        Log saved = captor.getValue();
+        assertThat(saved.getChatId()).isEqualTo("-100");
+        assertThat(saved.getMessageId()).isEqualTo(55);
+        assertThat(saved.getText()).isEqualTo("Топ 10 болтунов за день");
+        assertThat(saved.getLoggerType()).isEqualTo(LogService.LOGGER_BOT);
+        assertThat(saved.getUserId()).isNull();
+        assertThat(saved.getTripParsed()).isTrue();
+        assertThat(saved.getDeleted()).isFalse();
+    }
+
+    @Test
+    void ignoresBotMessageWithoutIdOrText() {
+        service.saveBotMessage("-100", null, "текст");
+        service.saveBotMessage("-100", 5, "   ");
+        service.saveBotMessage(null, 5, "текст");
+
+        verify(logRepo, never()).save(any(Log.class));
+    }
+
+    @Test
     void markDeletedSetsFlag() {
         Log existing = log(1L, "текст");
         when(logRepo.findFirstByChatIdAndMessageId("-100", 10)).thenReturn(Optional.of(existing));

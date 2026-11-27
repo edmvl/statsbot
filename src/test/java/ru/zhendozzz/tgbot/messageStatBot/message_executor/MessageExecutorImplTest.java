@@ -7,10 +7,12 @@ import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMem
 import org.telegram.telegrambots.meta.api.methods.groupadministration.RestrictChatMember;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.ApiResponse;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMemberRestricted;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import ru.zhendozzz.tgbot.messageStatBot.app.MyTelegramBot;
+import ru.zhendozzz.tgbot.messageStatBot.service.LogService;
 import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 
 import java.util.List;
@@ -135,6 +137,37 @@ class MessageExecutorImplTest {
         impl.sendMessage("-100500", "текст");
 
         verify(settings, never()).markUnavailable(any());
+    }
+
+    @Test
+    void savesSentMessageIntoHistory() throws TelegramApiException {
+        MessageExecutorImpl impl = new MessageExecutorImpl();
+        MyTelegramBot bot = mock(MyTelegramBot.class);
+        LogService logService = mock(LogService.class);
+        Message sent = new Message();
+        sent.setMessageId(77);
+        impl.setMyTelegramBot(bot);
+        impl.setLogService(logService);
+        doReturn(sent).when(bot).execute(any(SendMessage.class));
+
+        impl.sendMessage("-100500", "Топ 10 болтунов");
+
+        verify(logService).saveBotMessage("-100500", 77, "Топ 10 болтунов");
+    }
+
+    @Test
+    void doesNotSaveFailedMessage() throws TelegramApiException {
+        MessageExecutorImpl impl = new MessageExecutorImpl();
+        MyTelegramBot bot = mock(MyTelegramBot.class);
+        LogService logService = mock(LogService.class);
+        impl.setMyTelegramBot(bot);
+        impl.setLogService(logService);
+        doThrow(new TelegramApiRequestException("Forbidden: bot was kicked", forbidden()))
+                .when(bot).execute(any(SendMessage.class));
+
+        impl.sendMessage("-100500", "текст");
+
+        verify(logService, never()).saveBotMessage(any(), any(), any());
     }
 
     private static ApiResponse<?> badRequest() {

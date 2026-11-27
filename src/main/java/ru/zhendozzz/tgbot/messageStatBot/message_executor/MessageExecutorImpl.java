@@ -23,6 +23,7 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import ru.zhendozzz.tgbot.messageStatBot.app.MyTelegramBot;
 import ru.zhendozzz.tgbot.messageStatBot.dto.UserAvatar;
+import ru.zhendozzz.tgbot.messageStatBot.service.LogService;
 import ru.zhendozzz.tgbot.messageStatBot.service.SettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +63,8 @@ public class MessageExecutorImpl implements MessageExecutor {
 
     private SettingsService settingsService;
 
+    private LogService logService;
+
     @Value("${file.upload-dir}")
     private String uploadDir;
 
@@ -69,12 +72,26 @@ public class MessageExecutorImpl implements MessageExecutor {
     public Integer sendMessage(SendMessage sendMessage) {
         try {
             Message execute = tgBot.execute(sendMessage);
-            return execute.getMessageId();
+            if (Objects.nonNull(execute)) {
+                saveBotMessage(sendMessage.getChatId(), execute.getMessageId(), sendMessage.getText());
+                return execute.getMessageId();
+            }
+            return null;
         } catch (TelegramApiException e) {
             log.error("{}", e.getMessage());
             stopMailingsIfChatGone(sendMessage.getChatId(), e);
         }
         return null;
+    }
+
+    /**
+     * Сообщения бота сохраняем в историю чата (с пометкой {@code bot}),
+     * чтобы их было видно в Mini App, но статистика их не считала.
+     */
+    private void saveBotMessage(String chatId, Integer messageId, String text) {
+        if (Objects.nonNull(logService)) {
+            logService.saveBotMessage(chatId, messageId, text);
+        }
     }
 
     /**
@@ -186,6 +203,9 @@ public class MessageExecutorImpl implements MessageExecutor {
 
             if (messageIds.isEmpty()) {
                 return null;
+            }
+            if (Objects.nonNull(caption) && !caption.isBlank()) {
+                saveBotMessage(chatId, messageIds.get(0), caption);
             }
             return messageIds.stream()
                     .map(String::valueOf)
@@ -461,6 +481,11 @@ public class MessageExecutorImpl implements MessageExecutor {
     @Autowired
     public void setSettingsService(SettingsService settingsService) {
         this.settingsService = settingsService;
+    }
+
+    @Autowired
+    public void setLogService(LogService logService) {
+        this.logService = logService;
     }
 
 }

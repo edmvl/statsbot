@@ -117,6 +117,14 @@
             text-decoration: underline;
         }
 
+        .msg-author-bot {
+            color: var(--muted);
+        }
+
+        .msg-author-bot:hover {
+            text-decoration: none;
+        }
+
         .msg-nick {
             font-size: 13px;
             color: var(--link);
@@ -197,18 +205,21 @@
 <div class="messages">
     <article class="msg" th:each="m : ${messages}"
              th:classappend="${m.deleted != null and m.deleted} ? ' is-deleted'">
-        <img class="msg-avatar" th:if="${m.avatarPath != null and !#strings.isEmpty(m.avatarPath)}"
+        <img class="msg-avatar" th:if="${m.loggerType != 'bot' and m.avatarPath != null and !#strings.isEmpty(m.avatarPath)}"
              th:src="@{/avatar/{id}(id=${m.userId})}" alt=""/>
-        <span class="msg-avatar msg-avatar-placeholder" th:unless="${m.avatarPath != null and !#strings.isEmpty(m.avatarPath)}"
-              th:text="${m.firstName != null and !#strings.isEmpty(m.firstName) ? #strings.substring(m.firstName,0,1) : '👤'}">👤</span>
+        <span class="msg-avatar msg-avatar-placeholder"
+              th:unless="${m.loggerType != 'bot' and m.avatarPath != null and !#strings.isEmpty(m.avatarPath)}"
+              th:text="${m.loggerType == 'bot' ? '🤖' : (m.firstName != null and !#strings.isEmpty(m.firstName) ? #strings.substring(m.firstName,0,1) : '👤')}">👤</span>
 
         <div class="msg-main">
             <div class="msg-head">
-                <a class="msg-author" th:href="@{/app/reviews/{id}(id=${m.userId})}"
+                <span class="msg-author msg-author-bot" th:if="${m.loggerType == 'bot'}">🤖 Бот</span>
+                <a class="msg-author" th:unless="${m.loggerType == 'bot'}"
+                   th:href="@{/app/reviews/{id}(id=${m.userId})}"
                    th:text="${m.firstName != null and !#strings.isEmpty(m.firstName)
                            ? (m.firstName + ' ' + (m.lastName != null ? m.lastName : ''))
                            : (m.userName != null and !#strings.isEmpty(m.userName) ? '@' + m.userName : 'ID ' + m.userId)}">Имя</a>
-                <a class="msg-nick" th:if="${m.userName != null and !#strings.isEmpty(m.userName)
+                <a class="msg-nick" th:if="${m.loggerType != 'bot' and m.userName != null and !#strings.isEmpty(m.userName)
                                           and m.firstName != null and !#strings.isEmpty(m.firstName)}"
                    th:href="@{/app/reviews/{id}(id=${m.userId})}"
                    th:text="'@' + ${m.userName}"></a>
