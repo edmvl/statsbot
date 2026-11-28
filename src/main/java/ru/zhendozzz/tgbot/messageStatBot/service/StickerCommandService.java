@@ -9,7 +9,6 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
 import ru.zhendozzz.tgbot.messageStatBot.dto.StickerMessage;
 import ru.zhendozzz.tgbot.messageStatBot.dto.UserAvatar;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
-import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.BotCommands;
 
 import javax.imageio.ImageIO;
@@ -53,16 +52,16 @@ public class StickerCommandService implements CommandExecutable {
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final MessageExecutor messageExecutor;
-    private final SettingsService settingsService;
+    private final ChatAdminService chatAdminService;
     private final StickerImageService stickerImageService;
     private final StickerSetService stickerSetService;
 
     public StickerCommandService(MessageExecutor messageExecutor,
-                                 SettingsService settingsService,
+                                 ChatAdminService chatAdminService,
                                  StickerImageService stickerImageService,
                                  StickerSetService stickerSetService) {
         this.messageExecutor = messageExecutor;
-        this.settingsService = settingsService;
+        this.chatAdminService = chatAdminService;
         this.stickerImageService = stickerImageService;
         this.stickerSetService = stickerSetService;
     }
@@ -149,7 +148,7 @@ public class StickerCommandService implements CommandExecutable {
         if (Objects.isNull(from) || Objects.isNull(from.getId()) || Boolean.TRUE.equals(from.getIsBot())) {
             return null;
         }
-        String chatStatus = messageExecutor.getUserStatusInChat(chatId, from.getId());
+        String chatStatus = chatAdminService.chatStatus(chatId, from.getId());
         if ("creator".equals(chatStatus)) {
             return STATUS_OWNER;
         }
@@ -216,6 +215,6 @@ public class StickerCommandService implements CommandExecutable {
     }
 
     private boolean isBotAdmin(Long chatId, Long userId) {
-        return AccessConstants.SUPER_ADMIN_ID.equals(userId) || settingsService.isUserAdmin(chatId, userId);
+        return chatAdminService.isAdmin(chatId, userId);
     }
 }

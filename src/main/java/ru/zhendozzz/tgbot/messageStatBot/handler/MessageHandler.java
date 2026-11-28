@@ -4,7 +4,6 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.zhendozzz.tgbot.messageStatBot.dto.FileDto;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
 import ru.zhendozzz.tgbot.messageStatBot.service.NeedProcessMessage;
-import ru.zhendozzz.tgbot.messageStatBot.service.AdminSyncService;
 import ru.zhendozzz.tgbot.messageStatBot.service.CommandExecutable;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.BotCommands;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.FileTypes;
@@ -42,19 +41,16 @@ public class MessageHandler implements Handler<Update> {
 
     private final List<CommandExecutable> commandExecutables;
     private final List<NeedProcessMessage> needProcessMessages;
-    private final AdminSyncService adminSyncService;
     @Value("${telegram.bot.username}")
     private String botUsername;
 
     @Lazy
     public MessageHandler(
             List<CommandExecutable> commandExecutables,
-            List<NeedProcessMessage> needProcessMessages,
-            AdminSyncService adminSyncService
+            List<NeedProcessMessage> needProcessMessages
     ) {
         this.commandExecutables = commandExecutables;
         this.needProcessMessages = needProcessMessages;
-        this.adminSyncService = adminSyncService;
     }
 
     @Override
@@ -102,10 +98,6 @@ public class MessageHandler implements Handler<Update> {
         // Команды из отредактированных сообщений тоже не выполняем.
         if (!serviceMessage && !edited
                 && getAllBotCommands().stream().anyMatch(s -> messageDTO.getUserText().toLowerCase(Locale.ROOT).startsWith(s.toLowerCase()))) {
-            // Живой админ чата, впервые написавший команду, становится админом бота:
-            // статус в Telegram иначе не узнать, а дёргать getChatMember на каждое
-            // сообщение слишком дорого.
-            adminSyncService.syncIfNeeded(messageDTO.getChatId(), messageDTO.getUserId());
             commandExecutables.forEach(service -> service.executeCommand(messageDTO, update));
         }
         needProcessMessages.forEach(service -> service.processMessage(messageDTO, update));

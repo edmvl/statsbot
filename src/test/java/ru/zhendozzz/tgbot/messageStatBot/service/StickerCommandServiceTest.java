@@ -29,7 +29,7 @@ class StickerCommandServiceTest {
     private static final byte[] PNG = {1, 2, 3};
 
     private MessageExecutor messageExecutor;
-    private SettingsService settingsService;
+    private ChatAdminService chatAdminService;
     private StickerImageService stickerImageService;
     private StickerSetService stickerSetService;
     private StickerCommandService service;
@@ -37,11 +37,13 @@ class StickerCommandServiceTest {
     @BeforeEach
     void setUp() {
         messageExecutor = mock(MessageExecutor.class);
-        settingsService = mock(SettingsService.class);
+        chatAdminService = mock(ChatAdminService.class);
         stickerImageService = mock(StickerImageService.class);
         stickerSetService = mock(StickerSetService.class);
-        service = new StickerCommandService(messageExecutor, settingsService, stickerImageService, stickerSetService);
-        when(settingsService.isUserAdmin(anyLong(), anyLong())).thenReturn(false);
+        service = new StickerCommandService(messageExecutor, chatAdminService, stickerImageService, stickerSetService);
+        when(chatAdminService.isAdmin(anyLong(), anyLong())).thenReturn(false);
+        when(chatAdminService.isAdmin(anyLong(), eq(AccessConstants.SUPER_ADMIN_ID))).thenReturn(true);
+        when(chatAdminService.chatStatus(anyLong(), anyLong())).thenReturn(null);
         when(stickerImageService.render(any())).thenReturn(PNG);
     }
 
@@ -73,7 +75,7 @@ class StickerCommandServiceTest {
 
     @Test
     void addsStickerAndSendsItAsReply() {
-        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(chatAdminService.isAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
         when(stickerSetService.addSticker(PNG, "🖼"))
                 .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", true, 1, "sticker-file-id"));
 
@@ -86,7 +88,7 @@ class StickerCommandServiceTest {
 
     @Test
     void usesEmojiFromSecondParameter() {
-        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(chatAdminService.isAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
         when(stickerSetService.addSticker(PNG, "😍"))
                 .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", false, 2, "sticker-file-id"));
 
@@ -107,7 +109,7 @@ class StickerCommandServiceTest {
 
     @Test
     void refusesTextInsteadOfEmoji() {
-        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(chatAdminService.isAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
 
         service.executeCommand(dto(ADMIN_ID, ".стикер привет"), update(reply("привет")));
 
@@ -117,8 +119,8 @@ class StickerCommandServiceTest {
 
     @Test
     void putsAuthorStatusAndTimeOnSticker() {
-        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
-        when(messageExecutor.getUserStatusInChat(CHAT_ID, AUTHOR_ID)).thenReturn("administrator");
+        when(chatAdminService.isAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(chatAdminService.chatStatus(CHAT_ID, AUTHOR_ID)).thenReturn("administrator");
         when(stickerSetService.addSticker(any(), anyString()))
                 .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", false, 2, "sticker-file-id"));
         Message source = reply("привет");
@@ -146,7 +148,7 @@ class StickerCommandServiceTest {
 
     @Test
     void reportsTelegramFailureToChat() {
-        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(chatAdminService.isAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
         when(stickerSetService.addSticker(any(), anyString())).thenThrow(new IllegalStateException("STICKERSET_INVALID"));
 
         service.executeCommand(dto(ADMIN_ID), update(reply("привет")));
