@@ -98,12 +98,11 @@ public interface MessageExecutor {
     String createStickerSet(long ownerUserId, String name, String title, byte[] png, String emoji);
 
     /**
-     * Добавляет стикер в набор, созданный этим ботом.
+     * {@code file_id} последнего стикера в наборе (Telegram добавляет новые в конец).
      *
-     * @param emoji эмодзи, который Telegram привязывает к стикеру
-     * @return {@code file_id} добавленного стикера или {@code null} при ошибке
+     * @return {@code file_id} или {@code null}, если набор не читается
      */
-    String addStickerToSet(long ownerUserId, String name, byte[] png, String emoji);
+    String getLastStickerFileId(String packName);
 
     /** Привязывает набор к панели стикеров супергруппы. */
     boolean setChatStickerSet(Long chatId, String packName);

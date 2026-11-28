@@ -38,15 +38,18 @@ public class StickerSetService {
 
     private final StickerPackRepo stickerPackRepo;
     private final MessageExecutor messageExecutor;
+    private final StickerUploader stickerUploader;
     /** Чаты, к панели стикеров которых набор уже привязан (или чужой набор не перетираем). */
     private final Set<Long> attachedChats = ConcurrentHashMap.newKeySet();
 
     @Value("${telegram.bot.username}")
     private String botUsername;
 
-    public StickerSetService(StickerPackRepo stickerPackRepo, MessageExecutor messageExecutor) {
+    public StickerSetService(StickerPackRepo stickerPackRepo, MessageExecutor messageExecutor,
+                             StickerUploader stickerUploader) {
         this.stickerPackRepo = stickerPackRepo;
         this.messageExecutor = messageExecutor;
+        this.stickerUploader = stickerUploader;
     }
 
     /**
@@ -61,7 +64,9 @@ public class StickerSetService {
         if (Objects.isNull(pack)) {
             return createPack(png, emoji);
         }
-        String fileId = messageExecutor.addStickerToSet(OWNER_USER_ID, pack.getName(), png, emoji);
+        String fileId = stickerUploader.addStickerToSet(OWNER_USER_ID, pack.getName(), emoji, png)
+                ? messageExecutor.getLastStickerFileId(pack.getName())
+                : null;
         if (Objects.isNull(fileId)) {
             throw new IllegalStateException("Telegram не принял стикер в набор " + pack.getName());
         }

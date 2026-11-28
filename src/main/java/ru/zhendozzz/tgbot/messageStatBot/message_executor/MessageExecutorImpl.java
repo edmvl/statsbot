@@ -12,7 +12,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendSticker;
-import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet;
 import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet;
 import org.telegram.telegrambots.meta.api.methods.stickers.GetStickerSet;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
@@ -546,30 +545,15 @@ public class MessageExecutorImpl implements MessageExecutor {
             log.error("Не удалось создать набор стикеров {}: {}", name, e.getMessage());
             return null;
         }
-        return lastStickerFileId(name);
-    }
-
-    @Override
-    public String addStickerToSet(long ownerUserId, String name, byte[] png, String emoji) {
-        String stickerEmoji = Objects.isNull(emoji) || emoji.isBlank() ? STICKER_EMOJI : emoji;
-        AddStickerToSet request = new AddStickerToSet();
-        request.setUserId(ownerUserId);
-        request.setName(name);
-        request.setSticker(sticker(png, stickerEmoji));
-        try {
-            tgBot.execute(request);
-        } catch (TelegramApiException e) {
-            log.error("Не удалось добавить стикер в набор {}: {}", name, e.getMessage());
-            return null;
-        }
-        return lastStickerFileId(name);
+        return getLastStickerFileId(name);
     }
 
     /**
      * Telegram добавляет стикер в конец набора, поэтому берём последний: его {@code file_id}
      * можно отправлять в чат как есть, не загружая PNG повторно.
      */
-    private String lastStickerFileId(String name) {
+    @Override
+    public String getLastStickerFileId(String name) {
         try {
             GetStickerSet request = new GetStickerSet();
             request.setName(name);
