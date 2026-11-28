@@ -26,6 +26,11 @@ public class StickerCommandService implements CommandExecutable {
 
     private static final String NO_REPLY = "Ответьте на сообщение, из которого нужно сделать стикер.";
     private static final String NOT_TEXT = "Стикер делаю только из текстовых сообщений.";
+    private static final String BAD_EMOJI = "Эмодзи не распознал. Пиши так: .стикер 😍 (эмодзи после команды).";
+    /** Эмодзи по умолчанию, если второй параметр не указан. */
+    private static final String DEFAULT_EMOJI = "🖼";
+    /** Сколько code points допускаем в эмодзи (флаги и ZWJ-последовательности длиннее одного символа). */
+    private static final int MAX_EMOJI_CODE_POINTS = 16;
 
     private final MessageExecutor messageExecutor;
     private final SettingsService settingsService;
@@ -55,6 +60,12 @@ public class StickerCommandService implements CommandExecutable {
             return;
         }
 
+        String emoji = parseEmoji(messageDTO.getUserText());
+        if (Objects.isNull(emoji)) {
+            messageExecutor.sendMessage(chatId, BAD_EMOJI, messageDTO.getMessageId());
+            return;
+        }
+
         Message command = update.getMessage();
         Message replied = Objects.isNull(command) ? null : command.getReplyToMessage();
         if (Objects.isNull(replied)) {
@@ -69,7 +80,7 @@ public class StickerCommandService implements CommandExecutable {
 
         try {
             byte[] png = stickerImageService.render(sourceText);
-            StickerSetService.Result result = stickerSetService.addSticker(png);
+            StickerSetService.Result result = stickerSetService.addSticker(png, emoji);
             if (Objects.nonNull(result.getFileId())) {
                 messageExecutor.sendSticker(chatId, result.getFileId(), replied.getMessageId());
             } else {
@@ -87,6 +98,29 @@ public class StickerCommandService implements CommandExecutable {
         String text = messageDTO.getUserText();
         return Objects.nonNull(text)
                 && text.toLowerCase(Locale.ROOT).startsWith(BotCommands.STICKER.getCommand().toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * Второй параметр команды — эмодзи стикера: {@code .стикер 😍}.
+     *
+     * @return эмодзи, {@link #DEFAULT_EMOJI} если параметра нет, {@code null} если вместо
+     * эмодзи написан обычный текст
+     */
+    String parseEmoji(String text) {
+        if (Objects.isNull(text)) {
+            return DEFAULT_EMOJI;
+        }
+        String command = BotCommands.STICKER.getCommand();
+        String rest = text.length() > command.length() ? text.substring(command.length()).trim() : "";
+        if (rest.isEmpty()) {
+            return DEFAULT_EMOJI;
+        }
+        String token = rest.split("\\s+")[0];
+        boolean hasLetterOrDigit = token.codePoints().anyMatch(Character::isLetterOrDigit);
+        if (hasLetterOrDigit || token.codePointCount(0, token.length()) > MAX_EMOJI_CODE_POINTS) {
+            return null;
+        }
+        return token;
     }
 
     private boolean isBotAdmin(Long chatId, Long userId) {

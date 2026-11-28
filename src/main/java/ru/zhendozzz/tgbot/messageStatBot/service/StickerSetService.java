@@ -52,15 +52,16 @@ public class StickerSetService {
     /**
      * Добавляет стикер в активный набор, при необходимости создаёт новый.
      *
-     * @param png готовый PNG (512 px по одной из сторон, до 512 КБ)
+     * @param png   готовый PNG (512 px по одной из сторон, до 512 КБ)
+     * @param emoji эмодзи стикера из второго параметра команды
      * @return какой набор пополнился и был ли он только что создан
      */
-    public synchronized Result addSticker(byte[] png) {
+    public synchronized Result addSticker(byte[] png, String emoji) {
         StickerPack pack = stickerPackRepo.findFirstByStickersCountLessThanOrderByCreatedAtDesc(MAX_STICKERS);
         if (Objects.isNull(pack)) {
-            return createPack(png);
+            return createPack(png, emoji);
         }
-        String fileId = messageExecutor.addStickerToSet(OWNER_USER_ID, pack.getName(), png);
+        String fileId = messageExecutor.addStickerToSet(OWNER_USER_ID, pack.getName(), png, emoji);
         if (Objects.isNull(fileId)) {
             throw new IllegalStateException("Telegram не принял стикер в набор " + pack.getName());
         }
@@ -103,11 +104,11 @@ public class StickerSetService {
         return index <= 1 ? BASE_NAME + suffix : BASE_NAME + "_" + index + suffix;
     }
 
-    private Result createPack(byte[] png) {
+    private Result createPack(byte[] png, String emoji) {
         long index = stickerPackRepo.count() + 1;
         String name = nameFor(index);
         String title = index <= 1 ? BASE_NAME : BASE_NAME + " " + index;
-        String fileId = messageExecutor.createStickerSet(OWNER_USER_ID, name, title, png);
+        String fileId = messageExecutor.createStickerSet(OWNER_USER_ID, name, title, png, emoji);
         if (Objects.isNull(fileId)) {
             throw new IllegalStateException("Telegram не создал набор стикеров " + name);
         }

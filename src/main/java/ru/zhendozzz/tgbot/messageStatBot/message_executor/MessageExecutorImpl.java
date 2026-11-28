@@ -527,17 +527,18 @@ public class MessageExecutorImpl implements MessageExecutor {
     }
 
     @Override
-    public String createStickerSet(long ownerUserId, String name, String title, byte[] png) {
+    public String createStickerSet(long ownerUserId, String name, String title, byte[] png, String emoji) {
+        String stickerEmoji = Objects.isNull(emoji) || emoji.isBlank() ? STICKER_EMOJI : emoji;
         CreateNewStickerSet request = CreateNewStickerSet.builder()
                 .userId(ownerUserId)
                 .name(name)
                 .title(title)
-                .sticker(sticker(png))
+                .sticker(sticker(png, stickerEmoji))
                 .stickerFormat(STICKER_FORMAT_STATIC)
                 .stickerType(STICKER_TYPE_REGULAR)
                 // Поле устарело, но библиотека отправляет его в multipart всегда:
                 // с null запрос разваливается, а Telegram значение игнорирует.
-                .emojis(STICKER_EMOJI)
+                .emojis(stickerEmoji)
                 .build();
         try {
             tgBot.execute(request);
@@ -549,11 +550,12 @@ public class MessageExecutorImpl implements MessageExecutor {
     }
 
     @Override
-    public String addStickerToSet(long ownerUserId, String name, byte[] png) {
+    public String addStickerToSet(long ownerUserId, String name, byte[] png, String emoji) {
+        String stickerEmoji = Objects.isNull(emoji) || emoji.isBlank() ? STICKER_EMOJI : emoji;
         AddStickerToSet request = new AddStickerToSet();
         request.setUserId(ownerUserId);
         request.setName(name);
-        request.setSticker(sticker(png));
+        request.setSticker(sticker(png, stickerEmoji));
         try {
             tgBot.execute(request);
         } catch (TelegramApiException e) {
@@ -613,10 +615,10 @@ public class MessageExecutorImpl implements MessageExecutor {
         }
     }
 
-    private InputSticker sticker(byte[] png) {
+    private InputSticker sticker(byte[] png, String emoji) {
         return InputSticker.builder()
                 .sticker(stickerFile(png))
-                .emoji(STICKER_EMOJI)
+                .emoji(emoji)
                 .build();
     }
 

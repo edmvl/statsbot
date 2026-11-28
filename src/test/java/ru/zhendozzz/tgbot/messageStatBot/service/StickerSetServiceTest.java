@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 class StickerSetServiceTest {
 
     private static final byte[] PNG = {1, 2, 3};
+    private static final String EMOJI = "😍";
 
     private StickerPackRepo stickerPackRepo;
     private MessageExecutor messageExecutor;
@@ -40,16 +41,16 @@ class StickerSetServiceTest {
         when(stickerPackRepo.findFirstByStickersCountLessThanOrderByCreatedAtDesc(StickerSetService.MAX_STICKERS))
                 .thenReturn(null);
         when(stickerPackRepo.count()).thenReturn(0L);
-        when(messageExecutor.createStickerSet(anyLong(), anyString(), anyString(), any())).thenReturn("file-1");
+        when(messageExecutor.createStickerSet(anyLong(), anyString(), anyString(), any(), anyString())).thenReturn("file-1");
 
-        StickerSetService.Result result = service.addSticker(PNG);
+        StickerSetService.Result result = service.addSticker(PNG, EMOJI);
 
         assertThat(result.getName()).isEqualTo("hamoryal_by_hamoryalstatsbot");
         assertThat(result.isCreated()).isTrue();
         assertThat(result.getCount()).isEqualTo(1);
         assertThat(result.getFileId()).isEqualTo("file-1");
         verify(messageExecutor).createStickerSet(
-                eq(AccessConstants.SUPER_ADMIN_ID), eq("hamoryal_by_hamoryalstatsbot"), eq("hamoryal"), eq(PNG));
+                eq(AccessConstants.SUPER_ADMIN_ID), eq("hamoryal_by_hamoryalstatsbot"), eq("hamoryal"), eq(PNG), eq(EMOJI));
 
         ArgumentCaptor<StickerPack> saved = ArgumentCaptor.forClass(StickerPack.class);
         verify(stickerPackRepo).save(saved.capture());
@@ -61,15 +62,15 @@ class StickerSetServiceTest {
         StickerPack pack = pack("hamoryal_by_hamoryalstatsbot", 5);
         when(stickerPackRepo.findFirstByStickersCountLessThanOrderByCreatedAtDesc(StickerSetService.MAX_STICKERS))
                 .thenReturn(pack);
-        when(messageExecutor.addStickerToSet(anyLong(), anyString(), any())).thenReturn("file-2");
+        when(messageExecutor.addStickerToSet(anyLong(), anyString(), any(), anyString())).thenReturn("file-2");
 
-        StickerSetService.Result result = service.addSticker(PNG);
+        StickerSetService.Result result = service.addSticker(PNG, EMOJI);
 
         assertThat(result.isCreated()).isFalse();
         assertThat(result.getCount()).isEqualTo(6);
         assertThat(result.getFileId()).isEqualTo("file-2");
         verify(messageExecutor).addStickerToSet(AccessConstants.SUPER_ADMIN_ID,
-                "hamoryal_by_hamoryalstatsbot", PNG);
+                "hamoryal_by_hamoryalstatsbot", PNG, EMOJI);
         verify(stickerPackRepo).save(pack);
     }
 
@@ -78,9 +79,9 @@ class StickerSetServiceTest {
         when(stickerPackRepo.findFirstByStickersCountLessThanOrderByCreatedAtDesc(StickerSetService.MAX_STICKERS))
                 .thenReturn(null);
         when(stickerPackRepo.count()).thenReturn(1L);
-        when(messageExecutor.createStickerSet(anyLong(), anyString(), anyString(), any())).thenReturn("file-1");
+        when(messageExecutor.createStickerSet(anyLong(), anyString(), anyString(), any(), anyString())).thenReturn("file-1");
 
-        StickerSetService.Result result = service.addSticker(PNG);
+        StickerSetService.Result result = service.addSticker(PNG, EMOJI);
 
         assertThat(result.getName()).isEqualTo("hamoryal_2_by_hamoryalstatsbot");
         assertThat(result.isCreated()).isTrue();
@@ -98,9 +99,9 @@ class StickerSetServiceTest {
         when(stickerPackRepo.findFirstByStickersCountLessThanOrderByCreatedAtDesc(StickerSetService.MAX_STICKERS))
                 .thenReturn(null);
         when(stickerPackRepo.count()).thenReturn(0L);
-        when(messageExecutor.createStickerSet(anyLong(), anyString(), anyString(), any())).thenReturn(null);
+        when(messageExecutor.createStickerSet(anyLong(), anyString(), anyString(), any(), anyString())).thenReturn(null);
 
-        assertThatThrownBy(() -> service.addSticker(PNG))
+        assertThatThrownBy(() -> service.addSticker(PNG, EMOJI))
                 .isInstanceOf(IllegalStateException.class);
     }
 

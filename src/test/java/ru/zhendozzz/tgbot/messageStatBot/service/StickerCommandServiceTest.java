@@ -8,6 +8,7 @@ import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -69,12 +70,12 @@ class StickerCommandServiceTest {
     void addsStickerAndSendsItAsReply() {
         when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
         when(stickerImageService.render("привет")).thenReturn(PNG);
-        when(stickerSetService.addSticker(PNG))
+        when(stickerSetService.addSticker(eq(PNG), anyString()))
                 .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", true, 1, "sticker-file-id"));
 
         service.executeCommand(dto(ADMIN_ID), update(reply("привет")));
 
-        verify(stickerSetService).addSticker(PNG);
+        verify(stickerSetService).addSticker(PNG, "🖼");
         verify(messageExecutor).sendSticker(CHAT_ID, "sticker-file-id", 20);
         verify(stickerSetService).attachToChat(CHAT_ID, "hamoryal_by_hamoryalstatsbot");
     }
@@ -83,7 +84,7 @@ class StickerCommandServiceTest {
     void reportsTelegramFailureToChat() {
         when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
         when(stickerImageService.render("привет")).thenReturn(PNG);
-        when(stickerSetService.addSticker(PNG)).thenThrow(new IllegalStateException("STICKERSET_INVALID"));
+        when(stickerSetService.addSticker(eq(PNG), anyString())).thenThrow(new IllegalStateException("STICKERSET_INVALID"));
 
         service.executeCommand(dto(ADMIN_ID), update(reply("привет")));
 
@@ -91,12 +92,48 @@ class StickerCommandServiceTest {
         verify(messageExecutor, never()).sendSticker(anyLong(), any(), any());
     }
 
+    @Test
+    void usesEmojiFromSecondParameter() {
+        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(stickerImageService.render("привет")).thenReturn(PNG);
+        when(stickerSetService.addSticker(PNG, "😍"))
+                .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", false, 2, "sticker-file-id"));
+
+        service.executeCommand(dto(ADMIN_ID, ".стикер 😍"), update(reply("привет")));
+
+        verify(stickerSetService).addSticker(PNG, "😍");
+        verify(messageExecutor).sendSticker(CHAT_ID, "sticker-file-id", 20);
+    }
+
+    @Test
+    void parsesEmojiOrDefaultsIt() {
+        assertThat(service.parseEmoji(".стикер")).isEqualTo("🖼");
+        assertThat(service.parseEmoji(".стикер   ")).isEqualTo("🖼");
+        assertThat(service.parseEmoji(".стикер 😍")).isEqualTo("😍");
+        assertThat(service.parseEmoji(".стикер ❤️")).isEqualTo("❤️");
+        assertThat(service.parseEmoji(".стикер 🔥🔥")).isEqualTo("🔥🔥");
+    }
+
+    @Test
+    void refusesTextInsteadOfEmoji() {
+        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+
+        service.executeCommand(dto(ADMIN_ID, ".стикер привет"), update(reply("привет")));
+
+        verify(messageExecutor).sendMessage(eq(CHAT_ID), anyString(), eq(10));
+        verify(stickerImageService, never()).render(anyString());
+    }
+
     private MessageDTO dto(long userId) {
+        return dto(userId, ".стикер");
+    }
+
+    private MessageDTO dto(long userId, String text) {
         return MessageDTO.builder()
                 .chatId(CHAT_ID)
                 .userId(userId)
                 .messageId(10)
-                .userText(".стикер")
+                .userText(text)
                 .build();
     }
 
