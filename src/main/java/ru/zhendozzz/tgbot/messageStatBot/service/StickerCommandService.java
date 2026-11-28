@@ -4,11 +4,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
+import ru.zhendozzz.tgbot.messageStatBot.dto.StickerMessage;
+import ru.zhendozzz.tgbot.messageStatBot.dto.UserAvatar;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 import ru.zhendozzz.tgbot.messageStatBot.util.enums.BotCommands;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -17,8 +27,11 @@ import java.util.Objects;
  * и добавляет в общий набор бота. Доступна только администраторам бота
  * (живые админы чата попадают в них автоматически, см. {@link AdminSyncService}).
  *
- * <p>Сама команда и сообщение-источник остаются в чате, стикер приходит ответом
- * на исходное сообщение.</p>
+ * <p>Второй параметр — эмодзи стикера: {@code .стикер 😍}. Без него ставится 🖼.</p>
+ *
+ * <p>Стикер выглядит как сообщение в приложении: аватар, имя автора со статусом
+ * в чате и пузырь с текстом и временем. Сама команда и сообщение-источник
+ * остаются в чате, стикер приходит ответом на исходное сообщение.</p>
  */
 @Service
 @Slf4j
@@ -31,6 +44,13 @@ public class StickerCommandService implements CommandExecutable {
     private static final String DEFAULT_EMOJI = "🖼";
     /** Сколько code points допускаем в эмодзи (флаги и ZWJ-последовательности длиннее одного символа). */
     private static final int MAX_EMOJI_CODE_POINTS = 16;
+
+    private static final String STATUS_OWNER = "владелец";
+    private static final String STATUS_ADMIN = "админ";
+    private static final String STATUS_CHANNEL = "канал";
+    private static final String ANONYMOUS = "Аноним";
+
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final MessageExecutor messageExecutor;
     private final SettingsService settingsService;
@@ -79,7 +99,7 @@ public class StickerCommandService implements CommandExecutable {
         }
 
         try {
-            byte[] png = stickerImageService.render(sourceText);
+            byte[] png = stickerImageService.render(toStickerMessage(chatId, replied));
             StickerSetService.Result result = stickerSetService.addSticker(png, emoji);
             if (Objects.nonNull(result.getFileId())) {
                 messageExecutor.sendSticker(chatId, result.getFileId(), replied.getMessageId());
@@ -92,6 +112,78 @@ public class StickerCommandService implements CommandExecutable {
             messageExecutor.sendMessage(chatId,
                     "Не удалось добавить стикер в набор: " + e.getMessage(), messageDTO.getMessageId());
         }
+    }
+
+    /** Собирает всё, что нужно нарисовать на стикере: автор, статус, время, текст. */
+    StickerMessage toStickerMessage(Long chatId, Message replied) {
+        User from = replied.getFrom();
+        return StickerMessage.builder()
+                .authorName(authorName(replied, from))
+                .status(status(chatId, replied, from))
+                .time(time(replied))
+                .text(replied.getText())
+                .avatar(avatar(from))
+                .build();
+    }
+
+    /** Имя автора: имя и фамилия, иначе @username; для анонимного админа — название канала. */
+    private String authorName(Message replied, User from) {
+        if (Objects.nonNull(replied.getSenderChat()) && Objects.nonNull(replied.getSenderChat().getTitle())) {
+            return replied.getSenderChat().getTitle();
+        }
+        if (Objects.isNull(from)) {
+            return ANONYMOUS;
+        }
+        String name = (nullToEmpty(from.getFirstName()) + " " + nullToEmpty(from.getLastName())).trim();
+        if (!name.isEmpty()) {
+            return name;
+        }
+        return Objects.nonNull(from.getUserName()) ? "@" + from.getUserName() : ANONYMOUS;
+    }
+
+    /** Статус в чате: владелец/админ по данным Telegram, «канал» для постов от имени канала. */
+    private String status(Long chatId, Message replied, User from) {
+        if (Objects.nonNull(replied.getSenderChat())) {
+            return STATUS_CHANNEL;
+        }
+        if (Objects.isNull(from) || Objects.isNull(from.getId()) || Boolean.TRUE.equals(from.getIsBot())) {
+            return null;
+        }
+        String chatStatus = messageExecutor.getUserStatusInChat(chatId, from.getId());
+        if ("creator".equals(chatStatus)) {
+            return STATUS_OWNER;
+        }
+        return "administrator".equals(chatStatus) ? STATUS_ADMIN : null;
+    }
+
+    private String time(Message replied) {
+        int date = replied.getDate();
+        if (date <= 0) {
+            return null;
+        }
+        return LocalTime.ofInstant(Instant.ofEpochSecond(date), ZoneId.systemDefault()).format(TIME_FORMAT);
+    }
+
+    /** Аватар автора из Telegram; если не получилось — на стикере будут инициалы. */
+    private BufferedImage avatar(User from) {
+        if (Objects.isNull(from) || Objects.isNull(from.getId()) || Boolean.TRUE.equals(from.getIsBot())) {
+            return null;
+        }
+        try {
+            UserAvatar avatar = messageExecutor.getUserAvatar(from.getId());
+            if (Objects.isNull(avatar)) {
+                return null;
+            }
+            String path = messageExecutor.downloadUserAvatar(from.getId(), avatar.fileId());
+            return Objects.isNull(path) ? null : ImageIO.read(new File(path));
+        } catch (Exception e) {
+            log.debug("Аватар для стикера не получен: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String nullToEmpty(String value) {
+        return Objects.isNull(value) ? "" : value;
     }
 
     private boolean isStickerCommand(MessageDTO messageDTO) {

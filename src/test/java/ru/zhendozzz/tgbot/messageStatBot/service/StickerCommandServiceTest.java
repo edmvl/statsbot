@@ -2,9 +2,12 @@ package ru.zhendozzz.tgbot.messageStatBot.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
+import ru.zhendozzz.tgbot.messageStatBot.dto.StickerMessage;
 import ru.zhendozzz.tgbot.messageStatBot.message_executor.MessageExecutor;
 import ru.zhendozzz.tgbot.messageStatBot.util.AccessConstants;
 
@@ -22,6 +25,7 @@ class StickerCommandServiceTest {
 
     private static final long CHAT_ID = -100500L;
     private static final long ADMIN_ID = 777L;
+    private static final long AUTHOR_ID = 555L;
     private static final byte[] PNG = {1, 2, 3};
 
     private MessageExecutor messageExecutor;
@@ -38,13 +42,14 @@ class StickerCommandServiceTest {
         stickerSetService = mock(StickerSetService.class);
         service = new StickerCommandService(messageExecutor, settingsService, stickerImageService, stickerSetService);
         when(settingsService.isUserAdmin(anyLong(), anyLong())).thenReturn(false);
+        when(stickerImageService.render(any())).thenReturn(PNG);
     }
 
     @Test
     void ignoresNonAdmins() {
         service.executeCommand(dto(ADMIN_ID), update(reply("текст")));
 
-        verify(stickerImageService, never()).render(anyString());
+        verify(stickerImageService, never()).render(any());
         verify(messageExecutor, never()).sendSticker(anyLong(), any(), any());
     }
 
@@ -53,7 +58,7 @@ class StickerCommandServiceTest {
         service.executeCommand(dto(AccessConstants.SUPER_ADMIN_ID), update(null));
 
         verify(messageExecutor).sendMessage(eq(CHAT_ID), anyString(), eq(10));
-        verify(stickerImageService, never()).render(anyString());
+        verify(stickerImageService, never()).render(any());
     }
 
     @Test
@@ -63,14 +68,13 @@ class StickerCommandServiceTest {
         service.executeCommand(dto(AccessConstants.SUPER_ADMIN_ID), update(photo));
 
         verify(messageExecutor).sendMessage(eq(CHAT_ID), anyString(), eq(10));
-        verify(stickerImageService, never()).render(anyString());
+        verify(stickerImageService, never()).render(any());
     }
 
     @Test
     void addsStickerAndSendsItAsReply() {
         when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
-        when(stickerImageService.render("привет")).thenReturn(PNG);
-        when(stickerSetService.addSticker(eq(PNG), anyString()))
+        when(stickerSetService.addSticker(PNG, "🖼"))
                 .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", true, 1, "sticker-file-id"));
 
         service.executeCommand(dto(ADMIN_ID), update(reply("привет")));
@@ -81,21 +85,8 @@ class StickerCommandServiceTest {
     }
 
     @Test
-    void reportsTelegramFailureToChat() {
-        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
-        when(stickerImageService.render("привет")).thenReturn(PNG);
-        when(stickerSetService.addSticker(eq(PNG), anyString())).thenThrow(new IllegalStateException("STICKERSET_INVALID"));
-
-        service.executeCommand(dto(ADMIN_ID), update(reply("привет")));
-
-        verify(messageExecutor).sendMessage(eq(CHAT_ID), anyString(), eq(10));
-        verify(messageExecutor, never()).sendSticker(anyLong(), any(), any());
-    }
-
-    @Test
     void usesEmojiFromSecondParameter() {
         when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
-        when(stickerImageService.render("привет")).thenReturn(PNG);
         when(stickerSetService.addSticker(PNG, "😍"))
                 .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", false, 2, "sticker-file-id"));
 
@@ -121,7 +112,47 @@ class StickerCommandServiceTest {
         service.executeCommand(dto(ADMIN_ID, ".стикер привет"), update(reply("привет")));
 
         verify(messageExecutor).sendMessage(eq(CHAT_ID), anyString(), eq(10));
-        verify(stickerImageService, never()).render(anyString());
+        verify(stickerImageService, never()).render(any());
+    }
+
+    @Test
+    void putsAuthorStatusAndTimeOnSticker() {
+        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(messageExecutor.getUserStatusInChat(CHAT_ID, AUTHOR_ID)).thenReturn("administrator");
+        when(stickerSetService.addSticker(any(), anyString()))
+                .thenReturn(new StickerSetService.Result("hamoryal_by_hamoryalstatsbot", false, 2, "sticker-file-id"));
+        Message source = reply("привет");
+
+        StickerMessage sticker = service.toStickerMessage(CHAT_ID, source);
+
+        assertThat(sticker.getAuthorName()).isEqualTo("Иван Петров");
+        assertThat(sticker.getStatus()).isEqualTo("админ");
+        assertThat(sticker.getTime()).isNotNull();
+        assertThat(sticker.getText()).isEqualTo("привет");
+    }
+
+    @Test
+    void marksChannelPostAsChannel() {
+        Message source = reply("пост от канала");
+        Chat channel = new Chat(-100L, "channel");
+        channel.setTitle("Мой канал");
+        source.setSenderChat(channel);
+
+        StickerMessage sticker = service.toStickerMessage(CHAT_ID, source);
+
+        assertThat(sticker.getAuthorName()).isEqualTo("Мой канал");
+        assertThat(sticker.getStatus()).isEqualTo("канал");
+    }
+
+    @Test
+    void reportsTelegramFailureToChat() {
+        when(settingsService.isUserAdmin(CHAT_ID, ADMIN_ID)).thenReturn(true);
+        when(stickerSetService.addSticker(any(), anyString())).thenThrow(new IllegalStateException("STICKERSET_INVALID"));
+
+        service.executeCommand(dto(ADMIN_ID), update(reply("привет")));
+
+        verify(messageExecutor).sendMessage(eq(CHAT_ID), anyString(), eq(10));
+        verify(messageExecutor, never()).sendSticker(anyLong(), any(), any());
     }
 
     private MessageDTO dto(long userId) {
@@ -150,7 +181,14 @@ class StickerCommandServiceTest {
     private Message reply(String text) {
         Message message = new Message();
         message.setMessageId(20);
+        message.setDate(1_700_000_000);
         message.setText(text);
+        User author = new User();
+        author.setId(AUTHOR_ID);
+        author.setFirstName("Иван");
+        author.setLastName("Петров");
+        author.setIsBot(false);
+        message.setFrom(author);
         return message;
     }
 }
