@@ -9,6 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import ru.zhendozzz.tgbot.messageStatBot.dto.MessageDTO;
+import ru.zhendozzz.tgbot.messageStatBot.service.AdminSyncService;
 import ru.zhendozzz.tgbot.messageStatBot.service.CommandExecutable;
 import ru.zhendozzz.tgbot.messageStatBot.service.NeedProcessMessage;
 
@@ -24,11 +25,12 @@ class MessageHandlerTest {
 
     private final CommandExecutable commandExecutable = mock(CommandExecutable.class);
     private final NeedProcessMessage needProcessMessage = mock(NeedProcessMessage.class);
+    private final AdminSyncService adminSyncService = mock(AdminSyncService.class);
     private MessageHandler handler;
 
     @BeforeEach
     void setUp() {
-        handler = new MessageHandler(List.of(commandExecutable), List.of(needProcessMessage));
+        handler = new MessageHandler(List.of(commandExecutable), List.of(needProcessMessage), adminSyncService);
         ReflectionTestUtils.setField(handler, "botUsername", "test_bot");
     }
 

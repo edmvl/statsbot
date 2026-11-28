@@ -4,13 +4,21 @@ import org.telegram.telegrambots.meta.api.methods.groupadministration.BanChatMem
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChat;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.RestrictChatMember;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.SetChatStickerSet;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.UnbanChatMember;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.invoices.CreateInvoiceLink;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.send.SendSticker;
+import org.telegram.telegrambots.meta.api.methods.stickers.AddStickerToSet;
+import org.telegram.telegrambots.meta.api.methods.stickers.CreateNewStickerSet;
+import org.telegram.telegrambots.meta.api.methods.stickers.GetStickerSet;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.stickers.InputSticker;
+import org.telegram.telegrambots.meta.api.objects.stickers.Sticker;
+import org.telegram.telegrambots.meta.api.objects.stickers.StickerSet;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.ChatPermissions;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
@@ -37,6 +45,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -57,6 +66,12 @@ public class MessageExecutorImpl implements MessageExecutor {
 
     /** Статус «человек не в чате» (left/kicked), который проверяет розыгрыш проставляющегося. */
     private static final String STATUS_LEFT = "left";
+
+    /** Эмодзи, обязательный для каждого стикера в наборе. */
+    private static final String STICKER_EMOJI = "🖼";
+    private static final String STICKER_FILE_NAME = "sticker.png";
+    private static final String STICKER_FORMAT_STATIC = "static";
+    private static final String STICKER_TYPE_REGULAR = "regular";
 
     /** Ответ Telegram, когда бота выгнали из чата или чат удалён. */
     private static final String CHAT_NOT_FOUND = "chat not found";
@@ -494,6 +509,119 @@ public class MessageExecutorImpl implements MessageExecutor {
             log.error("Не удалось скачать аватар пользователя {}: {}", userId, e.getMessage());
             return null;
         }
+    }
+
+    @Override
+    public void sendSticker(Long chatId, String stickerFileId, Integer replyToMessageId) {
+        SendSticker sendSticker = new SendSticker();
+        sendSticker.setChatId(chatId);
+        sendSticker.setSticker(new InputFile(stickerFileId));
+        if (Objects.nonNull(replyToMessageId)) {
+            sendSticker.setReplyToMessageId(replyToMessageId);
+        }
+        try {
+            tgBot.execute(sendSticker);
+        } catch (TelegramApiException e) {
+            log.error("Не удалось отправить стикер в чат {}: {}", chatId, e.getMessage());
+        }
+    }
+
+    @Override
+    public String createStickerSet(long ownerUserId, String name, String title, byte[] png) {
+        CreateNewStickerSet request = CreateNewStickerSet.builder()
+                .userId(ownerUserId)
+                .name(name)
+                .title(title)
+                .sticker(sticker(png))
+                .stickerFormat(STICKER_FORMAT_STATIC)
+                .stickerType(STICKER_TYPE_REGULAR)
+                // Поле устарело, но библиотека отправляет его в multipart всегда:
+                // с null запрос разваливается, а Telegram значение игнорирует.
+                .emojis(STICKER_EMOJI)
+                .build();
+        try {
+            tgBot.execute(request);
+        } catch (TelegramApiException e) {
+            log.error("Не удалось создать набор стикеров {}: {}", name, e.getMessage());
+            return null;
+        }
+        return lastStickerFileId(name);
+    }
+
+    @Override
+    public String addStickerToSet(long ownerUserId, String name, byte[] png) {
+        AddStickerToSet request = new AddStickerToSet();
+        request.setUserId(ownerUserId);
+        request.setName(name);
+        request.setSticker(sticker(png));
+        try {
+            tgBot.execute(request);
+        } catch (TelegramApiException e) {
+            log.error("Не удалось добавить стикер в набор {}: {}", name, e.getMessage());
+            return null;
+        }
+        return lastStickerFileId(name);
+    }
+
+    /**
+     * Telegram добавляет стикер в конец набора, поэтому берём последний: его {@code file_id}
+     * можно отправлять в чат как есть, не загружая PNG повторно.
+     */
+    private String lastStickerFileId(String name) {
+        try {
+            GetStickerSet request = new GetStickerSet();
+            request.setName(name);
+            StickerSet stickerSet = tgBot.execute(request);
+            if (Objects.isNull(stickerSet) || Objects.isNull(stickerSet.getStickers())
+                    || stickerSet.getStickers().isEmpty()) {
+                return null;
+            }
+            List<Sticker> stickers = stickerSet.getStickers();
+            return stickers.get(stickers.size() - 1).getFileId();
+        } catch (TelegramApiException e) {
+            log.error("Не удалось прочитать набор стикеров {}: {}", name, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public boolean setChatStickerSet(Long chatId, String packName) {
+        SetChatStickerSet request = new SetChatStickerSet();
+        request.setChatId(chatId);
+        request.setStickerSetName(packName);
+        try {
+            tgBot.execute(request);
+            return true;
+        } catch (TelegramApiException e) {
+            log.warn("Не удалось привязать набор {} к чату {}: {}", packName, chatId, e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public Chat getChat(Long chatId) {
+        if (Objects.isNull(chatId)) {
+            return null;
+        }
+        GetChat request = new GetChat();
+        request.setChatId(chatId.toString());
+        try {
+            return tgBot.execute(request);
+        } catch (TelegramApiException e) {
+            log.debug("getChat {}: {}", chatId, e.getMessage());
+            return null;
+        }
+    }
+
+    private InputSticker sticker(byte[] png) {
+        return InputSticker.builder()
+                .sticker(stickerFile(png))
+                .emoji(STICKER_EMOJI)
+                .build();
+    }
+
+    private InputFile stickerFile(byte[] png) {
+        return new InputFile(new ByteArrayInputStream(png), STICKER_FILE_NAME);
     }
 
     @Autowired

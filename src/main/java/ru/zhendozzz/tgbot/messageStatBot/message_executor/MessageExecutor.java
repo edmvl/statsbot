@@ -84,4 +84,29 @@ public interface MessageExecutor {
      */
     String downloadUserAvatar(Long userId, String fileId);
 
+    /**
+     * Отправляет стикер по {@code file_id} (ответом на сообщение, если передан {@code replyMessageId}).
+     */
+    void sendSticker(Long chatId, String stickerFileId, Integer replyToMessageId);
+
+    /**
+     * Создаёт набор стикеров от имени пользователя {@code ownerUserId}.
+     *
+     * @return {@code file_id} первого стикера или {@code null}, если Telegram отказал
+     */
+    String createStickerSet(long ownerUserId, String name, String title, byte[] png);
+
+    /**
+     * Добавляет стикер в набор, созданный этим ботом.
+     *
+     * @return {@code file_id} добавленного стикера или {@code null} при ошибке
+     */
+    String addStickerToSet(long ownerUserId, String name, byte[] png);
+
+    /** Привязывает набор к панели стикеров супергруппы. */
+    boolean setChatStickerSet(Long chatId, String packName);
+
+    /** Данные чата по id (в отличие от {@link #getChat(String)} не добавляет «@»). */
+    Chat getChat(Long chatId);
+
 }
