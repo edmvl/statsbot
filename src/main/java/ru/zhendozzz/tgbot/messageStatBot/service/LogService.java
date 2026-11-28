@@ -26,6 +26,9 @@ import java.util.logging.Level;
 @lombok.extern.java.Log
 public class LogService implements NeedProcessMessage {
 
+    /** Отдельный slf4j-логер: сообщения бота видны в общем логе приложения. */
+    private static final org.slf4j.Logger BOT_LOG = org.slf4j.LoggerFactory.getLogger(LogService.class);
+
     /** Тип записи для сообщений самого бота: видны в истории, но не идут в статистику. */
     public static final String LOGGER_BOT = "bot";
 
@@ -156,6 +159,8 @@ public class LogService implements NeedProcessMessage {
     public void saveBotMessage(String chatId, Integer messageId, String text) {
         if (Objects.isNull(chatId) || Objects.isNull(messageId)
                 || Objects.isNull(text) || text.isBlank()) {
+            BOT_LOG.warn("bot-message: пропуск записи (chat={}, messageId={}, пустой текст={})",
+                    chatId, messageId, Objects.isNull(text) || text.isBlank());
             return;
         }
         try {
@@ -168,10 +173,12 @@ public class LogService implements NeedProcessMessage {
             // Сообщения бота не участвуют в распознавании поездок.
             log.setTripParsed(true);
             log.setText(text);
-            logRepo.save(log);
+            Log saved = logRepo.save(log);
+            BOT_LOG.info("bot-message: сохранено id={} в чате {} (messageId={})",
+                    saved.getId(), chatId, messageId);
         } catch (Exception e) {
             // История бота — вспомогательная: сбой записи не должен ломать отправку.
-            log.log(Level.WARNING, "Не удалось сохранить сообщение бота в чате " + chatId + ": " + e.getMessage());
+            BOT_LOG.warn("Не удалось сохранить сообщение бота в чате {}: {}", chatId, e.toString());
         }
     }
 

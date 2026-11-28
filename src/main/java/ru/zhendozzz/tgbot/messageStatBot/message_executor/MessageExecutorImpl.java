@@ -65,6 +65,7 @@ public class MessageExecutorImpl implements MessageExecutor {
 
     private SettingsService settingsService;
 
+    @Autowired
     private LogService logService;
 
     @Value("${file.upload-dir}")
@@ -91,9 +92,11 @@ public class MessageExecutorImpl implements MessageExecutor {
      * чтобы их было видно в Mini App, но статистика их не считала.
      */
     private void saveBotMessage(String chatId, Integer messageId, String text) {
-        if (Objects.nonNull(logService)) {
-            logService.saveBotMessage(chatId, messageId, text);
+        if (Objects.isNull(logService)) {
+            log.warn("bot-message: LogService не внедрён — сообщение чата {} не сохранено в историю", chatId);
+            return;
         }
+        logService.saveBotMessage(chatId, messageId, text);
     }
 
     /**
